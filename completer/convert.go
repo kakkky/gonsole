@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func convertFromNodeToCandidates(node map[string]*ast.Package) candidates {
 	c := candidates{
 		pkgs:    make([]pkgName, 0),
@@ -23,6 +24,7 @@ func convertFromNodeToCandidates(node map[string]*ast.Package) candidates {
 	return c
 }
 
+// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func (c *candidates) processPackageAst(pkg string, pkgAst *ast.Package) {
 	c.pkgs = append(c.pkgs, pkgName(pkg))
 	for _, fileAst := range pkgAst.Files {

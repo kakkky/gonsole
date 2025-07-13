@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 )
 
+// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func analyze(path string) (map[string]*ast.Package, error) {
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
