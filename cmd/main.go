@@ -7,6 +7,10 @@ import (
 )
 
 func main() {
-	repl := repl.NewRepl(completer.NewCompleter(), executor.NewExecutor())
+	candidates, err := completer.GenerateCandidates(".")
+	if err != nil {
+		panic(err)
+	}
+	repl := repl.NewRepl(completer.NewCompleter(candidates), executor.NewExecutor())
 	repl.Run()
 }
