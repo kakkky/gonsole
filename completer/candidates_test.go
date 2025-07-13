@@ -13,35 +13,38 @@ func TestGenerateCandidates(t *testing.T) {
 		want *candidates
 	}{
 		{
-			name: "testdata/simple",
+			name: "can analyze testdata/simple , and convert from node to candidates",
 			path: "./testdata/simple",
 			want: &candidates{
 				pkgs:    []pkgName{"simple"},
-				funcs:   map[pkgName][]funcName{"simple": {"SimpleFunc"}},
-				methods: map[pkgName][]receiverMap{"simple": {{typeName("SimpleType"): "SimpleMethod"}}},
-				vars:    map[pkgName][]varName{"simple": {"SimpleVar"}},
-				consts:  map[pkgName][]constName{"simple": {"SimpleConst"}},
-				types:   map[pkgName][]typeName{"simple": {"SimpleType"}},
+				funcs:   map[pkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function"}}},
+				methods: map[pkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType"}}},
+				vars:    map[pkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable"}}},
+				consts:  map[pkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
+				types:   map[pkgName][]typeSet{"simple": {{name: "SimpleType", description: "SimpleType is a simple type"}}},
 			},
 		},
 		{
-			name: "testdata/complex",
+			name: "can analyze testdata/complex , and convert from node to candidates",
 			path: "./testdata/complex/",
 			want: &candidates{
 				pkgs:  []pkgName{"complex", "subcomplex"},
-				funcs: map[pkgName][]funcName{},
-				methods: map[pkgName][]receiverMap{
-					"complex":    {{typeName("ComplexType"): "ComplexMethod"}},
-					"subcomplex": {{typeName("SubComplexType"): "SubComplexMethod"}},
+				funcs: map[pkgName][]funcSet{},
+				methods: map[pkgName][]methodSet{
+					"complex":    {{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverTypeName: "ComplexType"}},
+					"subcomplex": {{name: "SubComplexMethod", description: "", receiverTypeName: "SubComplexType"}},
 				},
-				vars: map[pkgName][]varName{
-					"complex":    {"ComplexA", "ComplexB", "ComplexC", "ComplexD"},
-					"subcomplex": {"SubComplexA", "SubComplexB", "SubComplexC", "SubComplexD"},
+				vars: map[pkgName][]varSet{
+					"complex":    {{name: "ComplexC", description: "Complex variable"}, {name: "ComplexD", description: "Complex variable"}},
+					"subcomplex": {{name: "SubComplexA", description: ""}, {name: "SubComplexB", description: ""}},
 				},
-				consts: map[pkgName][]constName{},
-				types: map[pkgName][]typeName{
-					"complex":    {"ComplexType"},
-					"subcomplex": {"SubComplexType"},
+				consts: map[pkgName][]constSet{
+					"complex":    {{name: "ComplexA", description: "ComplexConst is a constant   ComplexA is a complex constant A"}, {name: "ComplexB", description: "ComplexConst is a constant   ComplexB is a complex constant B"}},
+					"subcomplex": {{name: "SubComplexC", description: ""}, {name: "SubComplexD", description: ""}},
+				},
+				types: map[pkgName][]typeSet{
+					"complex":    {{name: "ComplexType", description: "ComplexType is a complex type"}},
+					"subcomplex": {{name: "SubComplexType", description: ""}},
 				},
 			},
 		},
@@ -53,7 +56,7 @@ func TestGenerateCandidates(t *testing.T) {
 				t.Errorf("GenerateCandidates() error = %v", err)
 				return
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{})); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, typeSet{})); diff != "" {
 				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
 			}
 		})

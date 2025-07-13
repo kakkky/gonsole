@@ -5,7 +5,7 @@ var (
 	SubComplexB = "Subcomplex value B"
 )
 
-var SubComplexC, SubComplexD = "Subcomplex value C", "Subcomplex value D"
+const SubComplexC, SubComplexD = "Subcomplex value C", "Subcomplex value D"
 
 type SubComplexType struct{}
 
