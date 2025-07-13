@@ -1,21 +1,38 @@
 package completer
 
 type pkgName string
-type funcName string
-type varName string
-type constName string
-type typeName string
-type methodName string
 
-type receiverMap map[typeName]methodName
+type (
+	funcSet struct {
+		name        string
+		description string
+	}
+	methodSet struct {
+		name             string
+		description      string
+		receiverTypeName string
+	}
+	varSet struct {
+		name        string
+		description string
+	}
+	constSet struct {
+		name        string
+		description string
+	}
+	typeSet struct {
+		name        string
+		description string
+	}
+)
 
 type candidates struct {
 	pkgs    []pkgName
-	funcs   map[pkgName][]funcName
-	methods map[pkgName][]receiverMap
-	vars    map[pkgName][]varName
-	consts  map[pkgName][]constName
-	types   map[pkgName][]typeName
+	funcs   map[pkgName][]funcSet
+	methods map[pkgName][]methodSet
+	vars    map[pkgName][]varSet
+	consts  map[pkgName][]constSet
+	types   map[pkgName][]typeSet
 }
 
 func GenerateCandidates(path string) (*candidates, error) {
