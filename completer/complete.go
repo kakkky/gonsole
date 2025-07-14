@@ -22,22 +22,32 @@ type pkgAndInput struct {
 }
 
 func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
-	inputBeforeCursor := input.TextBeforeCursor()
 	inputStr := input.Text
 	suggestions := make([]prompt.Suggest, 0)
-
-	// 変数宣言の際に = が含まれていたら、その後の文字列を補完の検索に使用する。ただ、これのせいで、＝より前がそのまま残って補完を適用してしまう。要KAIZEN
-	equalPos, found := findEqualPos(inputStr)
+	equalAndSpacePos, found := findEqualAndSpacePos(inputStr)
 	if found {
-		inputStr = inputStr[equalPos+1:]
+		inputStr = inputStr[equalAndSpacePos+2:]
+		// . までは、packageの候補を表示する
+		if !strings.Contains(inputStr, ".") {
+			for _, pkg := range c.candidates.pkgs {
+				if strings.HasPrefix(string(pkg), inputStr) {
+					suggestions = append(suggestions, prompt.Suggest{
+						Text:        string(pkg),
+						DisplayText: string(pkg),
+						Description: "Package",
+					})
+				}
+			}
+			return suggestions
+		}
 	}
 
-	// . までは、packageの候補を表示する
 	if !strings.Contains(inputStr, ".") {
 		for _, pkg := range c.candidates.pkgs {
 			if strings.HasPrefix(string(pkg), inputStr) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        string(pkg),
+					DisplayText: string(pkg),
 					Description: "Package",
 				})
 			}
@@ -46,19 +56,20 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 	}
 
 	pkgAndInput := separatePkgAndInput(inputStr)
-	findedSuggestions := c.findSuggestions(pkgAndInput, inputBeforeCursor)
+	findedSuggestions := c.findSuggestions(pkgAndInput)
 	suggestions = append(suggestions, findedSuggestions...)
 
 	return suggestions
 }
 
-func (c *Completer) findSuggestions(pai pkgAndInput, ibc string) []prompt.Suggest {
+func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
 	var suggestions []prompt.Suggest
 	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
 		for _, funcSet := range funcSets {
 			if strings.HasPrefix(funcSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        ibc + funcSet.name + "()",
+					Text:        pai.pkg + "." + funcSet.name + "()",
+					DisplayText: funcSet.name + "()",
 					Description: "Function: " + funcSet.description,
 				})
 			}
@@ -68,7 +79,8 @@ func (c *Completer) findSuggestions(pai pkgAndInput, ibc string) []prompt.Sugges
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        ibc + varSet.name,
+					Text:        pai.pkg + "." + varSet.name,
+					DisplayText: varSet.name,
 					Description: "Variable: " + varSet.description,
 				})
 			}
@@ -78,7 +90,8 @@ func (c *Completer) findSuggestions(pai pkgAndInput, ibc string) []prompt.Sugges
 		for _, constSet := range constSets {
 			if strings.HasPrefix(constSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        ibc + constSet.name,
+					Text:        pai.pkg + "." + constSet.name,
+					DisplayText: constSet.name,
 					Description: "Constant: " + constSet.description,
 				})
 			}
@@ -88,7 +101,8 @@ func (c *Completer) findSuggestions(pai pkgAndInput, ibc string) []prompt.Sugges
 		for _, typeSet := range typeSets {
 			if strings.HasPrefix(typeSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        ibc + typeSet.name,
+					Text:        pai.pkg + "." + typeSet.name,
+					DisplayText: typeSet.name,
 					Description: "Type: " + typeSet.description,
 				})
 			}
@@ -110,8 +124,8 @@ func separatePkgAndInput(input string) pkgAndInput {
 	return pkgAndInput
 }
 
-func findEqualPos(input string) (int, bool) {
-	equalPos := strings.LastIndex(input, "=")
+func findEqualAndSpacePos(input string) (int, bool) {
+	equalPos := strings.LastIndex(input, "= ")
 	if equalPos == -1 {
 		return -1, false
 	}
