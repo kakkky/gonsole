@@ -55,7 +55,19 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 		return suggestions
 	}
 
-	pkgAndInput := separatePkgAndInput(inputStr)
+	for _, decl := range DeclVarInTerminalList {
+		for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
+			if decl.Type == methodSet.receiverTypeName {
+				suggestions = append(suggestions, prompt.Suggest{
+					Text:        inputStr + methodSet.name + "()",
+					DisplayText: methodSet.name + "()",
+					Description: "Method: " + methodSet.description,
+				})
+			}
+		}
+	}
+
+	pkgAndInput := buildPkgAndInput(inputStr)
 	findedSuggestions := c.findSuggestions(pkgAndInput)
 	suggestions = append(suggestions, findedSuggestions...)
 
@@ -75,6 +87,7 @@ func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
 			}
 		}
 	}
+
 	if varSets, ok := c.candidates.vars[pkgName(pai.pkg)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
@@ -112,7 +125,7 @@ func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
 }
 
 // {pkg名}. まで入力されている場合は、pkg名とその後の文字列を構造体にまとめる
-func separatePkgAndInput(input string) pkgAndInput {
+func buildPkgAndInput(input string) pkgAndInput {
 	var pkgAndInput pkgAndInput
 	if strings.Contains(input, ".") {
 		parts := strings.SplitN(input, ".", 2)
@@ -131,3 +144,11 @@ func findEqualAndSpacePos(input string) (int, bool) {
 	}
 	return equalPos, true
 }
+
+type DeclVarInTerminal struct {
+	Pkg  string
+	Name string
+	Type string
+}
+
+var DeclVarInTerminalList = []DeclVarInTerminal{}
