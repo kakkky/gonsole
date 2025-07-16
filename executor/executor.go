@@ -14,5 +14,5 @@ func NewExecutor() *Executor {
 
 func (e *Executor) Execute(input string) {
 	fmt.Println("Executing command:", input)
-	completer.DeclVarInTerminalList = append(completer.DeclVarInTerminalList, completer.DeclVarInTerminal{Name: "sc", Type: "SubComplexType", Pkg: "subcomplex"})
+	completer.DeclVarRecords = append(completer.DeclVarRecords, completer.DeclVarRecord{Name: "sc", Type: "SubComplexType", Pkg: "subcomplex"})
 }

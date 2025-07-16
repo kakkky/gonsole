@@ -145,10 +145,11 @@ func findEqualAndSpacePos(input string) (int, bool) {
 	return equalPos, true
 }
 
-type DeclVarInTerminal struct {
-	Pkg  string
-	Name string
-	Type string
-}
+var isAmpersandInclude bool
 
-var DeclVarInTerminalList = []DeclVarInTerminal{}
+func addAmpersand() string {
+	if isAmpersandInclude {
+		return "&"
+	}
+	return ""
+}
