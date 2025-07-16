@@ -8,7 +8,7 @@ var SimpleVar = "variable value"
 
 // SimpleType is a simple type
 type SimpleType struct {
-	Field string
+	SimpleField string
 }
 
 // SimpleMethod is a method for SimpleType

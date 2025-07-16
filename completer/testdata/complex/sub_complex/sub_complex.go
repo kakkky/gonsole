@@ -7,6 +7,9 @@ var (
 
 const SubComplexC, SubComplexD = "Subcomplex value C", "Subcomplex value D"
 
-type SubComplexType struct{}
+type SubComplexType struct {
+	FieldA string
+	FieldB string
+}
 
 func (c SubComplexType) SubComplexMethod() {}
