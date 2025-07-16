@@ -21,7 +21,7 @@ func TestGenerateCandidates(t *testing.T) {
 				methods: map[pkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType"}}},
 				vars:    map[pkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable"}}},
 				consts:  map[pkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
-				types:   map[pkgName][]typeSet{"simple": {{name: "SimpleType", description: "SimpleType is a simple type"}}},
+				structs: map[pkgName][]structSet{"simple": {{name: "SimpleType", fields: []string{"SimpleField"}, description: "SimpleType is a simple type"}}},
 			},
 		},
 		{
@@ -42,9 +42,9 @@ func TestGenerateCandidates(t *testing.T) {
 					"complex":    {{name: "ComplexA", description: "ComplexConst is a constant   ComplexA is a complex constant A"}, {name: "ComplexB", description: "ComplexConst is a constant   ComplexB is a complex constant B"}},
 					"subcomplex": {{name: "SubComplexC", description: ""}, {name: "SubComplexD", description: ""}},
 				},
-				types: map[pkgName][]typeSet{
+				structs: map[pkgName][]structSet{
 					"complex":    {{name: "ComplexType", description: "ComplexType is a complex type"}},
-					"subcomplex": {{name: "SubComplexType", description: ""}},
+					"subcomplex": {{name: "SubComplexType", fields: []string{"FieldA", "FieldB"}, description: ""}},
 				},
 			},
 		},
@@ -56,7 +56,7 @@ func TestGenerateCandidates(t *testing.T) {
 				t.Errorf("GenerateCandidates() error = %v", err)
 				return
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, typeSet{})); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{})); diff != "" {
 				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
 			}
 		})

@@ -20,8 +20,9 @@ type (
 		name        string
 		description string
 	}
-	typeSet struct {
+	structSet struct {
 		name        string
+		fields      []string
 		description string
 	}
 )
@@ -32,7 +33,7 @@ type candidates struct {
 	methods map[pkgName][]methodSet
 	vars    map[pkgName][]varSet
 	consts  map[pkgName][]constSet
-	types   map[pkgName][]typeSet
+	structs map[pkgName][]structSet
 }
 
 func GenerateCandidates(path string) (*candidates, error) {
