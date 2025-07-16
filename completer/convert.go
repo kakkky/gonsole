@@ -14,7 +14,7 @@ func convertFromNodeToCandidates(node map[string]*ast.Package) candidates {
 		methods: make(map[pkgName][]methodSet),
 		vars:    make(map[pkgName][]varSet),
 		consts:  make(map[pkgName][]constSet),
-		types:   make(map[pkgName][]typeSet),
+		structs: make(map[pkgName][]structSet),
 	}
 
 	for pkg, pkgAst := range node {
@@ -127,10 +127,19 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 	}
 	for _, spec := range genDecl.Specs {
 		typespec := spec.(*ast.TypeSpec)
+		var fields []string
+		structType, ok := typespec.Type.(*ast.StructType)
+		if ok {
+			for _, field := range structType.Fields.List {
+				if len(field.Names) > 0 {
+					fields = append(fields, field.Names[0].Name)
+				}
+			}
+		}
 		var specDescription string
 		if typespec.Doc != nil {
 			specDescription += "   " + strings.TrimSpace(typespec.Doc.Text())
 		}
-		c.types[pkgName(pkg)] = append(c.types[pkgName(pkg)], typeSet{name: typespec.Name.Name, description: genDeclDescription + specDescription})
+		c.structs[pkgName(pkg)] = append(c.structs[pkgName(pkg)], structSet{name: typespec.Name.Name, fields: fields, description: genDeclDescription + specDescription})
 	}
 }
