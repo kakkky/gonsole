@@ -1,4 +1,4 @@
-package completer
+package utils
 
 import (
 	"go/ast"

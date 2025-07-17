@@ -35,12 +35,3 @@ type candidates struct {
 	consts  map[pkgName][]constSet
 	structs map[pkgName][]structSet
 }
-
-func GenerateCandidates(path string) (*candidates, error) {
-	node, err := analyze(path)
-	if err != nil {
-		return nil, err
-	}
-	cs := convertFromNodeToCandidates(node)
-	return &cs, nil
-}

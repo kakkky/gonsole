@@ -7,7 +7,7 @@ import (
 )
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func convertFromNodeToCandidates(node map[string]*ast.Package) candidates {
+func ConvertFromNodeToCandidates(node map[string]*ast.Package) *candidates {
 	c := candidates{
 		pkgs:    make([]pkgName, 0),
 		funcs:   make(map[pkgName][]funcSet),
@@ -21,7 +21,7 @@ func convertFromNodeToCandidates(node map[string]*ast.Package) candidates {
 		c.processPackageAst(pkg, pkgAst)
 	}
 
-	return c
+	return &c
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分

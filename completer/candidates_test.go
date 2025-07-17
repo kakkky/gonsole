@@ -4,16 +4,17 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/kakkky/gonsole/utils"
 )
 
-func TestGenerateCandidates(t *testing.T) {
+func TestConvertFromNodeToCandidates(t *testing.T) {
 	tests := []struct {
 		name string
 		path string
 		want *candidates
 	}{
 		{
-			name: "can analyze testdata/simple , and convert from node to candidates",
+			name: "can AnalyzeGoAst testdata/simple , and convert from node to candidates",
 			path: "./testdata/simple",
 			want: &candidates{
 				pkgs:    []pkgName{"simple"},
@@ -25,7 +26,7 @@ func TestGenerateCandidates(t *testing.T) {
 			},
 		},
 		{
-			name: "can analyze testdata/complex , and convert from node to candidates",
+			name: "can AnalyzeGoAst testdata/complex , and convert from node to candidates",
 			path: "./testdata/complex/",
 			want: &candidates{
 				pkgs:  []pkgName{"complex", "subcomplex"},
@@ -51,11 +52,12 @@ func TestGenerateCandidates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateCandidates(tt.path)
+			nodes, err := utils.AnalyzeGoAst(tt.path)
 			if err != nil {
-				t.Errorf("GenerateCandidates() error = %v", err)
+				t.Errorf("AnalyzeGoAst() error = %v", err)
 				return
 			}
+			got := ConvertFromNodeToCandidates(nodes)
 			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{})); diff != "" {
 				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
 			}
