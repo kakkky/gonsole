@@ -1,6 +1,7 @@
 package completer
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/c-bata/go-prompt"
@@ -18,53 +19,45 @@ func NewCompleter(candidates *candidates) *Completer {
 
 func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 	inputStr := input.Text
-	suggestions := make([]prompt.Suggest, 0)
 
 	if strings.Contains(inputStr, "&") {
 		isAmpersandInclude = true
 		inputStr = strings.ReplaceAll(inputStr, "&", "")
 	}
 
-	equalAndSpacePos, found := findEqualAndSpacePos(inputStr)
-	if found {
+	if equalAndSpacePos, found := findEqualAndSpacePos(inputStr); found {
 		inputStr = inputStr[equalAndSpacePos+2:]
-		// . までは、packageの候補を表示する
-		if !strings.Contains(inputStr, ".") {
-			c.findAndAppendPackage(suggestions, inputStr)
-			return suggestions
-		}
 	}
 
 	if !strings.Contains(inputStr, ".") {
-		c.findAndAppendPackage(suggestions, inputStr)
-		return suggestions
+		return c.findPackageSuggestions(inputStr)
 	}
 
-	c.findAndAppendMethod(suggestions, inputStr)
+	methodSuggests := c.findAndAppendMethod(inputStr)
+	if len(methodSuggests) > 0 {
+		return methodSuggests
+	}
 
 	pkgAndInput := buildPkgAndInput(inputStr)
-	findedSuggestions := c.findSuggestions(pkgAndInput)
-	suggestions = append(suggestions, findedSuggestions...)
+	suggestions := c.findSuggestions(pkgAndInput)
 
 	return suggestions
 }
 
 func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
-	var suggestions []prompt.Suggest
 	if isAmpersandInclude {
-		c.findAndAppendStruct(suggestions, pai)
-		return suggestions
+		return c.findStructSuggestions(pai)
 	}
-	c.findAndAppendPackage(suggestions, pai.input)
-	c.findAndAppendFunction(suggestions, pai)
-	c.findAndAppendVariable(suggestions, pai)
-	c.findAndAppendConstant(suggestions, pai)
-	c.findAndAppendStruct(suggestions, pai)
+	functionSuggests := c.findFunctionSuggestions(pai)
+	variableSuggests := c.findVariableSuggestions(pai)
+	constantSuggets := c.findConstantSuggestions(pai)
+	structSuggests := c.findStructSuggestions(pai)
 
-	return suggestions
+	return slices.Concat(functionSuggests, variableSuggests, constantSuggets, structSuggests)
 }
 
-func (c *Completer) findAndAppendPackage(suggestions []prompt.Suggest, inputStr string) {
+func (c *Completer) findPackageSuggestions(inputStr string) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	for _, pkg := range c.candidates.pkgs {
 		if strings.HasPrefix(string(pkg), inputStr) {
 			suggestions = append(suggestions, prompt.Suggest{
@@ -74,9 +67,11 @@ func (c *Completer) findAndAppendPackage(suggestions []prompt.Suggest, inputStr 
 			})
 		}
 	}
+	return suggestions
 }
 
-func (c *Completer) findAndAppendFunction(suggestions []prompt.Suggest, pai pkgAndInput) {
+func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
 		for _, funcSet := range funcSets {
 			if strings.HasPrefix(funcSet.name, pai.input) {
@@ -88,9 +83,11 @@ func (c *Completer) findAndAppendFunction(suggestions []prompt.Suggest, pai pkgA
 			}
 		}
 	}
+	return suggestions
 }
 
-func (c *Completer) findAndAppendMethod(suggestions []prompt.Suggest, inputStr string) {
+func (c *Completer) findAndAppendMethod(inputStr string) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	for _, decl := range DeclVarRecords {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
@@ -104,9 +101,11 @@ func (c *Completer) findAndAppendMethod(suggestions []prompt.Suggest, inputStr s
 			}
 		}
 	}
+	return suggestions
 }
 
-func (c *Completer) findAndAppendVariable(suggestions []prompt.Suggest, pai pkgAndInput) {
+func (c *Completer) findVariableSuggestions(pai pkgAndInput) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	if varSets, ok := c.candidates.vars[pkgName(pai.pkg)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
@@ -118,9 +117,11 @@ func (c *Completer) findAndAppendVariable(suggestions []prompt.Suggest, pai pkgA
 			}
 		}
 	}
+	return suggestions
 }
 
-func (c *Completer) findAndAppendConstant(suggestions []prompt.Suggest, pai pkgAndInput) {
+func (c *Completer) findConstantSuggestions(pai pkgAndInput) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	if constSets, ok := c.candidates.consts[pkgName(pai.pkg)]; ok {
 		for _, constSet := range constSets {
 			if strings.HasPrefix(constSet.name, pai.input) {
@@ -132,9 +133,11 @@ func (c *Completer) findAndAppendConstant(suggestions []prompt.Suggest, pai pkgA
 			}
 		}
 	}
+	return suggestions
 }
 
-func (c *Completer) findAndAppendStruct(suggestions []prompt.Suggest, pai pkgAndInput) {
+func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
 	if structSets, ok := c.candidates.structs[pkgName(pai.pkg)]; ok {
 		for _, structSet := range structSets {
 			var field string
@@ -154,6 +157,7 @@ func (c *Completer) findAndAppendStruct(suggestions []prompt.Suggest, pai pkgAnd
 			}
 		}
 	}
+	return suggestions
 }
 
 type pkgAndInput struct {
