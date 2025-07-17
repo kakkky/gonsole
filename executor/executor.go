@@ -6,10 +6,14 @@ import (
 	"github.com/kakkky/gonsole/completer"
 )
 
-type Executor struct{}
+type Executor struct {
+	importPaths []string
+}
 
-func NewExecutor() *Executor {
-	return &Executor{}
+func NewExecutor(importPaths []string) *Executor {
+	return &Executor{
+		importPaths: importPaths,
+	}
 }
 
 func (e *Executor) Execute(input string) {
