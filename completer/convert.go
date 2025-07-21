@@ -135,11 +135,11 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 					fields = append(fields, field.Names[0].Name)
 				}
 			}
+			var specDescription string
+			if typespec.Doc != nil {
+				specDescription += "   " + strings.TrimSpace(typespec.Doc.Text())
+			}
+			c.structs[pkgName(pkg)] = append(c.structs[pkgName(pkg)], structSet{name: typespec.Name.Name, fields: fields, description: genDeclDescription + specDescription})
 		}
-		var specDescription string
-		if typespec.Doc != nil {
-			specDescription += "   " + strings.TrimSpace(typespec.Doc.Text())
-		}
-		c.structs[pkgName(pkg)] = append(c.structs[pkgName(pkg)], structSet{name: typespec.Name.Name, fields: fields, description: genDeclDescription + specDescription})
 	}
 }
