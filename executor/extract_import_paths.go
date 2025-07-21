@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"fmt"
 	"go/ast"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ func ExtractImportPaths(nodes map[string]*ast.Package, modPath string) []string 
 	importPaths := make([]string, 0)
 	for _, pkg := range nodes {
 		for _, file := range pkg.Files {
+			importPaths = append(importPaths, fmt.Sprintf(`"%s"`, file.Name.Name))
 			for _, imp := range file.Imports {
 				modPath, err := getGoModPath(modPath)
 				if err != nil || modPath == "" {
