@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/format"
@@ -35,15 +36,19 @@ func NewExecutor() *Executor {
 
 func (e *Executor) Execute(input string) {
 	if err := e.addToTmpSrc(input); err != nil {
-		log.Println("Failed to add input to temporary source file:", err)
+		fmt.Println(err)
 	}
 	cmd := exec.Command("go", "run", e.tmpFilePath)
-	cmd.Stdout = os.Stdout // 標準出力を転送
-	cmd.Stderr = os.Stderr // 標準エラー出力を転送
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
 
-	if err := cmd.Run(); err != nil {
-		log.Println(err)
-		return
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("\033[31m%s\033[0m", stderrBuf.String())
+	}
+	if stdoutBuf.Len() > 0 {
+		fmt.Printf("\033[32m%s\033[0m", stdoutBuf.String())
 	}
 	// 関数呼び出しだった場合はそれをtmpファイルから削除する
 	if err := e.deleteCallExpr(); err != nil {
