@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/c-bata/go-prompt"
@@ -18,7 +17,13 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 		executor.Execute,
 		completer.Complete,
 		prompt.OptionTitle("Gonsole"),
-		prompt.OptionAddKeyBind(keyBinds...),
+		prompt.OptionAddKeyBind(prompt.KeyBind{
+			Key: prompt.ControlC,
+			Fn: func(buf *prompt.Buffer) {
+				executor.Close()
+				os.Exit(0)
+			},
+		}),
 	)
 	return &Repl{
 		pt: pt,
@@ -27,14 +32,4 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 
 func (r *Repl) Run() {
 	r.pt.Run()
-}
-
-var keyBinds = []prompt.KeyBind{
-	{
-		Key: prompt.ControlC,
-		Fn: func(buf *prompt.Buffer) {
-			fmt.Println("\nExit on Ctrl+C")
-			os.Exit(0)
-		},
-	},
 }
