@@ -13,7 +13,6 @@ func main() {
 		panic(err)
 	}
 	candidates := completer.ConvertFromNodeToCandidates(nodes)
-	importPaths := executor.ExtractImportPaths(nodes, "go.mod")
-	repl := repl.NewRepl(completer.NewCompleter(candidates), executor.NewExecutor(importPaths))
+	repl := repl.NewRepl(completer.NewCompleter(candidates), executor.NewExecutor())
 	repl.Run()
 }
