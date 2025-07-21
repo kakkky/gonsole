@@ -3,6 +3,7 @@ package completer
 import (
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/c-bata/go-prompt"
 )
@@ -74,6 +75,9 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
 		for _, funcSet := range funcSets {
+			if isPrivateDecl(funcSet.name) {
+				continue
+			}
 			if strings.HasPrefix(funcSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        pai.pkg + "." + funcSet.name + "()",
@@ -92,6 +96,9 @@ func (c *Completer) findAndAppendMethod(inputStr string) []prompt.Suggest {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
 				if decl.Type == methodSet.receiverTypeName {
+					if isPrivateDecl(methodSet.name) {
+						continue
+					}
 					suggestions = append(suggestions, prompt.Suggest{
 						Text:        inputStr + methodSet.name + "()",
 						DisplayText: methodSet.name + "()",
@@ -109,6 +116,9 @@ func (c *Completer) findVariableSuggestions(pai pkgAndInput) []prompt.Suggest {
 	if varSets, ok := c.candidates.vars[pkgName(pai.pkg)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
+				if isPrivateDecl(varSet.name) {
+					continue
+				}
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        pai.pkg + "." + varSet.name,
 					DisplayText: varSet.name,
@@ -124,6 +134,9 @@ func (c *Completer) findConstantSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if constSets, ok := c.candidates.consts[pkgName(pai.pkg)]; ok {
 		for _, constSet := range constSets {
+			if isPrivateDecl(constSet.name) {
+				continue
+			}
 			if strings.HasPrefix(constSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        pai.pkg + "." + constSet.name,
@@ -140,6 +153,9 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if structSets, ok := c.candidates.structs[pkgName(pai.pkg)]; ok {
 		for _, structSet := range structSets {
+			if isPrivateDecl(structSet.name) {
+				continue
+			}
 			var field string
 			if len(structSet.fields) > 0 {
 				field += "{"
@@ -193,4 +209,9 @@ func addAmpersand() string {
 		return "&"
 	}
 	return ""
+}
+
+// 非公開の関数や変数を非表示にする
+func isPrivateDecl(decl string) bool {
+	return unicode.IsLower([]rune(decl)[0])
 }
