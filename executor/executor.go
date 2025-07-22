@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
+	"strconv"
 )
 
 type Executor struct {
@@ -44,8 +46,9 @@ func (e *Executor) Execute(input string) {
 	cmd.Stderr = &stderrBuf
 
 	err := cmd.Run()
+	errMsg := stderrBuf.String()
 	if err != nil {
-		fmt.Printf("\033[31m%s\033[0m", stderrBuf.String())
+		fmt.Printf("\033[31m%s\033[0m", errMsg)
 	}
 	if stdoutBuf.Len() > 0 {
 		fmt.Printf("\033[32m%s\033[0m", stdoutBuf.String())
@@ -53,6 +56,12 @@ func (e *Executor) Execute(input string) {
 	// 関数呼び出しだった場合はそれをtmpファイルから削除する
 	if err := e.deleteCallExpr(); err != nil {
 		log.Println("Failed to delete call expression from temporary source file:", err)
+	}
+	// エラーが発生した行を削除する
+	if errMsg != "" {
+		if err := e.deleteErrLine(errMsg); err != nil {
+			log.Println("Failed to delete error line from temporary source file:", err)
+		}
 	}
 }
 
@@ -298,4 +307,52 @@ func deleteImportDecl(file *ast.File, pkg string) {
 			return
 		}
 	}
+}
+
+func (e *Executor) deleteErrLine(errMsg string) error {
+	re := regexp.MustCompile(`/main\.go:(\d+):(\d+)`)
+	matches := re.FindStringSubmatch(errMsg)
+	line := matches[1]
+	lineNum, err := strconv.Atoi(line)
+	if err != nil {
+		return err
+	}
+
+	// 一時ファイルの内容を読み込む
+	tmpContent, err := os.ReadFile(e.tmpFilePath)
+	if err != nil {
+		return err
+	}
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, e.tmpFilePath, string(tmpContent), parser.AllErrors)
+	if err != nil {
+		return err
+	}
+	var pkgName string
+	for _, decl := range file.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
+			newList := []ast.Stmt{}
+			for _, stmt := range funcDecl.Body.List {
+				pos := fset.Position(stmt.Pos())
+				if pos.Line == lineNum {
+					// TODO: 未使用となるimport文を削除する必要がある
+					continue
+				}
+				newList = append(newList, stmt)
+
+			}
+			funcDecl.Body.List = newList
+		}
+	}
+	fmt.Println(pkgName)
+	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+	err = format.Node(outFile, fset, file)
+	if err != nil {
+		return err
+	}
+	return nil
 }
