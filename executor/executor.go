@@ -104,13 +104,13 @@ func (e *Executor) addToTmpSrc(input string) error {
 						},
 					}
 					funcDecl.Body.List = append(funcDecl.Body.List, printWrapper)
+					addFmtImportDecl(file) // fmt パッケージをインポートする
 				}
 			case *ast.AssignStmt:
 				for _, expr := range stmt.Rhs {
 					switch rhs := expr.(type) {
 					case *ast.CompositeLit:
 						if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-							fmt.Println("Found SelectorExpr in CompositeLit.Type:", selExpr)
 							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
 								importPkg = pkgIdent.Name
 							}
@@ -195,13 +195,18 @@ func (e *Executor) deleteCallExpr() error {
 	if err != nil {
 		return err
 	}
-
+	var pkgName string
 	for _, decl := range file.Decls {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
 			newBody := []ast.Stmt{}
 			for _, stmt := range funcDecl.Body.List {
 				if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
-					if _, ok := exprStmt.X.(*ast.CallExpr); ok {
+					if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
+						if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+								pkgName = pkgIdent.Name
+							}
+						}
 						// 関数呼び出しを削除
 						continue
 					}
@@ -212,7 +217,8 @@ func (e *Executor) deleteCallExpr() error {
 			break
 		}
 	}
-
+	deleteImportDecl(file, "fmt")
+	deleteImportDecl(file, fmt.Sprintf(`"%s/%s"`, e.modPath, pkgName))
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -225,9 +231,9 @@ func (e *Executor) deleteCallExpr() error {
 	return nil
 }
 
-func (e *Executor) addImportDecl(file *ast.File, importPkg string) *ast.File {
+func (e *Executor) addImportDecl(file *ast.File, importPkg string) {
 	if importPkg == "" {
-		return file // インポートするパッケージがない場合は何もしない
+		return
 	}
 	importPath := fmt.Sprintf(`"%s/%s"`, e.modPath, importPkg)
 	for _, decl := range file.Decls {
@@ -241,7 +247,7 @@ func (e *Executor) addImportDecl(file *ast.File, importPkg string) *ast.File {
 			importSpec := spec.(*ast.ImportSpec)
 			if importSpec.Path.Value == importPath {
 				// すでにあるので何もしない
-				return nil
+				return
 			}
 		}
 
@@ -252,7 +258,44 @@ func (e *Executor) addImportDecl(file *ast.File, importPkg string) *ast.File {
 				Value: importPath,
 			},
 		})
-		return nil
+		return
 	}
-	return file
+}
+
+func addFmtImportDecl(file *ast.File) {
+	for _, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.IMPORT {
+			continue
+		}
+
+		// fmt を追加する
+		genDecl.Specs = append(genDecl.Specs, &ast.ImportSpec{
+			Path: &ast.BasicLit{
+				Kind:  token.STRING,
+				Value: `"fmt"`,
+			},
+		})
+		return
+	}
+}
+
+func deleteImportDecl(file *ast.File, pkg string) {
+	for i, decl := range file.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.IMPORT {
+			continue
+		}
+
+		for j, spec := range genDecl.Specs {
+			importSpec := spec.(*ast.ImportSpec)
+			if importSpec.Path.Value == fmt.Sprintf(`"%s"`, pkg) {
+				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
+				if len(genDecl.Specs) == 0 {
+					file.Decls = append(file.Decls[:i], file.Decls[i+1:]...)
+				}
+			}
+			return
+		}
+	}
 }

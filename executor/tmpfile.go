@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-var src = "package main\n\nimport(\n\t\"fmt\"\n)\n\nfunc main() {\n\t// 初期化コード\n}\n"
+var src = "package main\n\nimport()\n\nfunc main() {\n\t// 初期化コード\n}\n"
 
 func makeTmpMainFile() (string, func(), error) {
 	if err := os.Mkdir("tmp", 0755); err != nil && !os.IsExist(err) {
