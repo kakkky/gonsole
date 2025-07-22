@@ -226,6 +226,9 @@ func (e *Executor) deleteCallExpr() error {
 }
 
 func (e *Executor) addImportDecl(file *ast.File, importPkg string) *ast.File {
+	if importPkg == "" {
+		return file // インポートするパッケージがない場合は何もしない
+	}
 	importPath := fmt.Sprintf(`"%s/%s"`, e.modPath, importPkg)
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
