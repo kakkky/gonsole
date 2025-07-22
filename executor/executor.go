@@ -122,6 +122,12 @@ func (e *Executor) addToTmpSrc(input string) error {
 					}
 				}
 				funcDecl.Body.List = append(funcDecl.Body.List, stmt)
+				blankAssign := &ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
+					Tok: token.ASSIGN,
+					Rhs: stmt.Lhs,
+				}
+				funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
 			case *ast.DeclStmt:
 				switch decl := stmt.Decl.(type) {
 				case *ast.GenDecl:
@@ -153,6 +159,14 @@ func (e *Executor) addToTmpSrc(input string) error {
 					}
 				}
 				funcDecl.Body.List = append(funcDecl.Body.List, stmt)
+				blankAssign := &ast.AssignStmt{
+					Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{
+						stmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0],
+					},
+				}
+				funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
 			}
 		}
 	}
