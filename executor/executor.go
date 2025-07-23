@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/kakkky/gonsole/completer"
 )
 
 type Executor struct {
@@ -63,6 +65,9 @@ func (e *Executor) Execute(input string) {
 		if err := e.deleteErrLine(errMsg); err != nil {
 			log.Println("Failed to delete error line from temporary source file:", err)
 		}
+	}
+	if err := e.storeDeclVarRecordIfNeeded(input); err != nil {
+		log.Println("Failed to store declaration variable record:", err)
 	}
 }
 
@@ -266,6 +271,10 @@ func (e *Executor) addImportDecl(file *ast.File, importPkg string) {
 				// すでにあるので何もしない
 				return
 			}
+		}
+
+		if completer.IsStoredReceiver(importPkg) {
+			return
 		}
 
 		// 追加する
@@ -530,4 +539,103 @@ func formatErrMsg(input string) string {
 	}
 
 	return fmt.Sprintf("\n%d errors found:\n\n%s\n\n", errCount, strings.Join(result, "\n"))
+}
+
+func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
+	var pkgName string
+	var names []string
+	var typeName string
+
+	fset := token.NewFileSet()
+	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
+	inputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
+	if err != nil {
+		return err
+	}
+	var inputStmt ast.Stmt
+	for _, decl := range inputAst.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
+			inputStmt = funcDecl.Body.List[0]
+		}
+	}
+	switch stmt := inputStmt.(type) {
+	case *ast.AssignStmt:
+		for _, expr := range stmt.Rhs {
+			switch rhs := expr.(type) {
+			// TODO: 選択した変数の型をソースコードから取得する必要がある
+			case *ast.SelectorExpr:
+				if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+					// ここでパッケージ名を記録する処理を追加
+					pkgName = pkgIdent.Name
+				}
+			case *ast.CompositeLit:
+				if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+					if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+						// ここでパッケージ名を記録する処理を追加
+						pkgName = pkgIdent.Name
+					}
+					typeName = selExpr.Sel.Name
+				}
+			// TODO: 選択した関数の返す型をソースコードから取得する必要がある
+			case *ast.CallExpr:
+				// 関数の戻り値を代入している場合
+				if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+					if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+						// ここでパッケージ名を記録する処理を追加
+						pkgName = pkgIdent.Name
+					}
+				}
+			}
+		}
+		for _, lhs := range stmt.Lhs {
+			if ident, ok := lhs.(*ast.Ident); ok {
+				names = append(names, ident.Name)
+				break
+			}
+		}
+	case *ast.DeclStmt:
+		switch decl := stmt.Decl.(type) {
+		case *ast.GenDecl:
+			for _, spec := range decl.Specs {
+				if valSpec, ok := spec.(*ast.ValueSpec); ok {
+					for _, val := range valSpec.Values {
+						switch rhs := val.(type) {
+						// TODO: 選択した変数の型をソースコードから取得する必要がある
+						case *ast.SelectorExpr:
+							if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+								// ここでパッケージ名を記録する処理を追加
+								pkgName = pkgIdent.Name
+							}
+						case *ast.CompositeLit:
+							// 構造体リテラルの型が SelectorExpr
+							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+									// ここでパッケージ名を記録する処理を追加
+									pkgName += pkgIdent.Name
+								}
+								typeName = selExpr.Sel.Name
+							}
+						// TODO: 選択した関数の返す型をソースコードから取得する必要がある
+						case *ast.CallExpr:
+							// 関数の戻り値を代入している場合
+							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+									// ここでパッケージ名を記録する処理を追加
+									pkgName = pkgIdent.Name
+								}
+							}
+						}
+					}
+					for _, name := range valSpec.Names {
+						names = append(names, name.Name)
+					}
+				}
+			}
+		}
+	}
+	for _, name := range names {
+		completer.StoreDeclVarRecord(pkgName, name, typeName)
+	}
+
+	return nil
 }
