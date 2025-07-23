@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type Executor struct {
@@ -48,7 +49,7 @@ func (e *Executor) Execute(input string) {
 	err := cmd.Run()
 	errMsg := stderrBuf.String()
 	if err != nil {
-		fmt.Printf("\033[31m%s\033[0m", errMsg)
+		fmt.Printf("\033[31m%s\033[0m", formatErrMsg(errMsg))
 	}
 	if stdoutBuf.Len() > 0 {
 		fmt.Printf("\033[32m%s\033[0m", stdoutBuf.String())
@@ -118,15 +119,22 @@ func (e *Executor) addToTmpSrc(input string) error {
 			case *ast.AssignStmt:
 				for _, expr := range stmt.Rhs {
 					switch rhs := expr.(type) {
+					case *ast.SelectorExpr: // 関数呼び出しなどの時はこちら
+						if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+							importPkg = pkgIdent.Name
+						}
 					case *ast.CompositeLit:
 						if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
 								importPkg = pkgIdent.Name
 							}
 						}
-					case *ast.SelectorExpr: // 関数呼び出しなどの時はこちら
-						if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-							importPkg = pkgIdent.Name
+					case *ast.CallExpr:
+						// 関数の戻り値を代入している場合
+						if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+								importPkg = pkgIdent.Name
+							}
 						}
 					}
 				}
@@ -227,7 +235,7 @@ func (e *Executor) deleteCallExpr() error {
 		}
 	}
 	deleteImportDecl(file, "fmt")
-	deleteImportDecl(file, fmt.Sprintf(`"%s/%s"`, e.modPath, pkgName))
+	deleteImportDecl(file, fmt.Sprintf("%s/%s", e.modPath, pkgName))
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -290,7 +298,7 @@ func addFmtImportDecl(file *ast.File) {
 }
 
 func deleteImportDecl(file *ast.File, pkg string) {
-	for i, decl := range file.Decls {
+	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.IMPORT {
 			continue
@@ -300,9 +308,6 @@ func deleteImportDecl(file *ast.File, pkg string) {
 			importSpec := spec.(*ast.ImportSpec)
 			if importSpec.Path.Value == fmt.Sprintf(`"%s"`, pkg) {
 				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
-				if len(genDecl.Specs) == 0 {
-					file.Decls = append(file.Decls[:i], file.Decls[i+1:]...)
-				}
 			}
 			return
 		}
@@ -329,22 +334,94 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 		return err
 	}
 	var pkgName string
+	var isblankAssignExist bool
 	for _, decl := range file.Decls {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
 			newList := []ast.Stmt{}
 			for _, stmt := range funcDecl.Body.List {
 				pos := fset.Position(stmt.Pos())
+				if isblankAssignExist {
+					continue
+				}
 				if pos.Line == lineNum {
-					// TODO: 未使用となるimport文を削除する必要がある
+					switch stmt.(type) {
+					case *ast.ExprStmt:
+						if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
+							if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
+								if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+									if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+										pkgName = pkgIdent.Name
+									}
+								}
+							}
+						}
+					case *ast.AssignStmt:
+						if assignStmt, ok := stmt.(*ast.AssignStmt); ok {
+							for _, rhs := range assignStmt.Rhs {
+								switch rhs := rhs.(type) {
+								case *ast.SelectorExpr:
+									if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+										pkgName = pkgIdent.Name
+									}
+								case *ast.CompositeLit:
+									// 構造体リテラルの型が SelectorExpr
+									if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+											pkgName = pkgIdent.Name
+										}
+									}
+								case *ast.CallExpr:
+									// 関数の戻り値を代入している場合
+									if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+											pkgName = pkgIdent.Name
+										}
+									}
+								}
+							}
+						}
+						isblankAssignExist = true
+					case *ast.DeclStmt:
+						if declStmt, ok := stmt.(*ast.DeclStmt); ok {
+							for _, decl := range declStmt.Decl.(*ast.GenDecl).Specs {
+								if valSpec, ok := decl.(*ast.ValueSpec); ok {
+									for _, val := range valSpec.Values {
+										switch rhs := val.(type) {
+										case *ast.SelectorExpr:
+											if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+												pkgName = pkgIdent.Name
+											}
+										case *ast.CompositeLit:
+											// 構造体リテラルの型が SelectorExpr
+											if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+													pkgName = pkgIdent.Name
+												}
+											}
+										case *ast.CallExpr:
+											// 関数の戻り値を代入している場合
+											if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+													pkgName = pkgIdent.Name
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+						isblankAssignExist = true
+					}
 					continue
 				}
 				newList = append(newList, stmt)
-
 			}
 			funcDecl.Body.List = newList
 		}
 	}
-	fmt.Println(pkgName)
+	if !isPkgUsed(pkgName, file) {
+		deleteImportDecl(file, fmt.Sprintf("%s/%s", e.modPath, pkgName))
+	}
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -355,4 +432,102 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 		return err
 	}
 	return nil
+}
+
+func isPkgUsed(pkgName string, file *ast.File) bool {
+	for _, decl := range file.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
+			for _, stmt := range funcDecl.Body.List {
+				switch stmt := stmt.(type) {
+				case *ast.AssignStmt:
+					for _, expr := range stmt.Rhs {
+						switch rhs := expr.(type) {
+						case *ast.SelectorExpr: // 関数呼び出しなどの時はこちら
+							if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+								if pkgName == pkgIdent.Name {
+									return true
+								}
+							}
+						case *ast.CompositeLit:
+							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+									if pkgName == pkgIdent.Name {
+										return true
+									}
+								}
+							}
+						case *ast.CallExpr:
+							// 関数の戻り値を代入している場合
+							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+									if pkgName == pkgIdent.Name {
+										return true
+									}
+								}
+							}
+						}
+					}
+				case *ast.DeclStmt:
+					switch decl := stmt.Decl.(type) {
+					case *ast.GenDecl:
+						for _, spec := range decl.Specs {
+							if valSpec, ok := spec.(*ast.ValueSpec); ok {
+								for _, val := range valSpec.Values {
+									switch rhs := val.(type) {
+									case *ast.SelectorExpr:
+										if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
+											if pkgName == pkgIdent.Name {
+												return true
+											}
+										}
+									case *ast.CompositeLit:
+										// 構造体リテラルの型が SelectorExpr
+										if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
+											if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+												if pkgName == pkgIdent.Name {
+													return true
+												}
+											}
+										}
+									case *ast.CallExpr:
+										// 関数の戻り値を代入している場合
+										if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
+											if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+												if pkgName == pkgIdent.Name {
+													return true
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func formatErrMsg(input string) string {
+	lines := strings.Split(input, "\n")
+	var result []string
+
+	cliPattern := regexp.MustCompile(`^# command-line-arguments$`)
+	pathPrefixPattern := regexp.MustCompile(`tmp/gonsole[0-9]+/main\.go:\d+:\d+:\s*`)
+	var errCount int
+	for _, line := range lines {
+		if cliPattern.MatchString(line) || line == "" {
+			continue
+		}
+		line = pathPrefixPattern.ReplaceAllString(line, "")
+		if !strings.HasPrefix(line, "\t") {
+			errCount++
+			line = fmt.Sprintf("ERR: %s", line)
+		}
+		result = append(result, line)
+	}
+
+	return fmt.Sprintf("\n%d errors found:\n\n%s\n\n", errCount, strings.Join(result, "\n"))
 }
