@@ -7,9 +7,12 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"io"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -257,31 +260,61 @@ func (e *Executor) addImportDecl(file *ast.File, importPkg string) {
 	if importPkg == "" {
 		return
 	}
-	importPath := fmt.Sprintf(`"%s/%s"`, e.modPath, importPkg)
+
+	// モジュールルート相対の全パッケージディレクトリを探索
+	var importPath string
+	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		// パッケージ名に一致するディレクトリか？
+		base := filepath.Base(path)
+		if base == importPkg {
+			relPath, err := filepath.Rel(".", path)
+			if err != nil {
+				return err
+			}
+			importPath = filepath.ToSlash(filepath.Join(e.modPath, relPath))
+			return io.EOF // 早期終了
+		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		log.Println("walk error:", err)
+		return
+	}
+	if importPath == "" {
+		log.Println("import path not found for:", importPkg)
+		return
+	}
+	importPathQuoted := fmt.Sprintf(`"%s"`, importPath)
+
+	// すでにインポートされているか確認
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.IMPORT {
 			continue
 		}
-
-		// すでに同じ import があるかチェック
 		for _, spec := range genDecl.Specs {
 			importSpec := spec.(*ast.ImportSpec)
-			if importSpec.Path.Value == importPath {
-				// すでにあるので何もしない
+			if importSpec.Path.Value == importPathQuoted {
 				return
 			}
 		}
 
+		// 補完キャッシュにある場合も無視
 		if completer.IsStoredReceiver(importPkg) {
 			return
 		}
 
-		// 追加する
+		// import を追加
 		genDecl.Specs = append(genDecl.Specs, &ast.ImportSpec{
 			Path: &ast.BasicLit{
 				Kind:  token.STRING,
-				Value: importPath,
+				Value: importPathQuoted,
 			},
 		})
 		return
