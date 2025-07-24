@@ -9,7 +9,6 @@ type DeclVarRecord struct {
 
 var DeclVarRecords = []DeclVarRecord{}
 
-// TODO: &つきで定義されたものはポインタ型の関数を列挙するようにしたい
 func StoreDeclVarRecord(IsPtr bool, pkg, name, typeName string) {
 	DeclVarRecords = append(DeclVarRecords, DeclVarRecord{
 		Pkg:   pkg,
