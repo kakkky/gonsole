@@ -1,19 +1,21 @@
 package completer
 
 type DeclVarRecord struct {
-	Pkg  string
-	Name string
-	Type string
+	Pkg   string
+	Name  string
+	Type  string
+	IsPtr bool
 }
 
 var DeclVarRecords = []DeclVarRecord{}
 
 // TODO: &つきで定義されたものはポインタ型の関数を列挙するようにしたい
-func StoreDeclVarRecord(pkg, name, typeName string) {
+func StoreDeclVarRecord(IsPtr bool, pkg, name, typeName string) {
 	DeclVarRecords = append(DeclVarRecords, DeclVarRecord{
-		Pkg:  pkg,
-		Name: name,
-		Type: typeName,
+		Pkg:   pkg,
+		Name:  name,
+		Type:  typeName,
+		IsPtr: IsPtr,
 	})
 }
 

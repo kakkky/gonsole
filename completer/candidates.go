@@ -17,6 +17,7 @@ type (
 		name             string
 		description      string
 		receiverTypeName string
+		isPtr            bool
 	}
 	varSet struct {
 		name        string
@@ -100,10 +101,12 @@ func isMethod(funcDecl *ast.FuncDecl) bool {
 
 func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 	var receiverTypeName string
+	var isPtr bool
 	switch receiverType := funcDecl.Recv.List[0].Type.(type) {
 	case *ast.Ident:
 		receiverTypeName = receiverType.Name
 	case *ast.StarExpr:
+		isPtr = true
 		if ident, ok := receiverType.X.(*ast.Ident); ok {
 			receiverTypeName = ident.Name
 		}
@@ -112,7 +115,7 @@ func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
-	c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName})
+	c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, isPtr: isPtr})
 }
 
 func (c *candidates) processGenDecl(pkg string, genDecl *ast.GenDecl) {

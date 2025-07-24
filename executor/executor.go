@@ -171,6 +171,17 @@ func (e *Executor) addToTmpSrc(input string) error {
 											importPkg = pkgIdent.Name
 										}
 									}
+								case *ast.UnaryExpr:
+									if rhs.Op == token.AND {
+										// & 演算子の場合
+										if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+											if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
+												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+													importPkg = pkgIdent.Name
+												}
+											}
+										}
+									}
 								case *ast.CallExpr:
 									// 関数の戻り値を代入している場合
 									if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
@@ -578,6 +589,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 	var pkgName string
 	var names []string
 	var typeName string
+	var isPtr bool
 
 	fset := token.NewFileSet()
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
@@ -608,6 +620,19 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 						pkgName = pkgIdent.Name
 					}
 					typeName = selExpr.Sel.Name
+				}
+			case *ast.UnaryExpr:
+				if rhs.Op == token.AND {
+					// & 演算子の場合
+					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+						if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
+							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+								pkgName = pkgIdent.Name
+							}
+							typeName = selExpr.Sel.Name
+							isPtr = true
+						}
+					}
 				}
 			// TODO: 選択した関数の返す型をソースコードから取得する必要がある
 			case *ast.CallExpr:
@@ -648,6 +673,19 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 								}
 								typeName = selExpr.Sel.Name
 							}
+						case *ast.UnaryExpr:
+							if rhs.Op == token.AND {
+								// & 演算子の場合
+								if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+									if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
+										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+											pkgName = pkgIdent.Name
+										}
+										typeName = selExpr.Sel.Name
+										isPtr = true
+									}
+								}
+							}
 						// TODO: 選択した関数の返す型をソースコードから取得する必要がある
 						case *ast.CallExpr:
 							// 関数の戻り値を代入している場合
@@ -667,7 +705,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 		}
 	}
 	for _, name := range names {
-		completer.StoreDeclVarRecord(pkgName, name, typeName)
+		completer.StoreDeclVarRecord(isPtr, pkgName, name, typeName)
 	}
 
 	return nil

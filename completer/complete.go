@@ -95,7 +95,7 @@ func (c *Completer) findAndAppendMethod(inputStr string) []prompt.Suggest {
 	for _, decl := range DeclVarRecords {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
-				if decl.Type == methodSet.receiverTypeName {
+				if (decl.Type == methodSet.receiverTypeName) && (decl.IsPtr == methodSet.isPtr) {
 					if isPrivateDecl(methodSet.name) {
 						continue
 					}
