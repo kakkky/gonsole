@@ -240,7 +240,18 @@ func (e *Executor) deleteCallExpr() error {
 					if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
 						if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-								pkgName = pkgIdent.Name
+								if pkgIdent.Name == "fmt" && selExpr.Sel.Name == "Println" {
+									// 最初の引数を調べる
+									if argCallExpr, ok := callExpr.Args[0].(*ast.CallExpr); ok {
+										// 引数が関数呼び出しの場合
+										if argSelExpr, ok := argCallExpr.Fun.(*ast.SelectorExpr); ok {
+											if argPkgIdent, ok := argSelExpr.X.(*ast.Ident); ok {
+												// 引数の関数呼び出しからパッケージ名を取得
+												pkgName = argPkgIdent.Name
+											}
+										}
+									}
+								}
 							}
 						}
 						// 関数呼び出しを削除
@@ -253,8 +264,10 @@ func (e *Executor) deleteCallExpr() error {
 			break
 		}
 	}
-	deleteImportDecl(file, "fmt")
-	deleteImportDecl(file, fmt.Sprintf("%s/%s", e.modPath, pkgName))
+	e.deleteImportDecl(file, "fmt")
+	if !isPkgUsed(pkgName, file) {
+		e.deleteImportDecl(file, pkgName)
+	}
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -298,7 +311,6 @@ func (e *Executor) addImportDecl(file *ast.File, importPkg string) {
 		return
 	}
 	if importPath == "" {
-		log.Println("import path not found for:", importPkg)
 		return
 	}
 	importPathQuoted := fmt.Sprintf(`"%s"`, importPath)
@@ -350,7 +362,33 @@ func addFmtImportDecl(file *ast.File) {
 	}
 }
 
-func deleteImportDecl(file *ast.File, pkg string) {
+func (e *Executor) deleteImportDecl(file *ast.File, pkg string) error {
+	// モジュールルート相対の全パッケージディレクトリを探索
+	var importPath string
+	if err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		// パッケージ名に一致するディレクトリか？
+		base := filepath.Base(path)
+		if base == pkg {
+			relPath, err := filepath.Rel(".", path)
+			if err != nil {
+				return err
+			}
+			importPath = filepath.ToSlash(filepath.Join(e.modPath, relPath))
+			return io.EOF // 早期終了
+		}
+		return nil
+	}); err != nil && err != io.EOF {
+		return err
+	}
+	if importPath == "" {
+		importPath = pkg // 直接パッケージ名が指定された場合
+	}
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.IMPORT {
@@ -359,12 +397,13 @@ func deleteImportDecl(file *ast.File, pkg string) {
 
 		for j, spec := range genDecl.Specs {
 			importSpec := spec.(*ast.ImportSpec)
-			if importSpec.Path.Value == fmt.Sprintf(`"%s"`, pkg) {
+			if importSpec.Path.Value == fmt.Sprintf(`"%s"`, importPath) {
 				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
 			}
-			return
+			break
 		}
 	}
+	return nil
 }
 
 func (e *Executor) deleteErrLine(errMsg string) error {
@@ -473,7 +512,7 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 		}
 	}
 	if !isPkgUsed(pkgName, file) {
-		deleteImportDecl(file, fmt.Sprintf("%s/%s", e.modPath, pkgName))
+		e.deleteImportDecl(file, pkgName)
 	}
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
