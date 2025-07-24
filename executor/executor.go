@@ -571,7 +571,7 @@ func formatErrMsg(input string) string {
 		result = append(result, line)
 	}
 
-	return fmt.Sprintf("\n%d errors found:\n\n%s\n\n", errCount, strings.Join(result, "\n"))
+	return fmt.Sprintf("\n%d errors found\n\n%s\n\n", errCount, strings.Join(result, "\n"))
 }
 
 func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
