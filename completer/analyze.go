@@ -9,7 +9,7 @@ import (
 )
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func AnalyzeGoAst(path string) (map[string]*ast.Package, error) {
+func analyzeGoAst(path string) (map[string]*ast.Package, error) {
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
 	nodes := make(map[string]*ast.Package)
@@ -19,6 +19,9 @@ func AnalyzeGoAst(path string) (map[string]*ast.Package, error) {
 		}
 		if !d.IsDir() {
 			return nil
+		}
+		if filepath.Base(path) == "vendor" {
+			return filepath.SkipDir
 		}
 		node, err := parser.ParseDir(fset, path, nil, mode)
 		for pkgName, pkg := range node {

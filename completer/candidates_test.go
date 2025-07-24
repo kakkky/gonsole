@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kakkky/gonsole/utils"
 )
 
 func TestConvertFromNodeToCandidates(t *testing.T) {
@@ -52,12 +51,10 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nodes, err := utils.AnalyzeGoAst(tt.path)
+			got, err := NewCandidates(tt.path)
 			if err != nil {
-				t.Errorf("AnalyzeGoAst() error = %v", err)
-				return
+				t.Fatalf("NewCandidates() error = %v", err)
 			}
-			got := ConvertFromNodeToCandidates(nodes)
 			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{})); diff != "" {
 				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
 			}

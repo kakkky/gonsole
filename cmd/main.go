@@ -1,18 +1,18 @@
 package main
 
 import (
+	"log"
+
 	"github.com/kakkky/gonsole/completer"
 	"github.com/kakkky/gonsole/executor"
 	"github.com/kakkky/gonsole/repl"
-	"github.com/kakkky/gonsole/utils"
 )
 
 func main() {
-	nodes, err := utils.AnalyzeGoAst(".")
+	candidates, err := completer.NewCandidates(".")
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to create candidates: %v", err)
 	}
-	candidates := completer.ConvertFromNodeToCandidates(nodes)
 	repl := repl.NewRepl(completer.NewCompleter(candidates), executor.NewExecutor())
 	repl.Run()
 }
