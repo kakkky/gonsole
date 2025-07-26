@@ -137,6 +137,17 @@ func (e *Executor) addToTmpSrc(input string) error {
 								importPkg = pkgIdent.Name
 							}
 						}
+					case *ast.UnaryExpr:
+						if rhs.Op == token.AND {
+							// & 演算子の場合
+							if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+								if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
+									if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
+										importPkg = strings.TrimPrefix(pkgIdent.Name, "&")
+									}
+								}
+							}
+						}
 					case *ast.CallExpr:
 						// 関数の戻り値を代入している場合
 						if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
@@ -177,7 +188,7 @@ func (e *Executor) addToTmpSrc(input string) error {
 										if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 											if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
 												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-													importPkg = pkgIdent.Name
+													importPkg = strings.TrimPrefix(pkgIdent.Name, "&")
 												}
 											}
 										}
