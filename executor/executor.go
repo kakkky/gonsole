@@ -158,12 +158,14 @@ func (e *Executor) addToTmpSrc(input string) error {
 					}
 				}
 				funcDecl.Body.List = append(funcDecl.Body.List, stmt)
-				blankAssign := &ast.AssignStmt{
-					Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
-					Tok: token.ASSIGN,
-					Rhs: stmt.Lhs,
+				for _, lhs := range stmt.Lhs {
+					blankAssign := &ast.AssignStmt{
+						Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
+						Tok: token.ASSIGN,
+						Rhs: []ast.Expr{lhs}, // ← 対応する LHS を RHS に
+					}
+					funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
 				}
-				funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
 			case *ast.DeclStmt:
 				switch decl := stmt.Decl.(type) {
 				case *ast.GenDecl:
@@ -202,18 +204,18 @@ func (e *Executor) addToTmpSrc(input string) error {
 									}
 								}
 							}
+							funcDecl.Body.List = append(funcDecl.Body.List, stmt)
+							for _, name := range valSpec.Names {
+								blankAssign := &ast.AssignStmt{
+									Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
+									Tok: token.ASSIGN,
+									Rhs: []ast.Expr{name},
+								}
+								funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
+							}
 						}
 					}
 				}
-				funcDecl.Body.List = append(funcDecl.Body.List, stmt)
-				blankAssign := &ast.AssignStmt{
-					Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
-					Tok: token.ASSIGN,
-					Rhs: []ast.Expr{
-						stmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0],
-					},
-				}
-				funcDecl.Body.List = append(funcDecl.Body.List, blankAssign)
 			}
 		}
 	}
