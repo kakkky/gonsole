@@ -265,6 +265,34 @@ func (c *candidates) processVarDecl(pkg string, genDecl *ast.GenDecl) {
 						}
 					}
 				}
+			case *ast.BasicLit:
+				// 基本リテラル (文字列、数値など)
+				var typeName string
+				var typePkgName string
+
+				// リテラルの種類に基づいて型を推測
+				switch rhs.Kind {
+				case token.INT:
+					typeName = "int"
+				case token.FLOAT:
+					typeName = "float64"
+				case token.IMAG:
+					typeName = "complex128"
+				case token.CHAR:
+					typeName = "rune"
+				case token.STRING:
+					typeName = "string"
+				default:
+					typeName = "unknown"
+				}
+
+				typePkgName = "" // 組み込み型なのでパッケージ名はなし
+				c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{
+					name:        name,
+					description: genDeclDescription + specDescription,
+					typeName:    typeName,
+					typePkgName: typePkgName,
+				})
 			}
 		}
 	}
