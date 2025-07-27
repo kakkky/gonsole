@@ -1,7 +1,6 @@
 package completer
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"unicode"
@@ -108,15 +107,14 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 				}
 				varPkgName := decl.Pkg
 
-				varname := decl.Rhs.Var.Name
-				varSets, ok := c.candidates.vars[pkgName(varPkgName)]
+				declRhsVarName := decl.Rhs.Var.Name
+				rhsVarSets, ok := c.candidates.vars[pkgName(varPkgName)]
 				if ok {
-					for _, varSet := range varSets {
-						if (varPkgName == varSet.typePkgName && varname == varSet.name && varSet.typeName == methodSet.receiverTypeName) && (varSet.isPtr == methodSet.isReceiverPtr || !varSet.isPtr) {
-							if isPrivateDecl(varSet.name) {
+					for _, rhsVarSet := range rhsVarSets {
+						if (varPkgName == rhsVarSet.typePkgName && declRhsVarName == rhsVarSet.name && rhsVarSet.typeName == methodSet.receiverTypeName) && (rhsVarSet.isPtr == methodSet.isReceiverPtr || !rhsVarSet.isPtr) {
+							if isPrivateDecl(methodSet.name) {
 								continue
 							}
-							fmt.Println("var suggestio called")
 							suggestions = append(suggestions, prompt.Suggest{
 								Text:        inputStr + methodSet.name + "()",
 								DisplayText: methodSet.name + "()",
@@ -126,19 +124,18 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 					}
 				}
 
-				funcName := decl.Rhs.Func.Name
-				funcReturnVarOrder := decl.Rhs.Func.Order
-				funcSets, ok := c.candidates.funcs[pkgName(varPkgName)]
+				declRhsFuncName := decl.Rhs.Func.Name
+				declRhsFuncReturnVarOrder := decl.Rhs.Func.Order
+				rhsFuncSets, ok := c.candidates.funcs[pkgName(varPkgName)]
 				if ok {
-					for _, funcSet := range funcSets {
-						if funcName == funcSet.name {
-							for i, typeName := range funcSet.returnTypeName {
-								if i == funcReturnVarOrder {
-									if typeName == methodSet.receiverTypeName && (funcSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !funcSet.returnTypeIsPtr[i]) {
-										if isPrivateDecl(funcSet.name) {
+					for _, rhsFuncSet := range rhsFuncSets {
+						if declRhsFuncName == rhsFuncSet.name {
+							for i, typeName := range rhsFuncSet.returnTypeName {
+								if i == declRhsFuncReturnVarOrder {
+									if typeName == methodSet.receiverTypeName && (rhsFuncSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !rhsFuncSet.returnTypeIsPtr[i]) {
+										if isPrivateDecl(methodSet.name) {
 											continue
 										}
-										fmt.Println("func suggestio called")
 										suggestions = append(suggestions, prompt.Suggest{
 											Text:        inputStr + methodSet.name + "()",
 											DisplayText: methodSet.name + "()",
@@ -151,15 +148,14 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 					}
 				}
 
-				//  ３回発火する問題
-				methodName := decl.Rhs.Method.Name
-				methodReturnVarOrder := decl.Rhs.Method.Order
-				methodSets, ok := c.candidates.methods[pkgName(varPkgName)]
+				declRhsMethodName := decl.Rhs.Method.Name
+				declRhsMethodReturnVarOrder := decl.Rhs.Method.Order
+				rhsMethodSets, ok := c.candidates.methods[pkgName(varPkgName)]
 				if ok {
-					for _, methodSet := range methodSets {
-						if methodName == methodSet.name {
-							for i, typeName := range methodSet.returnTypeName {
-								if i == methodReturnVarOrder {
+					for _, rhsMethodSet := range rhsMethodSets {
+						if declRhsMethodName == rhsMethodSet.name {
+							for i, typeName := range rhsMethodSet.returnTypeName {
+								if i == declRhsMethodReturnVarOrder {
 									if typeName == methodSet.receiverTypeName && (methodSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !methodSet.returnTypeIsPtr[i]) {
 										if isPrivateDecl(methodSet.name) {
 											continue

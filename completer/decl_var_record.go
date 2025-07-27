@@ -1,7 +1,5 @@
 package completer
 
-import "fmt"
-
 type DeclVarRecord struct {
 	Name string
 	Pkg  string
@@ -62,7 +60,6 @@ func StoreDeclVarRecord[RhsT Var | Func | Struct | Method](pkg, name string, rhs
 			Rhs:  Rhs{Struct: v},
 		})
 	}
-	fmt.Println("Stored DeclVarRecord:", DeclVarRecords)
 }
 
 func IsStoredReceiver(name string) bool {
