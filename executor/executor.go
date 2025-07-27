@@ -299,9 +299,13 @@ func (e *Executor) deleteCallExpr() error {
 			break
 		}
 	}
-	e.deleteImportDecl(file, "fmt")
+	if err := e.deleteImportDecl(file, "fmt"); err != nil {
+		return err
+	}
 	if !isPkgUsed(pkgName, file) {
-		e.deleteImportDecl(file, pkgName)
+		if err := e.deleteImportDecl(file, pkgName); err != nil {
+			return err
+		}
 	}
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -547,7 +551,9 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 		}
 	}
 	if !isPkgUsed(pkgName, file) {
-		e.deleteImportDecl(file, pkgName)
+		if err := e.deleteImportDecl(file, pkgName); err != nil {
+			return err
+		}
 	}
 	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
