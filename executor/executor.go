@@ -108,9 +108,9 @@ func (e *Executor) addToTmpSrc(input string) error {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
 			switch stmt := inputStmt.(type) {
 			case *ast.ExprStmt:
-				callExpr, ok := stmt.X.(*ast.CallExpr)
-				if ok {
-					if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+				switch expr := stmt.X.(type) {
+				case *ast.CallExpr:
+					if selExpr, ok := expr.Fun.(*ast.SelectorExpr); ok {
 						if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
 							importPkg = pkgIdent.Name
 						}
@@ -118,7 +118,29 @@ func (e *Executor) addToTmpSrc(input string) error {
 					printWrapper := &ast.ExprStmt{
 						X: &ast.CallExpr{
 							Fun:  ast.NewIdent("fmt.Println"),
-							Args: []ast.Expr{callExpr}, // 引数に元の関数呼び出し
+							Args: []ast.Expr{expr}, // 引数に元の関数呼び出し
+						},
+					}
+					funcDecl.Body.List = append(funcDecl.Body.List, printWrapper)
+					addFmtImportDecl(file) // fmt パッケージをインポートする
+				case *ast.SelectorExpr:
+					if pkgIdent, ok := expr.X.(*ast.Ident); ok {
+						importPkg = pkgIdent.Name
+					}
+					// fmt.Println で出力するラッパーを作成
+					printWrapper := &ast.ExprStmt{
+						X: &ast.CallExpr{
+							Fun:  ast.NewIdent("fmt.Println"),
+							Args: []ast.Expr{expr}, // 引数に元の関数呼び出し
+						},
+					}
+					funcDecl.Body.List = append(funcDecl.Body.List, printWrapper)
+					addFmtImportDecl(file) // fmt パッケージをインポートする
+				case *ast.Ident:
+					printWrapper := &ast.ExprStmt{
+						X: &ast.CallExpr{
+							Fun:  ast.NewIdent("fmt.Println"),
+							Args: []ast.Expr{expr}, // 引数に元の関数呼び出し
 						},
 					}
 					funcDecl.Body.List = append(funcDecl.Body.List, printWrapper)
@@ -654,7 +676,6 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 	case *ast.AssignStmt:
 		for i, expr := range stmt.Rhs {
 			switch rhs := expr.(type) {
-			// TODO: 選択した変数の型をソースコードから取得する必要がある
 			case *ast.SelectorExpr:
 				pkgName := rhs.X.(*ast.Ident).Name
 				name := stmt.Lhs[i].(*ast.Ident).Name
@@ -685,7 +706,6 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 						}
 					}
 				}
-			// TODO: 選択した関数の返す型をソースコードから取得する必要がある
 			case *ast.CallExpr:
 				// 関数の戻り値を代入している場合
 				if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
@@ -720,7 +740,6 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 				if valSpec, ok := spec.(*ast.ValueSpec); ok {
 					for i, val := range valSpec.Values {
 						switch rhs := val.(type) {
-						// TODO: 選択した変数の型をソースコードから取得する必要がある
 						case *ast.SelectorExpr:
 							pkgName := rhs.X.(*ast.Ident).Name
 							Var := &completer.Var{
@@ -753,7 +772,6 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 									}
 								}
 							}
-						// TODO: 選択した関数の返す型をソースコードから取得する必要がある
 						case *ast.CallExpr:
 							// 関数の戻り値を代入している場合
 							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
