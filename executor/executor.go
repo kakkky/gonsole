@@ -638,11 +638,6 @@ func formatErrMsg(input string) string {
 }
 
 func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
-	var pkgName string
-	var names []string
-	var typeName string
-	var isPtr bool
-
 	fset := token.NewFileSet()
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
 	inputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
@@ -657,32 +652,38 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 	}
 	switch stmt := inputStmt.(type) {
 	case *ast.AssignStmt:
-		for _, expr := range stmt.Rhs {
+		for i, expr := range stmt.Rhs {
 			switch rhs := expr.(type) {
 			// TODO: 選択した変数の型をソースコードから取得する必要がある
 			case *ast.SelectorExpr:
-				if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-					// ここでパッケージ名を記録する処理を追加
-					pkgName = pkgIdent.Name
+				pkgName := rhs.X.(*ast.Ident).Name
+				name := stmt.Lhs[i].(*ast.Ident).Name
+				Var := &completer.Var{
+					Name: rhs.Sel.Name,
 				}
+				completer.StoreDeclVarRecord(pkgName, name, *Var)
 			case *ast.CompositeLit:
 				if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-					if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-						// ここでパッケージ名を記録する処理を追加
-						pkgName = pkgIdent.Name
+					pkgName := selExpr.X.(*ast.Ident).Name
+					Struct := &completer.Struct{
+						Type:  selExpr.Sel.Name,
+						IsPtr: false,
 					}
-					typeName = selExpr.Sel.Name
+					name := stmt.Lhs[i].(*ast.Ident).Name
+					completer.StoreDeclVarRecord(pkgName, name, *Struct)
 				}
 			case *ast.UnaryExpr:
 				if rhs.Op == token.AND {
 					// & 演算子の場合
 					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 						if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
-							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-								pkgName = pkgIdent.Name
+							pkgName := selExpr.X.(*ast.Ident).Name
+							Struct := &completer.Struct{
+								Type:  selExpr.Sel.Name,
+								IsPtr: true,
 							}
-							typeName = selExpr.Sel.Name
-							isPtr = true
+							name := stmt.Lhs[i].(*ast.Ident).Name
+							completer.StoreDeclVarRecord(pkgName, name, *Struct)
 						}
 					}
 				}
@@ -690,17 +691,28 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 			case *ast.CallExpr:
 				// 関数の戻り値を代入している場合
 				if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-					if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-						// ここでパッケージ名を記録する処理を追加
-						pkgName = pkgIdent.Name
+					pkgName := selExpr.X.(*ast.Ident).Name
+					if completer.IsStoredReceiver(pkgName) {
+						pkgName = completer.ReceiverTypePkgName(pkgName)
+						for i, lhsExpr := range stmt.Lhs {
+							Method := &completer.Method{
+								Name:  selExpr.Sel.Name,
+								Order: i,
+							}
+							name := lhsExpr.(*ast.Ident).Name
+							completer.StoreDeclVarRecord(pkgName, name, *Method)
+						}
+					} else {
+						for i, lhsExpr := range stmt.Lhs {
+							Func := &completer.Func{
+								Name:  selExpr.Sel.Name,
+								Order: i,
+							}
+							name := lhsExpr.(*ast.Ident).Name
+							completer.StoreDeclVarRecord(pkgName, name, *Func)
+						}
 					}
 				}
-			}
-		}
-		for _, lhs := range stmt.Lhs {
-			if ident, ok := lhs.(*ast.Ident); ok {
-				names = append(names, ident.Name)
-				break
 			}
 		}
 	case *ast.DeclStmt:
@@ -708,33 +720,40 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 		case *ast.GenDecl:
 			for _, spec := range decl.Specs {
 				if valSpec, ok := spec.(*ast.ValueSpec); ok {
-					for _, val := range valSpec.Values {
+					for i, val := range valSpec.Values {
 						switch rhs := val.(type) {
 						// TODO: 選択した変数の型をソースコードから取得する必要がある
 						case *ast.SelectorExpr:
-							if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-								// ここでパッケージ名を記録する処理を追加
-								pkgName = pkgIdent.Name
+							pkgName := rhs.X.(*ast.Ident).Name
+							Var := &completer.Var{
+								Name: rhs.Sel.Name,
 							}
+							name := valSpec.Names[i].Name
+							completer.StoreDeclVarRecord(pkgName, name, *Var)
+
 						case *ast.CompositeLit:
 							// 構造体リテラルの型が SelectorExpr
 							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-									// ここでパッケージ名を記録する処理を追加
-									pkgName += pkgIdent.Name
+								pkgName := selExpr.X.(*ast.Ident).Name
+								Struct := &completer.Struct{
+									Type:  selExpr.Sel.Name,
+									IsPtr: false,
 								}
-								typeName = selExpr.Sel.Name
+								name := valSpec.Names[i].Name
+								completer.StoreDeclVarRecord(pkgName, name, *Struct)
 							}
 						case *ast.UnaryExpr:
 							if rhs.Op == token.AND {
 								// & 演算子の場合
 								if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 									if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
-										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-											pkgName = pkgIdent.Name
+										pkgName := selExpr.X.(*ast.Ident).Name
+										Struct := &completer.Struct{
+											Type:  selExpr.Sel.Name,
+											IsPtr: true,
 										}
-										typeName = selExpr.Sel.Name
-										isPtr = true
+										name := valSpec.Names[i].Name
+										completer.StoreDeclVarRecord(pkgName, name, *Struct)
 									}
 								}
 							}
@@ -742,23 +761,20 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 						case *ast.CallExpr:
 							// 関数の戻り値を代入している場合
 							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-									// ここでパッケージ名を記録する処理を追加
-									pkgName = pkgIdent.Name
+								pkgName := selExpr.X.(*ast.Ident).Name
+								for i, name := range valSpec.Names {
+									Func := &completer.Func{
+										Name:  selExpr.Sel.Name,
+										Order: i,
+									}
+									completer.StoreDeclVarRecord(pkgName, name.Name, *Func)
 								}
 							}
 						}
-					}
-					for _, name := range valSpec.Names {
-						names = append(names, name.Name)
 					}
 				}
 			}
 		}
 	}
-	for _, name := range names {
-		completer.StoreDeclVarRecord(isPtr, pkgName, name, typeName)
-	}
-
 	return nil
 }

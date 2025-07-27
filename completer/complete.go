@@ -1,6 +1,7 @@
 package completer
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"unicode"
@@ -34,7 +35,7 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 		return c.findPackageSuggestions(inputStr)
 	}
 
-	methodSuggests := c.findAndAppendMethod(inputStr)
+	methodSuggests := c.findMethodSuggestions(inputStr)
 	if len(methodSuggests) > 0 {
 		return methodSuggests
 	}
@@ -90,12 +91,12 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 	return suggestions
 }
 
-func (c *Completer) findAndAppendMethod(inputStr string) []prompt.Suggest {
+func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	for _, decl := range DeclVarRecords {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
-				if ((decl.Type == methodSet.receiverTypeName) && (decl.IsPtr == methodSet.isPtr)) || (decl.Type == methodSet.receiverTypeName && !decl.IsPtr) {
+				if ((decl.Rhs.Struct.Type == methodSet.receiverTypeName) && (decl.Rhs.Struct.IsPtr == methodSet.isReceiverPtr)) || (decl.Rhs.Struct.Type == methodSet.receiverTypeName && !decl.Rhs.Struct.IsPtr) {
 					if isPrivateDecl(methodSet.name) {
 						continue
 					}
@@ -105,6 +106,76 @@ func (c *Completer) findAndAppendMethod(inputStr string) []prompt.Suggest {
 						Description: "Method: " + methodSet.description,
 					})
 				}
+				varPkgName := decl.Pkg
+
+				varname := decl.Rhs.Var.Name
+				varSets, ok := c.candidates.vars[pkgName(varPkgName)]
+				if ok {
+					for _, varSet := range varSets {
+						if (varPkgName == varSet.typePkgName && varname == varSet.name && varSet.typeName == methodSet.receiverTypeName) && (varSet.isPtr == methodSet.isReceiverPtr || !varSet.isPtr) {
+							if isPrivateDecl(varSet.name) {
+								continue
+							}
+							fmt.Println("var suggestio called")
+							suggestions = append(suggestions, prompt.Suggest{
+								Text:        inputStr + methodSet.name + "()",
+								DisplayText: methodSet.name + "()",
+								Description: "Method: " + methodSet.description,
+							})
+						}
+					}
+				}
+
+				funcName := decl.Rhs.Func.Name
+				funcReturnVarOrder := decl.Rhs.Func.Order
+				funcSets, ok := c.candidates.funcs[pkgName(varPkgName)]
+				if ok {
+					for _, funcSet := range funcSets {
+						if funcName == funcSet.name {
+							for i, typeName := range funcSet.returnTypeName {
+								if i == funcReturnVarOrder {
+									if typeName == methodSet.receiverTypeName && (funcSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !funcSet.returnTypeIsPtr[i]) {
+										if isPrivateDecl(funcSet.name) {
+											continue
+										}
+										fmt.Println("func suggestio called")
+										suggestions = append(suggestions, prompt.Suggest{
+											Text:        inputStr + methodSet.name + "()",
+											DisplayText: methodSet.name + "()",
+											Description: "Method: " + methodSet.description,
+										})
+									}
+								}
+							}
+						}
+					}
+				}
+
+				//  ３回発火する問題
+				methodName := decl.Rhs.Method.Name
+				methodReturnVarOrder := decl.Rhs.Method.Order
+				methodSets, ok := c.candidates.methods[pkgName(varPkgName)]
+				if ok {
+					for _, methodSet := range methodSets {
+						if methodName == methodSet.name {
+							for i, typeName := range methodSet.returnTypeName {
+								if i == methodReturnVarOrder {
+									if typeName == methodSet.receiverTypeName && (methodSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !methodSet.returnTypeIsPtr[i]) {
+										if isPrivateDecl(methodSet.name) {
+											continue
+										}
+										suggestions = append(suggestions, prompt.Suggest{
+											Text:        inputStr + methodSet.name + "()",
+											DisplayText: methodSet.name + "()",
+											Description: "Method: " + methodSet.description,
+										})
+									}
+								}
+							}
+						}
+					}
+				}
+
 			}
 		}
 	}

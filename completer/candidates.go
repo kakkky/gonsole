@@ -10,18 +10,28 @@ type pkgName string
 
 type (
 	funcSet struct {
-		name        string
-		description string
+		name              string
+		description       string
+		returnTypeName    []string
+		returnTypePkgName []string
+		returnTypeIsPtr   []bool
 	}
 	methodSet struct {
 		name             string
 		description      string
 		receiverTypeName string
-		isPtr            bool
+		isReceiverPtr    bool
+
+		returnTypeName    []string
+		returnTypePkgName []string
+		returnTypeIsPtr   []bool
 	}
 	varSet struct {
 		name        string
 		description string
+		typeName    string
+		typePkgName string
+		isPtr       bool
 	}
 	constSet struct {
 		name        string
@@ -81,6 +91,10 @@ func (c *candidates) processFileAst(pkg string, fileAst *ast.File) {
 				continue
 			}
 			c.processFuncDecl(pkg, d)
+		}
+	}
+	for _, decl := range fileAst.Decls {
+		switch d := decl.(type) {
 		case *ast.GenDecl:
 			c.processGenDecl(pkg, d)
 		}
@@ -89,19 +103,50 @@ func (c *candidates) processFileAst(pkg string, fileAst *ast.File) {
 
 func (c *candidates) processFuncDecl(pkg string, funcDecl *ast.FuncDecl) {
 	var description string
+	var returnTypeName []string
+	var returnTypePkgName []string
+	var returnTypeIsPtr []bool
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
-	c.funcs[pkgName(pkg)] = append(c.funcs[pkgName(pkg)], funcSet{name: funcDecl.Name.Name, description: description})
+	if funcDecl.Type.Results != nil {
+		for _, result := range funcDecl.Type.Results.List {
+			var typeName string
+			var typePkgName string
+			var isPtr bool
+			switch resultType := result.Type.(type) {
+			case *ast.Ident:
+				typeName = resultType.Name
+				typePkgName = pkg
+			case *ast.SelectorExpr:
+				typeName = resultType.Sel.Name
+				typePkgName = resultType.X.(*ast.Ident).Name
+			case *ast.StarExpr:
+				isPtr = true
+				typePkgName = pkg
+				if ident, ok := resultType.X.(*ast.Ident); ok {
+					typeName = ident.Name
+				}
+			}
+			returnTypeName = append(returnTypeName, typeName)
+			returnTypePkgName = append(returnTypePkgName, typePkgName)
+			returnTypeIsPtr = append(returnTypeIsPtr, isPtr)
+		}
+	}
+	c.funcs[pkgName(pkg)] = append(c.funcs[pkgName(pkg)], funcSet{name: funcDecl.Name.Name, description: description, returnTypeName: returnTypeName, returnTypePkgName: returnTypePkgName, returnTypeIsPtr: returnTypeIsPtr})
 }
 
 func isMethod(funcDecl *ast.FuncDecl) bool {
 	return funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0
 }
 
+// TODO: こっちも返り値の型を取得するようにする
 func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 	var receiverTypeName string
 	var isPtr bool
+	var returnTypeName []string
+	var returnTypePkgName []string
+	var returnTypeIsPtr []bool
 	switch receiverType := funcDecl.Recv.List[0].Type.(type) {
 	case *ast.Ident:
 		receiverTypeName = receiverType.Name
@@ -115,7 +160,31 @@ func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
-	c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, isPtr: isPtr})
+	if funcDecl.Type.Results != nil {
+		for _, result := range funcDecl.Type.Results.List {
+			var typeName string
+			var typePkgName string
+			var isPtr bool
+			switch resultType := result.Type.(type) {
+			case *ast.Ident:
+				typeName = resultType.Name
+				typePkgName = pkg
+			case *ast.SelectorExpr:
+				typeName = resultType.Sel.Name
+				typePkgName = resultType.X.(*ast.Ident).Name
+			case *ast.StarExpr:
+				isPtr = true
+				typePkgName = pkg
+				if ident, ok := resultType.X.(*ast.Ident); ok {
+					typeName = ident.Name
+				}
+			}
+			returnTypeName = append(returnTypeName, typeName)
+			returnTypePkgName = append(returnTypePkgName, typePkgName)
+			returnTypeIsPtr = append(returnTypeIsPtr, isPtr)
+		}
+		c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, isReceiverPtr: isPtr, returnTypeName: returnTypeName, returnTypePkgName: returnTypePkgName, returnTypeIsPtr: returnTypeIsPtr})
+	}
 }
 
 func (c *candidates) processGenDecl(pkg string, genDecl *ast.GenDecl) {
@@ -140,8 +209,85 @@ func (c *candidates) processVarDecl(pkg string, genDecl *ast.GenDecl) {
 		if varspec.Doc != nil {
 			specDescription += "   " + strings.TrimSpace(varspec.Doc.Text())
 		}
-		for _, varname := range varspec.Names {
-			c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: varname.Name, description: genDeclDescription + specDescription})
+
+		for i, val := range varspec.Values {
+			name := varspec.Names[i].Name
+			switch rhs := val.(type) {
+			case *ast.CompositeLit:
+				// 構造体リテラルの型を適切に処理
+				var typeName string
+				var typePkgName string
+				isPtr := false
+				switch typeExpr := rhs.Type.(type) {
+				case *ast.SelectorExpr:
+					// パッケージ名付きの型 (pkg.Type{})
+					typeName = typeExpr.Sel.Name
+					typePkgName = typeExpr.X.(*ast.Ident).Name
+				case *ast.Ident:
+					// 単純な型名 (Type{})
+					typeName = typeExpr.Name
+					typePkgName = pkg // 現在のパッケージ名
+				}
+				c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName, isPtr: isPtr})
+			case *ast.UnaryExpr:
+				if rhs.Op == token.AND {
+					// & 演算子の場合
+					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+						// 構造体リテラルの型を適切に処理
+						var typeName string
+						var typePkgName string
+						isPtr := true
+						switch typeExpr := compLit.Type.(type) {
+						case *ast.SelectorExpr:
+							// パッケージ名付きの型 (pkg.Type{})
+							typeName = typeExpr.Sel.Name
+							typePkgName = typeExpr.X.(*ast.Ident).Name
+						case *ast.Ident:
+							// 単純な型名 (Type{})
+							typeName = typeExpr.Name
+							typePkgName = pkg // 現在のパッケージ名
+						}
+						c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName, isPtr: isPtr})
+					}
+				}
+			case *ast.CallExpr:
+				// funcSetから関数の戻り値を取得
+				switch funExpr := rhs.Fun.(type) {
+				case *ast.SelectorExpr:
+					// パッケージ名付きの関数呼び出し (pkg.Func())
+					if pkgIdent, ok := funExpr.X.(*ast.Ident); ok {
+						funcPkgName := pkgIdent.Name
+						funcName := funExpr.Sel.Name
+						if funcSets, ok := c.funcs[pkgName(funcPkgName)]; ok {
+							for _, funcSet := range funcSets {
+								if funcSet.name == funcName {
+									typeName := funcSet.returnTypeName[i]
+									typePkgName := funcSet.returnTypePkgName[i]
+									isPtr := funcSet.returnTypeIsPtr[i]
+									c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName, isPtr: isPtr})
+								}
+							}
+						}
+					}
+				case *ast.Ident:
+					// ローカル関数呼び出し (Func())
+					funcName := funExpr.Name
+					// 現在のパッケージから関数を探す
+					if funcSets, ok := c.funcs[pkgName(pkg)]; ok {
+						for _, funcSet := range funcSets {
+							if funcSet.name == funcName {
+								typeName := funcSet.returnTypeName[i]
+								typePkgName := funcSet.returnTypePkgName[i]
+								isPtr := funcSet.returnTypeIsPtr[i]
+								c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName, isPtr: isPtr})
+							}
+						}
+					}
+				default:
+					// その他の関数式（関数リテラルなど）
+					c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: "unknown", typePkgName: "", isPtr: false})
+				}
+			}
 		}
 	}
 }
