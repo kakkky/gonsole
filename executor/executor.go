@@ -666,8 +666,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 				if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 					pkgName := selExpr.X.(*ast.Ident).Name
 					Struct := &completer.Struct{
-						Type:  selExpr.Sel.Name,
-						IsPtr: false,
+						Type: selExpr.Sel.Name,
 					}
 					name := stmt.Lhs[i].(*ast.Ident).Name
 					completer.StoreDeclVarRecord(pkgName, name, *Struct)
@@ -679,8 +678,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 						if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
 							pkgName := selExpr.X.(*ast.Ident).Name
 							Struct := &completer.Struct{
-								Type:  selExpr.Sel.Name,
-								IsPtr: true,
+								Type: selExpr.Sel.Name,
 							}
 							name := stmt.Lhs[i].(*ast.Ident).Name
 							completer.StoreDeclVarRecord(pkgName, name, *Struct)
@@ -736,8 +734,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 								pkgName := selExpr.X.(*ast.Ident).Name
 								Struct := &completer.Struct{
-									Type:  selExpr.Sel.Name,
-									IsPtr: false,
+									Type: selExpr.Sel.Name,
 								}
 								name := valSpec.Names[i].Name
 								completer.StoreDeclVarRecord(pkgName, name, *Struct)
@@ -749,8 +746,7 @@ func (e *Executor) storeDeclVarRecordIfNeeded(input string) error {
 									if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
 										pkgName := selExpr.X.(*ast.Ident).Name
 										Struct := &completer.Struct{
-											Type:  selExpr.Sel.Name,
-											IsPtr: true,
+											Type: selExpr.Sel.Name,
 										}
 										name := valSpec.Names[i].Name
 										completer.StoreDeclVarRecord(pkgName, name, *Struct)

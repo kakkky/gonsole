@@ -14,8 +14,7 @@ type Rhs struct {
 }
 
 type Struct struct {
-	Type  string
-	IsPtr bool
+	Type string
 }
 type Var struct {
 	Name string

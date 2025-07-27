@@ -95,7 +95,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	for _, decl := range DeclVarRecords {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
-				if ((decl.Rhs.Struct.Type == methodSet.receiverTypeName) && (decl.Rhs.Struct.IsPtr == methodSet.isReceiverPtr)) || (decl.Rhs.Struct.Type == methodSet.receiverTypeName && !decl.Rhs.Struct.IsPtr) {
+				if decl.Rhs.Struct.Type == methodSet.receiverTypeName {
 					if isPrivateDecl(methodSet.name) {
 						continue
 					}
@@ -111,7 +111,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 				rhsVarSets, ok := c.candidates.vars[pkgName(varPkgName)]
 				if ok {
 					for _, rhsVarSet := range rhsVarSets {
-						if (varPkgName == rhsVarSet.typePkgName && declRhsVarName == rhsVarSet.name && rhsVarSet.typeName == methodSet.receiverTypeName) && (rhsVarSet.isPtr == methodSet.isReceiverPtr || !rhsVarSet.isPtr) {
+						if varPkgName == rhsVarSet.typePkgName && declRhsVarName == rhsVarSet.name && rhsVarSet.typeName == methodSet.receiverTypeName {
 							if isPrivateDecl(methodSet.name) {
 								continue
 							}
@@ -132,7 +132,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 						if declRhsFuncName == rhsFuncSet.name {
 							for i, typeName := range rhsFuncSet.returnTypeName {
 								if i == declRhsFuncReturnVarOrder {
-									if typeName == methodSet.receiverTypeName && (rhsFuncSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !rhsFuncSet.returnTypeIsPtr[i]) {
+									if typeName == methodSet.receiverTypeName {
 										if isPrivateDecl(methodSet.name) {
 											continue
 										}
@@ -156,7 +156,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 						if declRhsMethodName == rhsMethodSet.name {
 							for i, typeName := range rhsMethodSet.returnTypeName {
 								if i == declRhsMethodReturnVarOrder {
-									if typeName == methodSet.receiverTypeName && (methodSet.returnTypeIsPtr[i] == methodSet.isReceiverPtr || !methodSet.returnTypeIsPtr[i]) {
+									if typeName == methodSet.receiverTypeName {
 										if isPrivateDecl(methodSet.name) {
 											continue
 										}
