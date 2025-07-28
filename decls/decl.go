@@ -1,30 +1,19 @@
 package decls
 
 type decl struct {
-	Name string
-	Pkg  string
-	Rhs  Rhs
+	name string
+	pkg  string
+	rhs  declRhs
 }
 
-type Rhs struct {
-	Struct Struct
-	Var    Var
-	Func   Func
-	Method Method
+func (d decl) Name() string {
+	return d.name
 }
 
-type Struct struct {
-	Type string
-}
-type Var struct {
-	Name string
+func (d decl) Pkg() string {
+	return d.pkg
 }
 
-type Func struct {
-	Name  string
-	Order int
-}
-type Method struct {
-	Name  string
-	Order int
+func (d decl) Rhs() declRhs {
+	return d.rhs
 }

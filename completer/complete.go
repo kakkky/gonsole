@@ -96,9 +96,9 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	for _, decl := range c.declEntry.Decls() {
-		if (decl.Name + ".") == inputStr {
-			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
-				if decl.Rhs.Struct.Type == methodSet.receiverTypeName {
+		if (decl.Name() + ".") == inputStr {
+			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg())] {
+				if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
 					if isPrivateDecl(methodSet.name) {
 						continue
 					}
@@ -108,9 +108,9 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 						Description: "Method: " + methodSet.description,
 					})
 				}
-				varPkgName := decl.Pkg
+				varPkgName := decl.Pkg()
 
-				declRhsVarName := decl.Rhs.Var.Name
+				declRhsVarName := decl.Rhs().Var().Name()
 				rhsVarSets, ok := c.candidates.vars[pkgName(varPkgName)]
 				if ok {
 					for _, rhsVarSet := range rhsVarSets {
@@ -127,8 +127,8 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 					}
 				}
 
-				declRhsFuncName := decl.Rhs.Func.Name
-				declRhsFuncReturnVarOrder := decl.Rhs.Func.Order
+				declRhsFuncName := decl.Rhs().Func().Name()
+				declRhsFuncReturnVarOrder := decl.Rhs().Func().ReturnedOrder()
 				rhsFuncSets, ok := c.candidates.funcs[pkgName(varPkgName)]
 				if ok {
 					for _, rhsFuncSet := range rhsFuncSets {
@@ -151,8 +151,8 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 					}
 				}
 
-				declRhsMethodName := decl.Rhs.Method.Name
-				declRhsMethodReturnVarOrder := decl.Rhs.Method.Order
+				declRhsMethodName := decl.Rhs().Method().Name()
+				declRhsMethodReturnVarOrder := decl.Rhs().Method().ReturnedOrder()
 				rhsMethodSets, ok := c.candidates.methods[pkgName(varPkgName)]
 				if ok {
 					for _, rhsMethodSet := range rhsMethodSets {

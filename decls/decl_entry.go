@@ -36,18 +36,18 @@ func (de *DeclEntry) Register(input string) error {
 			case *ast.SelectorExpr:
 				pkgName := rhs.X.(*ast.Ident).Name
 				name := stmt.Lhs[i].(*ast.Ident).Name
-				Var := &Var{
-					Name: rhs.Sel.Name,
+				varDecl := &declVar{
+					name: rhs.Sel.Name,
 				}
-				de.register(pkgName, name, *Var)
+				de.register(pkgName, name, *varDecl)
 			case *ast.CompositeLit:
 				if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 					pkgName := selExpr.X.(*ast.Ident).Name
-					Struct := &Struct{
-						Type: selExpr.Sel.Name,
+					structDecl := &declStruct{
+						typeName: selExpr.Sel.Name,
 					}
 					name := stmt.Lhs[i].(*ast.Ident).Name
-					de.register(pkgName, name, *Struct)
+					de.register(pkgName, name, *structDecl)
 				}
 			case *ast.UnaryExpr:
 				if rhs.Op == token.AND {
@@ -55,11 +55,11 @@ func (de *DeclEntry) Register(input string) error {
 					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 						if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
 							pkgName := selExpr.X.(*ast.Ident).Name
-							Struct := &Struct{
-								Type: selExpr.Sel.Name,
+							structDecl := &declStruct{
+								typeName: selExpr.Sel.Name,
 							}
 							name := stmt.Lhs[i].(*ast.Ident).Name
-							de.register(pkgName, name, *Struct)
+							de.register(pkgName, name, *structDecl)
 						}
 					}
 				}
@@ -70,21 +70,21 @@ func (de *DeclEntry) Register(input string) error {
 					if de.IsRegisteredDecl(pkgName) {
 						pkgName = de.receiverTypePkgName(pkgName)
 						for i, lhsExpr := range stmt.Lhs {
-							Method := &Method{
-								Name:  selExpr.Sel.Name,
-								Order: i,
+							methodDecl := &declMethod{
+								name:  selExpr.Sel.Name,
+								order: i,
 							}
 							name := lhsExpr.(*ast.Ident).Name
-							de.register(pkgName, name, *Method)
+							de.register(pkgName, name, *methodDecl)
 						}
 					} else {
 						for i, lhsExpr := range stmt.Lhs {
-							Func := &Func{
-								Name:  selExpr.Sel.Name,
-								Order: i,
+							funcDecl := &declFunc{
+								name:  selExpr.Sel.Name,
+								order: i,
 							}
 							name := lhsExpr.(*ast.Ident).Name
-							de.register(pkgName, name, *Func)
+							de.register(pkgName, name, *funcDecl)
 						}
 					}
 				}
@@ -99,21 +99,21 @@ func (de *DeclEntry) Register(input string) error {
 						switch rhs := val.(type) {
 						case *ast.SelectorExpr:
 							pkgName := rhs.X.(*ast.Ident).Name
-							Var := &Var{
-								Name: rhs.Sel.Name,
+							varDecl := &declVar{
+								name: rhs.Sel.Name,
 							}
 							name := valSpec.Names[i].Name
-							de.register(pkgName, name, *Var)
+							de.register(pkgName, name, *varDecl)
 
 						case *ast.CompositeLit:
 							// 構造体リテラルの型が SelectorExpr
 							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 								pkgName := selExpr.X.(*ast.Ident).Name
-								Struct := &Struct{
-									Type: selExpr.Sel.Name,
+								structDecl := &declStruct{
+									typeName: selExpr.Sel.Name,
 								}
 								name := valSpec.Names[i].Name
-								de.register(pkgName, name, *Struct)
+								de.register(pkgName, name, *structDecl)
 							}
 						case *ast.UnaryExpr:
 							if rhs.Op == token.AND {
@@ -121,11 +121,11 @@ func (de *DeclEntry) Register(input string) error {
 								if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 									if selExpr, ok := compLit.Type.(*ast.SelectorExpr); ok {
 										pkgName := selExpr.X.(*ast.Ident).Name
-										Struct := &Struct{
-											Type: selExpr.Sel.Name,
+										structDecl := &declStruct{
+											typeName: selExpr.Sel.Name,
 										}
 										name := valSpec.Names[i].Name
-										de.register(pkgName, name, *Struct)
+										de.register(pkgName, name, *structDecl)
 									}
 								}
 							}
@@ -134,11 +134,11 @@ func (de *DeclEntry) Register(input string) error {
 							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
 								pkgName := selExpr.X.(*ast.Ident).Name
 								for i, name := range valSpec.Names {
-									Func := &Func{
-										Name:  selExpr.Sel.Name,
-										Order: i,
+									funcDecl := &declFunc{
+										name:  selExpr.Sel.Name,
+										order: i,
 									}
-									de.register(pkgName, name.Name, *Func)
+									de.register(pkgName, name.Name, *funcDecl)
 								}
 							}
 						}
@@ -156,7 +156,7 @@ func (de *DeclEntry) Decls() []decl {
 
 func (de *DeclEntry) IsRegisteredDecl(name string) bool {
 	for _, decl := range *de.decls {
-		if decl.Name == name {
+		if decl.Name() == name {
 			return true
 		}
 	}
@@ -164,30 +164,30 @@ func (de *DeclEntry) IsRegisteredDecl(name string) bool {
 }
 
 func (de *DeclEntry) register(pkg, name string, rhs any) {
-	switch rhs := rhs.(type) {
-	case Var:
+	switch v := rhs.(type) {
+	case declVar:
 		*de.decls = append(*de.decls, decl{
-			Pkg:  pkg,
-			Name: name,
-			Rhs:  Rhs{Var: rhs},
+			pkg:  pkg,
+			name: name,
+			rhs:  declRhs{declVar: v},
 		})
-	case Func:
+	case declFunc:
 		*de.decls = append(*de.decls, decl{
-			Pkg:  pkg,
-			Name: name,
-			Rhs:  Rhs{Func: rhs},
+			pkg:  pkg,
+			name: name,
+			rhs:  declRhs{declFunc: v},
 		})
-	case Method:
+	case declMethod:
 		*de.decls = append(*de.decls, decl{
-			Pkg:  pkg,
-			Name: name,
-			Rhs:  Rhs{Method: rhs},
+			pkg:  pkg,
+			name: name,
+			rhs:  declRhs{declMethod: v},
 		})
-	case Struct:
+	case declStruct:
 		*de.decls = append(*de.decls, decl{
-			Pkg:  pkg,
-			Name: name,
-			Rhs:  Rhs{Struct: rhs},
+			pkg:  pkg,
+			name: name,
+			rhs:  declRhs{declStruct: v},
 		})
 	default:
 	}
@@ -195,8 +195,8 @@ func (de *DeclEntry) register(pkg, name string, rhs any) {
 
 func (de *DeclEntry) receiverTypePkgName(receiverName string) string {
 	for _, decl := range *de.decls {
-		if decl.Name == receiverName { // Assuming "receiver" is the name of the receiver
-			return decl.Pkg
+		if decl.Name() == receiverName {
+			return decl.Pkg()
 		}
 	}
 	return ""
