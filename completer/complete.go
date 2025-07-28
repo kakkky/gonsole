@@ -6,15 +6,18 @@ import (
 	"unicode"
 
 	"github.com/c-bata/go-prompt"
+	"github.com/kakkky/gonsole/decls"
 )
 
 type Completer struct {
 	candidates *candidates
+	declEntry  *decls.DeclEntry
 }
 
-func NewCompleter(candidates *candidates) *Completer {
+func NewCompleter(candidates *candidates, declEntry *decls.DeclEntry) *Completer {
 	return &Completer{
 		candidates: candidates,
+		declEntry:  declEntry,
 	}
 }
 
@@ -92,7 +95,7 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 
 func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-	for _, decl := range DeclVarRecords {
+	for _, decl := range c.declEntry.Decls() {
 		if (decl.Name + ".") == inputStr {
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg)] {
 				if decl.Rhs.Struct.Type == methodSet.receiverTypeName {
