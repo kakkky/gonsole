@@ -1,19 +1,19 @@
 package decls
 
-type decl struct {
+type Decl struct {
 	name string
 	pkg  string
 	rhs  declRhs
 }
 
-func (d decl) Name() string {
+func (d Decl) Name() string {
 	return d.name
 }
 
-func (d decl) Pkg() string {
+func (d Decl) Pkg() string {
 	return d.pkg
 }
 
-func (d decl) Rhs() declRhs {
+func (d Decl) Rhs() declRhs {
 	return d.rhs
 }

@@ -7,12 +7,12 @@ import (
 )
 
 type DeclEntry struct {
-	decls *[]decl
+	decls *[]Decl
 }
 
 func NewDeclEntry() *DeclEntry {
 	return &DeclEntry{
-		decls: &[]decl{},
+		decls: &[]Decl{},
 	}
 }
 
@@ -44,33 +44,33 @@ func (de *DeclEntry) Register(input string) error {
 				de.register(pkgSelName, name, *declVar)
 			// 右辺が複合リテラルの場合
 			case *ast.CompositeLit:
-				switch funExprV := exprV.Type.(type) {
+				switch innerExprV := exprV.Type.(type) {
 				// セレクタ式の場合
 				// 基本的にセレクタ式しか想定しない
 				case *ast.SelectorExpr:
-					pkgName := funExprV.X.(*ast.Ident).Name
+					pkgName := innerExprV.X.(*ast.Ident).Name
 					declStruct := &declStruct{
 						// 型名を取得
-						typeName: funExprV.Sel.Name,
+						typeName: innerExprV.Sel.Name,
 					}
 					name := stmt.Lhs[i].(*ast.Ident).Name
+
 					de.register(pkgName, name, *declStruct)
 				}
 			// 右辺が演算子つきの場合
 			case *ast.UnaryExpr:
 				switch exprV.Op {
 				// & 演算子の場合
-				// (構造体をポインタ型で表現している場合）
+				// (構造体をポインタ型で表現している場合など）
 				case token.AND:
-					switch exprV.X.(type) {
+					switch innerExprV := exprV.X.(type) {
 					// 複合リテラルの場合
 					case *ast.CompositeLit:
-						switch funExprV := exprV.X.(type) {
-						// セレクタ式の場合
+						switch typeExpr := innerExprV.Type.(type) {
 						case *ast.SelectorExpr:
-							pkgName := funExprV.X.(*ast.Ident).Name
+							pkgName := typeExpr.X.(*ast.Ident).Name
 							declStruct := &declStruct{
-								typeName: funExprV.Sel.Name,
+								typeName: typeExpr.Sel.Name,
 							}
 							name := stmt.Lhs[i].(*ast.Ident).Name
 							de.register(pkgName, name, *declStruct)
@@ -147,14 +147,14 @@ func (de *DeclEntry) Register(input string) error {
 							switch valExprV.Op {
 							// & 演算子の場合
 							case token.AND:
-								switch valExprV := valExprV.X.(type) {
-								// 複合リテラルの場合s
+								switch innerValExprV := valExprV.X.(type) {
+								// 複合リテラルの場合
 								case *ast.CompositeLit:
-									switch valExprV := valExprV.Type.(type) {
+									switch compositeLitTypeV := innerValExprV.Type.(type) {
 									case *ast.SelectorExpr:
-										pkgName := valExprV.X.(*ast.Ident).Name
+										pkgName := compositeLitTypeV.X.(*ast.Ident).Name
 										declStruct := &declStruct{
-											typeName: valExprV.Sel.Name,
+											typeName: compositeLitTypeV.Sel.Name,
 										}
 										name := specV.Names[i].Name
 										de.register(pkgName, name, *declStruct)
@@ -194,7 +194,7 @@ func (de *DeclEntry) receiverTypePkgName(receiverName string) string {
 	return ""
 }
 
-func (de *DeclEntry) Decls() []decl {
+func (de *DeclEntry) Decls() []Decl {
 	return *de.decls
 }
 
@@ -210,25 +210,25 @@ func (de *DeclEntry) IsRegisteredDecl(name string) bool {
 func (de *DeclEntry) register(pkg, name string, rhs any) {
 	switch v := rhs.(type) {
 	case declVar:
-		*de.decls = append(*de.decls, decl{
+		*de.decls = append(*de.decls, Decl{
 			pkg:  pkg,
 			name: name,
 			rhs:  declRhs{declVar: v},
 		})
 	case declFunc:
-		*de.decls = append(*de.decls, decl{
+		*de.decls = append(*de.decls, Decl{
 			pkg:  pkg,
 			name: name,
 			rhs:  declRhs{declFunc: v},
 		})
 	case declMethod:
-		*de.decls = append(*de.decls, decl{
+		*de.decls = append(*de.decls, Decl{
 			pkg:  pkg,
 			name: name,
 			rhs:  declRhs{declMethod: v},
 		})
 	case declStruct:
-		*de.decls = append(*de.decls, decl{
+		*de.decls = append(*de.decls, Decl{
 			pkg:  pkg,
 			name: name,
 			rhs:  declRhs{declStruct: v},
