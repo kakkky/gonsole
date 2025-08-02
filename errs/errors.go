@@ -58,10 +58,10 @@ func HandleError(err error) {
 	var badInputErr *BadInputError
 	switch {
 	case errors.As(err, &internalErr):
-		fmt.Printf("\033[31m[INTERNAL ERR]\n %s\033[0m\n", err.Error())
+		fmt.Printf("\033[31m[INTERNAL ERROR]\n %s\033[0m\n", err.Error())
 	case errors.As(err, &badInputErr):
-		fmt.Printf("\033[31m[ BAD INPUT ERR]\n %s\033[0m\n", err.Error())
+		fmt.Printf("\033[31m[BAD INPUT ERROR]\n %s\033[0m\n", err.Error())
 	default:
-		fmt.Printf("\033[31m[UNKNOWN ERR]\n %s\033[0m\n", err.Error())
+		fmt.Printf("\033[31m[UNKNOWN ERROR]\n %s\033[0m\n", err.Error())
 	}
 }
