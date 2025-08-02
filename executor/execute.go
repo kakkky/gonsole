@@ -36,6 +36,9 @@ func NewExecutor(declEntry *decls.DeclEntry) (*Executor, error) {
 }
 
 func (e *Executor) Execute(input string) {
+	if input == "" {
+		return
+	}
 	if err := e.addInputToTmpSrc(input); err != nil {
 		errs.HandleError(err)
 	}
