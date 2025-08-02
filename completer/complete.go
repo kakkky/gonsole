@@ -23,33 +23,46 @@ func NewCompleter(candidates *candidates, declEntry *decls.DeclEntry) *Completer
 
 func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 	inputStr := input.Text
+	// 先頭に&が含まれていたかどうか
+	var isAndOperandInclude bool
 
+	// & が含まれている場合は、& を除去してフラグをtrueにしておく
+	// フラグは後続の処理で、& をつけるかどうかを決定するため
 	if strings.Contains(inputStr, "&") {
-		isAmpersandInclude = true
+		isAndOperandInclude = true
 		inputStr = strings.ReplaceAll(inputStr, "&", "")
 	}
 
+	// 変数宣言の場合、"= "の後の文字列を補完対象とする
 	if equalAndSpacePos, found := findEqualAndSpacePos(inputStr); found {
 		inputStr = inputStr[equalAndSpacePos+2:]
 	}
 
+	// . を含んでいない場合は、パッケージ名の候補を返す
+	// . を打つ前は基本的にパッケージ名を打とうとしていると想定している
 	if !strings.Contains(inputStr, ".") {
-		return c.findPackageSuggestions(inputStr)
+		return c.findPackageSuggestions(inputStr, isAndOperandInclude)
 	}
 
+	// . 以降の文字列で補完候補を探す
+
+	// 入力値からメソッドの候補があればそれを返す
 	methodSuggests := c.findMethodSuggestions(inputStr)
 	if len(methodSuggests) > 0 {
 		return methodSuggests
 	}
 
-	pkgAndInput := buildPkgAndInput(inputStr)
+	// 補完候補の検索をしやすくするために、パッケージ名とその後の文字列を分ける
+	pkgAndInput := buildPkgAndInput(inputStr, isAndOperandInclude)
+
 	suggestions := c.findSuggestions(pkgAndInput)
 
 	return suggestions
 }
 
 func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
-	if isAmpersandInclude {
+	// 先頭に&が含まれていたら構造体リテラルを入力しようとしていると想定
+	if pai.isAndOperandInclude {
 		return c.findStructSuggestions(pai)
 	}
 	functionSuggests := c.findFunctionSuggestions(pai)
@@ -60,12 +73,18 @@ func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
 	return slices.Concat(functionSuggests, variableSuggests, constantSuggets, structSuggests)
 }
 
-func (c *Completer) findPackageSuggestions(inputStr string) []prompt.Suggest {
+func (c *Completer) findPackageSuggestions(inputStr string, isAndOperandInclude bool) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	for _, pkg := range c.candidates.pkgs {
 		if strings.HasPrefix(string(pkg), inputStr) {
+			var text string
+			if isAndOperandInclude {
+				text = "&" + string(pkg)
+			} else {
+				text = string(pkg)
+			}
 			suggestions = append(suggestions, prompt.Suggest{
-				Text:        addAmpersand() + string(pkg),
+				Text:        text,
 				DisplayText: string(pkg),
 				Description: "Package",
 			})
@@ -78,12 +97,18 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
 		for _, funcSet := range funcSets {
-			if isPrivateDecl(funcSet.name) {
+			if isPrivate(funcSet.name) {
 				continue
+			}
+			var text string
+			if pai.isAndOperandInclude {
+				text = "&" + pai.pkg + "." + funcSet.name + "()"
+			} else {
+				text = pai.pkg + "." + funcSet.name + "()"
 			}
 			if strings.HasPrefix(funcSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        pai.pkg + "." + funcSet.name + "()",
+					Text:        text,
 					DisplayText: funcSet.name + "()",
 					Description: "Function: " + funcSet.description,
 				})
@@ -92,89 +117,229 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 	}
 	return suggestions
 }
-
 func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
+	// 重複を避けるためのマップ
+	seenMethods := make(map[string]bool)
+
+	// repl内で宣言された変数名エントリを回す
 	for _, decl := range c.declEntry.Decls() {
+		// エントリにある宣言された変数名 + "." が入力と一致する場合は、メソッドを呼び出すことを期待していると想定
+		// つまり、変数をレシーバにしようとしている
 		if (decl.Name() + ".") == inputStr {
+			// エントリの変数名に紐づくパッケージ名からメソッドの補完候補を引き、その変数の型に対応するメソッドを返す
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg())] {
-				if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
-					if isPrivateDecl(methodSet.name) {
+				// 構造体リテラルから宣言された変数のメソッド候補を追加
+				suggestions = c.findMethodSuggestionsFromVarRhsStructLit(
+					suggestions, seenMethods, inputStr, decl, methodSet)
+
+				// レシーバに取っている変数が、
+				// 1. ソースコード上の変数を格納している場合
+				// 2. ソースコード上の関数の戻り値を格納している場合
+				// 3. ソースコード上のメソッドの戻り値を格納している場合
+				// の場合に、メソッドの補完候補を追加する
+
+				// ソースコード上の変数を格納している場合
+				suggestions = c.findMethodSuggestionsFromVarRhsDeclVar(
+					suggestions, seenMethods, inputStr, decl, methodSet)
+
+				// ソースコード上の関数の戻り値を格納している場合
+				suggestions = c.findMethodSuggestionsFromVarRhsFuncReturnValues(
+					suggestions, seenMethods, inputStr, decl, methodSet)
+
+				// ソースコード上のメソッドの戻り値を格納している場合
+				suggestions = c.findMethodSuggestionsFromVarRhsMethodReturnValues(
+					suggestions, seenMethods, inputStr, decl, methodSet)
+			}
+		}
+	}
+	return suggestions
+}
+
+// 構造体リテラルから宣言された変数のメソッド候補を追加する
+// その変数が構造体リテラルで宣言されたものである場合、レシーバの型が一致する場合は、補完候補として追加する
+func (c *Completer) findMethodSuggestionsFromVarRhsStructLit(
+	suggestions []prompt.Suggest,
+	seenMethods map[string]bool,
+	inputStr string,
+	decl decls.Decl,
+	methodSet methodSet) []prompt.Suggest {
+	if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
+		// memo: 現在はexecutorがprivateに対応していないため
+		if isPrivate(methodSet.name) {
+			return suggestions
+		}
+
+		// 重複チェック
+		methodKey := inputStr + methodSet.name
+		if seenMethods[methodKey] {
+			return suggestions
+		}
+		seenMethods[methodKey] = true
+
+		suggestions = append(suggestions, prompt.Suggest{
+			Text:        inputStr + methodSet.name + "()",
+			DisplayText: methodSet.name + "()",
+			Description: "Method: " + methodSet.description,
+		})
+	}
+	return suggestions
+}
+
+// 変数から宣言された変数のメソッド候補を追加する
+// その変数が、ソースコード内で宣言された変数である場合、ソースコード内から得られた変数の補完候補をたどってパッケージ名と型情報を確定させ、
+// その型に一致する場合は、補完候補として追加する
+func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
+	suggestions []prompt.Suggest,
+	seenMethods map[string]bool,
+	inputStr string,
+	decl decls.Decl,
+	methodSet methodSet) []prompt.Suggest {
+
+	// 右辺の変数名を取得
+	declRhsVarName := decl.Rhs().Var().Name()
+	if declRhsVarName == "" {
+		return suggestions
+	}
+
+	// 変数の補完候補を取得
+	rhsVarSets, ok := c.candidates.vars[pkgName(decl.Pkg())]
+	if !ok {
+		return suggestions
+	}
+
+	// 変数の補完候補を回す
+	for _, rhsVarSet := range rhsVarSets {
+		if (decl.Pkg() == rhsVarSet.typePkgName) && // パッケージ名が一致
+			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
+			(rhsVarSet.typeName == methodSet.receiverTypeName) { // 型名が一致
+
+			// memo: 現在はexecutorがprivateに対応していないため
+			if isPrivate(methodSet.name) {
+				continue
+			}
+
+			// 重複チェック
+			methodKey := inputStr + methodSet.name
+			if seenMethods[methodKey] {
+				continue
+			}
+			seenMethods[methodKey] = true
+
+			suggestions = append(suggestions, prompt.Suggest{
+				Text:        inputStr + methodSet.name + "()",
+				DisplayText: methodSet.name + "()",
+				Description: "Method: " + methodSet.description,
+			})
+		}
+	}
+	return suggestions
+}
+
+// 関数の戻り値から宣言された変数のメソッド候補を追加する
+// その変数が、関数の戻り値である場合、ソースコード内から得られた関数の補完候補をたどって、その関数のパッケージ名と型情報を確定させ、
+// その型に一致する場合は、補完候補として追加する
+func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
+	suggestions []prompt.Suggest,
+	seenMethods map[string]bool,
+	inputStr string,
+	decl decls.Decl,
+	methodSet methodSet) []prompt.Suggest {
+
+	// 右辺の関数名と戻り値の順序を取得
+	declRhsFuncName := decl.Rhs().Func().Name()
+	if declRhsFuncName == "" {
+		return suggestions
+	}
+
+	declRhsFuncReturnVarOrder := decl.Rhs().Func().ReturnedOrder()
+	rhsFuncSets, ok := c.candidates.funcs[pkgName(decl.Pkg())]
+	if !ok {
+		return suggestions
+	}
+
+	// 関数の補完候補を回す
+	for _, rhsFuncSet := range rhsFuncSets {
+		// 関数名が一致
+		if declRhsFuncName == rhsFuncSet.name {
+			// 関数の戻り値（複数）の型情報を確認
+			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
+				if (i == declRhsFuncReturnVarOrder) && // 何個目の戻り値かが一致
+					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
+
+					// memo: 現在はexecutorがprivateに対応していないため
+					if isPrivate(methodSet.name) {
 						continue
 					}
+
+					// 重複チェック
+					methodKey := inputStr + methodSet.name
+					if seenMethods[methodKey] {
+						continue
+					}
+					seenMethods[methodKey] = true
+
 					suggestions = append(suggestions, prompt.Suggest{
 						Text:        inputStr + methodSet.name + "()",
 						DisplayText: methodSet.name + "()",
 						Description: "Method: " + methodSet.description,
 					})
 				}
-				varPkgName := decl.Pkg()
+			}
+		}
+	}
+	return suggestions
+}
 
-				declRhsVarName := decl.Rhs().Var().Name()
-				rhsVarSets, ok := c.candidates.vars[pkgName(varPkgName)]
-				if ok {
-					for _, rhsVarSet := range rhsVarSets {
-						if varPkgName == rhsVarSet.typePkgName && declRhsVarName == rhsVarSet.name && rhsVarSet.typeName == methodSet.receiverTypeName {
-							if isPrivateDecl(methodSet.name) {
-								continue
-							}
-							suggestions = append(suggestions, prompt.Suggest{
-								Text:        inputStr + methodSet.name + "()",
-								DisplayText: methodSet.name + "()",
-								Description: "Method: " + methodSet.description,
-							})
-						}
+// メソッドの戻り値から宣言された変数のメソッド候補を追加する
+// その変数が、メソッドの戻り値である場合、ソースコード内から得られたメソッドの補完候補をたどって、そのメソッドのパッケージ名と型情報を確定させ、
+// その型に一致する場合は、補完候補として追加する
+func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
+	suggestions []prompt.Suggest,
+	seenMethods map[string]bool,
+	inputStr string,
+	decl decls.Decl,
+	methodSet methodSet) []prompt.Suggest {
+
+	// 右辺のメソッド名と戻り値の順序を取得
+	declRhsMethodName := decl.Rhs().Method().Name()
+	if declRhsMethodName == "" {
+		return suggestions
+	}
+
+	declRhsMethodReturnVarOrder := decl.Rhs().Method().ReturnedOrder()
+	rhsMethodSets, ok := c.candidates.methods[pkgName(decl.Pkg())]
+	if !ok {
+		return suggestions
+	}
+
+	// メソッドの補完候補を回す
+	for _, rhsMethodSet := range rhsMethodSets {
+		// メソッド名が一致
+		if declRhsMethodName == rhsMethodSet.name {
+			// メソッドの戻り値（複数）の型情報を確認
+			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
+				if (i == declRhsMethodReturnVarOrder) && // 何個目の戻り値かが一致
+					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
+
+					// memo: 現在はexecutorがprivateに対応していないため
+					if isPrivate(methodSet.name) {
+						continue
 					}
-				}
 
-				declRhsFuncName := decl.Rhs().Func().Name()
-				declRhsFuncReturnVarOrder := decl.Rhs().Func().ReturnedOrder()
-				rhsFuncSets, ok := c.candidates.funcs[pkgName(varPkgName)]
-				if ok {
-					for _, rhsFuncSet := range rhsFuncSets {
-						if declRhsFuncName == rhsFuncSet.name {
-							for i, typeName := range rhsFuncSet.returnTypeName {
-								if i == declRhsFuncReturnVarOrder {
-									if typeName == methodSet.receiverTypeName {
-										if isPrivateDecl(methodSet.name) {
-											continue
-										}
-										suggestions = append(suggestions, prompt.Suggest{
-											Text:        inputStr + methodSet.name + "()",
-											DisplayText: methodSet.name + "()",
-											Description: "Method: " + methodSet.description,
-										})
-									}
-								}
-							}
-						}
+					// 重複チェック
+					methodKey := inputStr + methodSet.name
+					if seenMethods[methodKey] {
+						continue
 					}
-				}
+					seenMethods[methodKey] = true
 
-				declRhsMethodName := decl.Rhs().Method().Name()
-				declRhsMethodReturnVarOrder := decl.Rhs().Method().ReturnedOrder()
-				rhsMethodSets, ok := c.candidates.methods[pkgName(varPkgName)]
-				if ok {
-					for _, rhsMethodSet := range rhsMethodSets {
-						if declRhsMethodName == rhsMethodSet.name {
-							for i, typeName := range rhsMethodSet.returnTypeName {
-								if i == declRhsMethodReturnVarOrder {
-									if typeName == methodSet.receiverTypeName {
-										if isPrivateDecl(methodSet.name) {
-											continue
-										}
-										suggestions = append(suggestions, prompt.Suggest{
-											Text:        inputStr + methodSet.name + "()",
-											DisplayText: methodSet.name + "()",
-											Description: "Method: " + methodSet.description,
-										})
-									}
-								}
-							}
-						}
-					}
+					suggestions = append(suggestions, prompt.Suggest{
+						Text:        inputStr + methodSet.name + "()",
+						DisplayText: methodSet.name + "()",
+						Description: "Method: " + methodSet.description,
+					})
 				}
-
 			}
 		}
 	}
@@ -186,7 +351,7 @@ func (c *Completer) findVariableSuggestions(pai pkgAndInput) []prompt.Suggest {
 	if varSets, ok := c.candidates.vars[pkgName(pai.pkg)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
-				if isPrivateDecl(varSet.name) {
+				if isPrivate(varSet.name) {
 					continue
 				}
 				suggestions = append(suggestions, prompt.Suggest{
@@ -204,7 +369,7 @@ func (c *Completer) findConstantSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if constSets, ok := c.candidates.consts[pkgName(pai.pkg)]; ok {
 		for _, constSet := range constSets {
-			if isPrivateDecl(constSet.name) {
+			if isPrivate(constSet.name) {
 				continue
 			}
 			if strings.HasPrefix(constSet.name, pai.input) {
@@ -223,7 +388,7 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if structSets, ok := c.candidates.structs[pkgName(pai.pkg)]; ok {
 		for _, structSet := range structSets {
-			if isPrivateDecl(structSet.name) {
+			if isPrivate(structSet.name) {
 				continue
 			}
 			var field string
@@ -234,9 +399,15 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 				}
 				field = strings.TrimSuffix(field, ",") + "}"
 			}
+			var text string
+			if pai.isAndOperandInclude {
+				text = "&" + pai.pkg + "." + structSet.name + field
+			} else {
+				text = pai.pkg + "." + structSet.name + field
+			}
 			if strings.HasPrefix(structSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        addAmpersand() + pai.pkg + "." + structSet.name + field,
+					Text:        text,
 					DisplayText: structSet.name,
 					Description: "Struct: " + structSet.description,
 				})
@@ -246,13 +417,15 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 	return suggestions
 }
 
+// 補完候補の検索をしやすくするための構造体
 type pkgAndInput struct {
-	pkg   string
-	input string
+	pkg                 string
+	input               string
+	isAndOperandInclude bool
 }
 
 // {pkg名}. まで入力されている場合は、pkg名とその後の文字列を構造体にまとめる
-func buildPkgAndInput(input string) pkgAndInput {
+func buildPkgAndInput(input string, isAndOperandInclude bool) pkgAndInput {
 	var pkgAndInput pkgAndInput
 	if strings.Contains(input, ".") {
 		parts := strings.SplitN(input, ".", 2)
@@ -261,9 +434,11 @@ func buildPkgAndInput(input string) pkgAndInput {
 			pkgAndInput.input = parts[1]
 		}
 	}
+	pkgAndInput.isAndOperandInclude = isAndOperandInclude
 	return pkgAndInput
 }
 
+// "= "の位置を探し、見つかったらその位置とtrueを返す
 func findEqualAndSpacePos(input string) (int, bool) {
 	equalPos := strings.LastIndex(input, "= ")
 	if equalPos == -1 {
@@ -272,16 +447,7 @@ func findEqualAndSpacePos(input string) (int, bool) {
 	return equalPos, true
 }
 
-var isAmpersandInclude bool
-
-func addAmpersand() string {
-	if isAmpersandInclude {
-		return "&"
-	}
-	return ""
-}
-
 // 非公開の関数や変数を非表示にする
-func isPrivateDecl(decl string) bool {
+func isPrivate(decl string) bool {
 	return unicode.IsLower([]rune(decl)[0])
 }

@@ -17,8 +17,8 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/simple",
 			want: &candidates{
 				pkgs:    []pkgName{"simple"},
-				funcs:   map[pkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeName: []string{"string"}, returnTypePkgName: []string{"simple"}}}},
-				methods: map[pkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType", returnTypeName: []string{"string"}, returnTypePkgName: []string{"simple"}}}},
+				funcs:   map[pkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeNames: []string{"string"}, returnTypePkgNames: []string{"simple"}}}},
+				methods: map[pkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType", returnTypeNames: []string{"string"}, returnTypePkgNames: []string{"simple"}}}},
 				vars:    map[pkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: "string", typePkgName: ""}}},
 				consts:  map[pkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
 				structs: map[pkgName][]structSet{"simple": {{name: "SimpleType", fields: []string{"SimpleField"}, description: "SimpleType is a simple type"}}},

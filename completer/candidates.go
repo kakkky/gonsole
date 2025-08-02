@@ -10,17 +10,17 @@ type pkgName string
 
 type (
 	funcSet struct {
-		name              string
-		description       string
-		returnTypeName    []string
-		returnTypePkgName []string
+		name               string
+		description        string
+		returnTypeNames    []string
+		returnTypePkgNames []string
 	}
 	methodSet struct {
-		name              string
-		description       string
-		receiverTypeName  string
-		returnTypeName    []string
-		returnTypePkgName []string
+		name               string
+		description        string
+		receiverTypeName   string
+		returnTypeNames    []string
+		returnTypePkgNames []string
 	}
 	varSet struct {
 		name        string
@@ -124,7 +124,7 @@ func (c *candidates) processFuncDecl(pkg string, funcDecl *ast.FuncDecl) {
 			returnTypePkgName = append(returnTypePkgName, typePkgName)
 		}
 	}
-	c.funcs[pkgName(pkg)] = append(c.funcs[pkgName(pkg)], funcSet{name: funcDecl.Name.Name, description: description, returnTypeName: returnTypeName, returnTypePkgName: returnTypePkgName})
+	c.funcs[pkgName(pkg)] = append(c.funcs[pkgName(pkg)], funcSet{name: funcDecl.Name.Name, description: description, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
 }
 
 func isMethod(funcDecl *ast.FuncDecl) bool {
@@ -168,7 +168,7 @@ func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 			returnTypeName = append(returnTypeName, typeName)
 			returnTypePkgName = append(returnTypePkgName, typePkgName)
 		}
-		c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, returnTypeName: returnTypeName, returnTypePkgName: returnTypePkgName})
+		c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
 	}
 }
 
@@ -244,8 +244,8 @@ func (c *candidates) processVarDecl(pkg string, genDecl *ast.GenDecl) {
 						if funcSets, ok := c.funcs[pkgName(funcPkgName)]; ok {
 							for _, funcSet := range funcSets {
 								if funcSet.name == funcName {
-									typeName := funcSet.returnTypeName[i]
-									typePkgName := funcSet.returnTypePkgName[i]
+									typeName := funcSet.returnTypeNames[i]
+									typePkgName := funcSet.returnTypePkgNames[i]
 									c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
 								}
 							}
@@ -258,8 +258,8 @@ func (c *candidates) processVarDecl(pkg string, genDecl *ast.GenDecl) {
 					if funcSets, ok := c.funcs[pkgName(pkg)]; ok {
 						for _, funcSet := range funcSets {
 							if funcSet.name == funcName {
-								typeName := funcSet.returnTypeName[i]
-								typePkgName := funcSet.returnTypePkgName[i]
+								typeName := funcSet.returnTypeNames[i]
+								typePkgName := funcSet.returnTypePkgNames[i]
 								c.vars[pkgName(pkg)] = append(c.vars[pkgName(pkg)], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
 							}
 						}
