@@ -29,23 +29,23 @@ func (e *InternalError) Error() string {
 }
 
 // ユーザー起因の無効な構文エラー
-type InvalidSyntaxError struct {
+type BadInputError struct {
 	message string
 	wrapped error
 }
 
-func NewInvalidSyntaxError(message string) *InvalidSyntaxError {
-	return &InvalidSyntaxError{
+func NewBadInputError(message string) *BadInputError {
+	return &BadInputError{
 		message: message,
 	}
 }
 
-func (e *InvalidSyntaxError) Wrap(err error) error {
+func (e *BadInputError) Wrap(err error) error {
 	e.wrapped = err
 	return e
 }
 
-func (e *InvalidSyntaxError) Error() string {
+func (e *BadInputError) Error() string {
 	if e.wrapped == nil {
 		return e.message
 	}
@@ -55,12 +55,12 @@ func (e *InvalidSyntaxError) Error() string {
 // エラーを処理する関数
 func HandleError(err error) {
 	var internalErr *InternalError
-	var syntaxErr *InvalidSyntaxError
+	var badInputErr *BadInputError
 	switch {
 	case errors.As(err, &internalErr):
 		fmt.Printf("\033[31m[INTERNAL ERR]\n %s\033[0m\n", err.Error())
-	case errors.As(err, &syntaxErr):
-		fmt.Printf("\033[31m[INVALID SYNTAX ERR]\n %s\033[0m\n", err.Error())
+	case errors.As(err, &badInputErr):
+		fmt.Printf("\033[31m[ BAD INPUT ERR]\n %s\033[0m\n", err.Error())
 	default:
 		fmt.Printf("\033[31m[UNKNOWN ERR]\n %s\033[0m\n", err.Error())
 	}

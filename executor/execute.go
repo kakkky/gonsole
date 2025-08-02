@@ -53,7 +53,7 @@ func (e *Executor) Execute(input string) {
 	if err := cmd.Run(); err != nil {
 		// エラーが発生した場合は、エラーメッセージを整形して表示
 		errResult := stderrBuf.String()
-		errs.HandleError(errs.NewInvalidSyntaxError(formatErr(errResult)))
+		errs.HandleError(errs.NewBadInputError(formatErr(errResult)))
 		// エラー箇所は削除
 		if err := e.deleteErrLine(errResult); err != nil {
 			errs.HandleError(err)
