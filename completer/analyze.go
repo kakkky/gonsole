@@ -6,6 +6,8 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
+
+	"github.com/kakkky/gonsole/errs"
 )
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
@@ -35,7 +37,7 @@ func analyzeGoAst(path string) (map[string]*ast.Package, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, errs.NewInternalError("failed to walk directory").Wrap(err)
 	}
 	return nodes, nil
 }

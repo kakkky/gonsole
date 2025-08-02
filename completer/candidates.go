@@ -131,7 +131,6 @@ func isMethod(funcDecl *ast.FuncDecl) bool {
 	return funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0
 }
 
-// TODO: こっちも返り値の型を取得するようにする
 func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 	var receiverTypeName string
 	var returnTypeName []string
