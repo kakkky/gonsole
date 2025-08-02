@@ -58,16 +58,22 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
 					// パッケージのインポート文を追加
-					e.addImportDecl(tmpFileAst, pkgNameToImport)
+					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+						return err
+					}
 
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
-					e.addImportDecl(tmpFileAst, "fmt")
+					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+						return err
+					}
 				// 変数だった場合(repl上で定義した変数単体)
 				case *ast.Ident:
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
-					e.addImportDecl(tmpFileAst, "fmt")
+					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+						return err
+					}
 				}
 			// 短縮変数宣言だった場合
 			case *ast.AssignStmt:
@@ -79,7 +85,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					e.addImportDecl(tmpFileAst, pkgNameToImport) // 各パッケージを直接インポート
+					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+						return err
+					}
 				}
 				addInputStmt(stmt, mainFuncBody)
 				// 宣言された各変数に対して空代入を作成（値を評価するため）
@@ -100,7 +108,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 								if !found {
 									return errs.NewInternalError("failed to extract package name from expression")
 								}
-								e.addImportDecl(tmpFileAst, pkgNameToImport) // 各パッケージを直接インポート
+								if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+									return err
+								}
 							}
 							// 宣言文を追加
 							addInputStmt(stmt, mainFuncBody)
