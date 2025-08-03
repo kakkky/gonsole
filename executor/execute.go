@@ -48,16 +48,17 @@ func (e *Executor) Execute(input string) {
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
-
 	// 評価を実行
 	if err := cmd.Run(); err != nil {
 		// エラーが発生した場合は、エラーメッセージを整形して表示
 		errResult := stderrBuf.String()
 		errs.HandleError(errs.NewBadInputError(formatErr(errResult)))
-		// エラー箇所は削除
-		if err := e.deleteErrLine(errResult); err != nil {
-			errs.HandleError(err)
-		}
+		// 最後にエラー箇所は削除
+		defer func() {
+			if err := e.deleteErrLine(errResult); err != nil {
+				errs.HandleError(err)
+			}
+		}()
 	}
 
 	// 評価結果を出力

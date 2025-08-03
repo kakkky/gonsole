@@ -3,15 +3,13 @@ package executor
 import (
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
-	"io"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
+
+	"github.com/kakkky/gonsole/errs"
 )
 
 func (e *Executor) deleteCallExpr() error {
@@ -25,95 +23,111 @@ func (e *Executor) deleteCallExpr() error {
 	if err != nil {
 		return err
 	}
-	var pkgName string
+
+	var pkgNameToDelete string
+	// main関数を探す
 	for _, decl := range file.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
-			newBody := []ast.Stmt{}
-			for _, stmt := range funcDecl.Body.List {
-				if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
-					if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
-						if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-							if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-								if pkgIdent.Name == "fmt" && selExpr.Sel.Name == "Println" {
-									// 最初の引数を調べる
-									if argCallExpr, ok := callExpr.Args[0].(*ast.CallExpr); ok {
-										// 引数が関数呼び出しの場合
-										if argSelExpr, ok := argCallExpr.Fun.(*ast.SelectorExpr); ok {
-											if argPkgIdent, ok := argSelExpr.X.(*ast.Ident); ok {
-												// 引数の関数呼び出しからパッケージ名を取得
-												pkgName = argPkgIdent.Name
-											}
-										}
-									}
-								}
-							}
-						}
-						// 関数呼び出しを削除
-						continue
-					}
-				}
-				newBody = append(newBody, stmt)
-			}
-			funcDecl.Body.List = newBody
-			break
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok || funcDecl.Name.Name != "main" {
+			continue
 		}
+
+		// fmt.Println(pkg.func()) パターンを探して削除
+
+		originMainFuncBody := &funcDecl.Body.List
+		newMainFuncBody := []ast.Stmt{}
+		for _, stmt := range *originMainFuncBody {
+			// ExprStmt でない場合はそのまま追加
+			exprStmt, ok := stmt.(*ast.ExprStmt)
+			if !ok {
+				newMainFuncBody = append(newMainFuncBody, stmt)
+				continue
+			}
+
+			// CallExpr でない場合もそのまま追加
+			callExpr, ok := exprStmt.X.(*ast.CallExpr)
+			if !ok {
+				newMainFuncBody = append(newMainFuncBody, stmt)
+				continue
+			}
+
+			// fmt.Println(pkg.func()) パターンからパッケージ名を抽出
+			pkgNameToDelete = extractPkgNameFromPrintlnExprArg(callExpr)
+		}
+
+		// fmt.Println(pkg.func()) パターンが取り除かれたmain関数の中身に置き換える
+		*originMainFuncBody = newMainFuncBody
+		break
 	}
+
+	// 関数呼び出しはfmt.Printlnでラップされているので、fmtパッケージを削除
 	if err := e.deleteImportDecl(file, "fmt"); err != nil {
 		return err
 	}
-	if !isPkgUsed(pkgName, file) {
-		if err := e.deleteImportDecl(file, pkgName); err != nil {
+
+	// パッケージ名が使用されていない場合はインポートを削除
+	if !isPkgUsed(pkgNameToDelete, file) {
+		if err := e.deleteImportDecl(file, pkgNameToDelete); err != nil {
 			return err
 		}
 	}
-	outFile, err := os.OpenFile(e.tmpFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer outFile.Close()
-	err = format.Node(outFile, fset, file)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return outputToFile(e.tmpFilePath, file)
 }
 
-func (e *Executor) deleteImportDecl(file *ast.File, pkg string) error {
-	// モジュールルート相対の全パッケージディレクトリを探索
-	var importPath string
-	if err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
+// fmt.Println(pkg.func()) パターンからパッケージ名を抽出
+// 該当しない場合は空文字列を返す
+func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
+	// 関数式をチェック
+	switch funExprV := callExpr.Fun.(type) {
+	case *ast.SelectorExpr:
+		// fmt.Println を期待
+		xIdent, ok := funExprV.X.(*ast.Ident)
+		if !ok || xIdent.Name != "fmt" || funExprV.Sel.Name != "Println" {
+			return ""
+		}
+
+		// 引数があるか確認
+		if len(callExpr.Args) == 0 {
+			return ""
+		}
+
+		// 第一引数をチェック
+		switch argExpr := callExpr.Args[0].(type) {
+		case *ast.CallExpr:
+			selExpr := argExpr.Fun.(*ast.SelectorExpr)
+			pkgIdent := selExpr.X.(*ast.Ident)
+			return pkgIdent.Name
+		case *ast.SelectorExpr:
+			pkgIdent := argExpr.X.(*ast.Ident)
+			return pkgIdent.Name
+		case *ast.Ident:
+			// 直接識別子の場合はパッケージ名がないので空
+			return ""
+		}
+	}
+	return ""
+}
+
+func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) error {
+	var importPathQuoted string
+	if pkgNameToDelete == "fmt" {
+		importPathQuoted = `"fmt"`
+	} else {
+		importPath, err := e.resolveImportPath(pkgNameToDelete)
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
-			return nil
-		}
-		// パッケージ名に一致するディレクトリか？
-		base := filepath.Base(path)
-		if base == pkg {
-			relPath, err := filepath.Rel(".", path)
-			if err != nil {
-				return err
-			}
-			importPath = filepath.ToSlash(filepath.Join(e.modPath, relPath))
-			return io.EOF // 早期終了
-		}
-		return nil
-	}); err != nil && err != io.EOF {
-		return err
-	}
-	if importPath == "" {
-		importPath = pkg // 直接パッケージ名が指定された場合
+		importPathQuoted = fmt.Sprintf(`"%s"`, importPath)
 	}
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.IMPORT {
 			continue
 		}
-
 		for j, spec := range genDecl.Specs {
 			importSpec := spec.(*ast.ImportSpec)
-			if importSpec.Path.Value == fmt.Sprintf(`"%s"`, importPath) {
+			if importSpec.Path.Value == importPathQuoted {
 				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
 			}
 			break
@@ -122,43 +136,47 @@ func (e *Executor) deleteImportDecl(file *ast.File, pkg string) error {
 	return nil
 }
 
+// deleteErrLine はエラーメッセージから行番号を抽出し、その行を削除する
+// もし行番号が抽出できなかった場合はエラーを返す
 func (e *Executor) deleteErrLine(errMsg string) error {
+	// エラーメッセージから行番号を抽出
 	re := regexp.MustCompile(`/main\.go:(\d+):(\d+)`)
 	matches := re.FindStringSubmatch(errMsg)
 	line := matches[1]
-	lineNum, err := strconv.Atoi(line)
+	errLineNum, err := strconv.Atoi(line)
 	if err != nil {
-		return err
+		return errs.NewInternalError("failed to parse line number from error message").Wrap(err)
 	}
 
 	// 一時ファイルの内容を読み込む
 	tmpContent, err := os.ReadFile(e.tmpFilePath)
 	if err != nil {
-		return err
+		return errs.NewInternalError("failed to read temporary file").Wrap(err)
 	}
 	fset := token.NewFileSet()
 	tmpFileAst, err := parser.ParseFile(fset, e.tmpFilePath, string(tmpContent), parser.AllErrors)
 	if err != nil {
-		return err
+		return errs.NewInternalError("failed to parse temporary file").Wrap(err)
 	}
-	var pkgName string
+
+	var pkgNameToDelete string
 	var isblankAssignExist bool
 	for _, decl := range tmpFileAst.Decls {
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
-			newList := []ast.Stmt{}
+			newMainFuncBody := []ast.Stmt{}
 			for _, stmt := range funcDecl.Body.List {
 				pos := fset.Position(stmt.Pos())
 				if isblankAssignExist {
 					continue
 				}
-				if pos.Line == lineNum {
+				if pos.Line == errLineNum {
 					switch stmt.(type) {
 					case *ast.ExprStmt:
 						if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
 							if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
 								if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
 									if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-										pkgName = pkgIdent.Name
+										pkgNameToDelete = pkgIdent.Name
 									}
 								}
 							}
@@ -169,25 +187,26 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 								switch rhs := rhs.(type) {
 								case *ast.SelectorExpr:
 									if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-										pkgName = pkgIdent.Name
+										pkgNameToDelete = pkgIdent.Name
 									}
 								case *ast.CompositeLit:
 									// 構造体リテラルの型が SelectorExpr
 									if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-											pkgName = pkgIdent.Name
+											pkgNameToDelete = pkgIdent.Name
 										}
 									}
 								case *ast.CallExpr:
 									// 関数の戻り値を代入している場合
 									if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
 										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-											pkgName = pkgIdent.Name
+											pkgNameToDelete = pkgIdent.Name
 										}
 									}
 								}
 							}
 						}
+						// 短縮変数宣言の場合は次の行にブランク代入された変数があるはずなので、フラグをtrueにしておく
 						isblankAssignExist = true
 					case *ast.DeclStmt:
 						if declStmt, ok := stmt.(*ast.DeclStmt); ok {
@@ -197,20 +216,20 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 										switch rhs := val.(type) {
 										case *ast.SelectorExpr:
 											if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-												pkgName = pkgIdent.Name
+												pkgNameToDelete = pkgIdent.Name
 											}
 										case *ast.CompositeLit:
 											// 構造体リテラルの型が SelectorExpr
 											if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
 												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-													pkgName = pkgIdent.Name
+													pkgNameToDelete = pkgIdent.Name
 												}
 											}
 										case *ast.CallExpr:
 											// 関数の戻り値を代入している場合
 											if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
 												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-													pkgName = pkgIdent.Name
+													pkgNameToDelete = pkgIdent.Name
 												}
 											}
 										}
@@ -218,17 +237,18 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 								}
 							}
 						}
+						// 変数宣言の場合は次の行にブランク代入された変数があるはずなので、フラグをtrueにしておく
 						isblankAssignExist = true
 					}
 					continue
 				}
-				newList = append(newList, stmt)
+				newMainFuncBody = append(newMainFuncBody, stmt)
 			}
-			funcDecl.Body.List = newList
+			funcDecl.Body.List = newMainFuncBody
 		}
 	}
-	if !isPkgUsed(pkgName, tmpFileAst) {
-		if err := e.deleteImportDecl(tmpFileAst, pkgName); err != nil {
+	if !isPkgUsed(pkgNameToDelete, tmpFileAst) {
+		if err := e.deleteImportDecl(tmpFileAst, pkgNameToDelete); err != nil {
 			return err
 		}
 	}
