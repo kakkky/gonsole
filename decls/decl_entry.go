@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+
+	"github.com/kakkky/gonsole/errs"
 )
 
 type DeclEntry struct {
@@ -21,7 +23,7 @@ func (de *DeclEntry) Register(input string) error {
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
 	inputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
 	if err != nil {
-		return err
+		return errs.NewInternalError("failed to parse input").Wrap(err)
 	}
 	var inputStmt ast.Stmt
 	for _, decl := range inputAst.Decls {
