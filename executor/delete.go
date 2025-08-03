@@ -66,7 +66,7 @@ func (e *Executor) deleteCallExpr() error {
 	}
 
 	// パッケージ名が使用されていない場合はインポートを削除
-	if !isPkgUsed(pkgNameToDelete, file) {
+	if !isPkgUsedInFile(pkgNameToDelete, file) {
 		if err := e.deleteImportDecl(file, pkgNameToDelete); err != nil {
 			return err
 		}
@@ -109,6 +109,7 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 	return ""
 }
 
+// deleteImportDecl は指定されたパッケージ名のインポート宣言を削除する
 func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) error {
 	var importPathQuoted string
 	if pkgNameToDelete == "fmt" {
@@ -161,175 +162,191 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 
 	var pkgNameToDelete string
 	var isblankAssignExist bool
+
+	// main関数を探して対象行を削除
 	for _, decl := range tmpFileAst.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
-			newMainFuncBody := []ast.Stmt{}
-			for _, stmt := range funcDecl.Body.List {
-				pos := fset.Position(stmt.Pos())
-				if isblankAssignExist {
-					continue
-				}
-				if pos.Line == errLineNum {
-					switch stmt.(type) {
-					case *ast.ExprStmt:
-						if exprStmt, ok := stmt.(*ast.ExprStmt); ok {
-							if callExpr, ok := exprStmt.X.(*ast.CallExpr); ok {
-								if selExpr, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
-									if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-										pkgNameToDelete = pkgIdent.Name
-									}
-								}
-							}
-						}
-					case *ast.AssignStmt:
-						if assignStmt, ok := stmt.(*ast.AssignStmt); ok {
-							for _, rhs := range assignStmt.Rhs {
-								switch rhs := rhs.(type) {
-								case *ast.SelectorExpr:
-									if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-										pkgNameToDelete = pkgIdent.Name
-									}
-								case *ast.CompositeLit:
-									// 構造体リテラルの型が SelectorExpr
-									if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-											pkgNameToDelete = pkgIdent.Name
-										}
-									}
-								case *ast.CallExpr:
-									// 関数の戻り値を代入している場合
-									if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-										if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-											pkgNameToDelete = pkgIdent.Name
-										}
-									}
-								}
-							}
-						}
-						// 短縮変数宣言の場合は次の行にブランク代入された変数があるはずなので、フラグをtrueにしておく
-						isblankAssignExist = true
-					case *ast.DeclStmt:
-						if declStmt, ok := stmt.(*ast.DeclStmt); ok {
-							for _, decl := range declStmt.Decl.(*ast.GenDecl).Specs {
-								if valSpec, ok := decl.(*ast.ValueSpec); ok {
-									for _, val := range valSpec.Values {
-										switch rhs := val.(type) {
-										case *ast.SelectorExpr:
-											if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-												pkgNameToDelete = pkgIdent.Name
-											}
-										case *ast.CompositeLit:
-											// 構造体リテラルの型が SelectorExpr
-											if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-													pkgNameToDelete = pkgIdent.Name
-												}
-											}
-										case *ast.CallExpr:
-											// 関数の戻り値を代入している場合
-											if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-												if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-													pkgNameToDelete = pkgIdent.Name
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-						// 変数宣言の場合は次の行にブランク代入された変数があるはずなので、フラグをtrueにしておく
-						isblankAssignExist = true
-					}
-					continue
-				}
-				newMainFuncBody = append(newMainFuncBody, stmt)
-			}
-			funcDecl.Body.List = newMainFuncBody
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if !ok || funcDecl.Name.Name != "main" {
+			continue
 		}
+
+		newMainFuncBody := []ast.Stmt{}
+		for _, stmt := range funcDecl.Body.List {
+			pos := fset.Position(stmt.Pos())
+
+			// 前の処理で空代入フラグが立っていたら、この行をスキップ
+			// 空代入はエラー行の次の行にあることを前提とする
+			if isblankAssignExist {
+				continue
+			}
+
+			// エラー行なら削除してパッケージ名を取得
+			if pos.Line == errLineNum {
+				// エラー行の種類によって処理を分ける
+				switch stmtV := stmt.(type) {
+				case *ast.ExprStmt:
+					// 式文の場合（関数呼び出しなど）
+					switch exprV := stmtV.X.(type) {
+					case *ast.CallExpr:
+						// 関数呼び出しの場合
+						switch exprFuncV := exprV.Fun.(type) {
+						case *ast.SelectorExpr:
+							// パッケージ関数呼び出し
+							pkgNameToDelete = exprFuncV.X.(*ast.Ident).Name
+						}
+					}
+
+				case *ast.AssignStmt:
+					// 代入文・変数宣言の場合
+					pkgNameToDelete = extractPkgNameFromRhs(stmtV.Rhs[0])
+					// 次の行の空代入をスキップするためのフラグを立てる
+					isblankAssignExist = true
+				case *ast.DeclStmt:
+					// 宣言文の場合
+					switch declType := stmtV.Decl.(type) {
+					case *ast.GenDecl:
+						for _, spec := range declType.Specs {
+							switch specV := spec.(type) {
+							case *ast.ValueSpec:
+								pkgNameToDelete = extractPkgNameFromRhs(specV.Values[0])
+							}
+						}
+					}
+					// 次の行の空代入をスキップするためのフラグを立てる
+					isblankAssignExist = true
+				}
+
+				continue // エラー行は追加しない（削除）
+			}
+
+			// エラー行でなければそのまま追加
+			newMainFuncBody = append(newMainFuncBody, stmt)
+		}
+
+		// 修正した本文で更新
+		funcDecl.Body.List = newMainFuncBody
+		break
 	}
-	if !isPkgUsed(pkgNameToDelete, tmpFileAst) {
+
+	// 使用されていないパッケージのインポートを削除
+	if !isPkgUsedInFile(pkgNameToDelete, tmpFileAst) {
 		if err := e.deleteImportDecl(tmpFileAst, pkgNameToDelete); err != nil {
 			return err
 		}
 	}
-	if err := outputToFile(e.tmpFilePath, tmpFileAst); err != nil {
-		return err
-	}
-	return nil
+
+	// 修正したASTをファイルに書き出す
+	return outputToFile(e.tmpFilePath, tmpFileAst)
 }
 
-func isPkgUsed(pkgName string, file *ast.File) bool {
-	for _, decl := range file.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
-			for _, stmt := range funcDecl.Body.List {
+// 右辺式からパッケージ名を抽出するヘルパー関数
+func extractPkgNameFromRhs(expr ast.Expr) string {
+	switch exprV := expr.(type) {
+	case *ast.SelectorExpr:
+		// パッケージ.名前 の形式
+		return exprV.X.(*ast.Ident).Name
+
+	case *ast.CompositeLit:
+		// パッケージ.型{} の形式
+		switch exprTypeV := exprV.Type.(type) {
+		case *ast.SelectorExpr:
+			return exprTypeV.X.(*ast.Ident).Name
+		}
+
+	case *ast.CallExpr:
+		// パッケージ.関数() の形式
+		switch exprFuncV := exprV.Fun.(type) {
+		case *ast.SelectorExpr:
+			return exprFuncV.X.(*ast.Ident).Name
+		}
+	}
+
+	return ""
+}
+
+// パッケージが使用されているかをチェックする
+func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
+	if pkgName == "" {
+		return false
+	}
+
+	for _, decl := range fileAst.Decls {
+		switch decl := decl.(type) {
+		case *ast.FuncDecl:
+			if decl.Name.Name != "main" {
+				continue
+			}
+
+			// main関数内の各文を確認
+			for _, stmt := range decl.Body.List {
 				switch stmt := stmt.(type) {
 				case *ast.AssignStmt:
+					// 代入文の右辺をチェック
 					for _, expr := range stmt.Rhs {
-						switch rhs := expr.(type) {
-						case *ast.SelectorExpr: // 関数呼び出しなどの時はこちら
-							if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-								if pkgName == pkgIdent.Name {
-									return true
-								}
-							}
-						case *ast.CompositeLit:
-							if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-									if pkgName == pkgIdent.Name {
-										return true
-									}
-								}
-							}
-						case *ast.CallExpr:
-							// 関数の戻り値を代入している場合
-							if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-								if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-									if pkgName == pkgIdent.Name {
+						if isPkgUsedInExpr(expr, pkgName) {
+							return true
+						}
+					}
+
+				case *ast.DeclStmt:
+					// 宣言文の場合
+					switch decl := stmt.Decl.(type) {
+					case *ast.GenDecl:
+						for _, spec := range decl.Specs {
+							switch spec := spec.(type) {
+							case *ast.ValueSpec:
+								// 変数宣言の値をチェック
+								for _, val := range spec.Values {
+									if isPkgUsedInExpr(val, pkgName) {
 										return true
 									}
 								}
 							}
 						}
 					}
-				case *ast.DeclStmt:
-					switch decl := stmt.Decl.(type) {
-					case *ast.GenDecl:
-						for _, spec := range decl.Specs {
-							if valSpec, ok := spec.(*ast.ValueSpec); ok {
-								for _, val := range valSpec.Values {
-									switch rhs := val.(type) {
-									case *ast.SelectorExpr:
-										if pkgIdent, ok := rhs.X.(*ast.Ident); ok {
-											if pkgName == pkgIdent.Name {
-												return true
-											}
-										}
-									case *ast.CompositeLit:
-										// 構造体リテラルの型が SelectorExpr
-										if selExpr, ok := rhs.Type.(*ast.SelectorExpr); ok {
-											if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-												if pkgName == pkgIdent.Name {
-													return true
-												}
-											}
-										}
-									case *ast.CallExpr:
-										// 関数の戻り値を代入している場合
-										if selExpr, ok := rhs.Fun.(*ast.SelectorExpr); ok {
-											if pkgIdent, ok := selExpr.X.(*ast.Ident); ok {
-												if pkgName == pkgIdent.Name {
-													return true
-												}
-											}
-										}
-									}
-								}
-							}
-						}
+
+				case *ast.ExprStmt:
+					// 式文の場合
+					if isPkgUsedInExpr(stmt.X, pkgName) {
+						return true
 					}
 				}
 			}
 		}
 	}
+	return false
+}
+
+// 式内にパッケージが使用されているかをチェック
+func isPkgUsedInExpr(expr ast.Expr, pkgName string) bool {
+	switch expr := expr.(type) {
+	case *ast.SelectorExpr:
+		// pkg.Name パターン
+		switch x := expr.X.(type) {
+		case *ast.Ident:
+			return x.Name == pkgName
+		}
+
+	case *ast.CompositeLit:
+		// pkg.Type{} パターン
+		switch typ := expr.Type.(type) {
+		case *ast.SelectorExpr:
+			switch x := typ.X.(type) {
+			case *ast.Ident:
+				return x.Name == pkgName
+			}
+		}
+
+	case *ast.CallExpr:
+		// pkg.Func() パターン
+		switch fun := expr.Fun.(type) {
+		case *ast.SelectorExpr:
+			switch x := fun.X.(type) {
+			case *ast.Ident:
+				return x.Name == pkgName
+			}
+		}
+	}
+
 	return false
 }
