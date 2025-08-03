@@ -5,6 +5,14 @@ import (
 	"fmt"
 )
 
+type ErrType string
+
+const (
+	INTERNAL_ERROR  ErrType = "INTERNAL ERROR"
+	BAD_INPUT_ERROR ErrType = "BAD INPUT ERROR"
+	UNKNOWN_ERROR   ErrType = "UNKNOWN ERROR"
+)
+
 // 内部的なエラー
 type InternalError struct {
 	message string
@@ -56,12 +64,14 @@ func (e *BadInputError) Error() string {
 func HandleError(err error) {
 	var internalErr *InternalError
 	var badInputErr *BadInputError
+	var errType ErrType
 	switch {
 	case errors.As(err, &internalErr):
-		fmt.Printf("\033[31m[INTERNAL ERROR]\n %s\033[0m\n", err.Error())
+		errType = INTERNAL_ERROR
 	case errors.As(err, &badInputErr):
-		fmt.Printf("\033[31m[BAD INPUT ERROR]\n %s\033[0m\n", err.Error())
+		errType = BAD_INPUT_ERROR
 	default:
-		fmt.Printf("\033[31m[UNKNOWN ERROR]\n %s\033[0m\n", err.Error())
+		errType = UNKNOWN_ERROR
 	}
+	fmt.Printf("\033[31m[%s]\n %s\033[0m\n", errType, err.Error())
 }
