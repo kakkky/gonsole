@@ -88,7 +88,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 				}
 				addInputStmt(stmt, mainFuncBody)
 				// 宣言された各変数に対して空代入を作成（値を評価するため）
-				addBlankAssignStmt(stmt.Lhs[0], mainFuncBody)
+				for _, lhs := range stmt.Lhs {
+					addBlankAssignStmt(lhs, mainFuncBody)
+				}
 			// 宣言の場合
 			case *ast.DeclStmt:
 				switch decl := stmt.Decl.(type) {
@@ -112,7 +114,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 							// 宣言文を追加
 							addInputStmt(stmt, mainFuncBody)
 							// 宣言された各変数に対して空代入を作成
-							addBlankAssignStmt(specV.Names[0], mainFuncBody)
+							for _, name := range specV.Names {
+								addBlankAssignStmt(name, mainFuncBody)
+							}
 						}
 					}
 				}
