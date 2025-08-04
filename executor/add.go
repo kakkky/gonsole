@@ -233,6 +233,10 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 }
 
 func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
+	if target.(*ast.Ident).Name == "_" {
+		// すでに空代入されている場合は何もしない
+		return
+	}
 	blankAssign := &ast.AssignStmt{
 		Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
 		Tok: token.ASSIGN,
