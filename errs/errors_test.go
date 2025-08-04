@@ -54,7 +54,9 @@ func TestHandleError(t *testing.T) {
 			// パイプを閉じて出力を読み取る
 			w.Close()
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Fatalf("failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// エラーメッセージが出力に含まれているか確認
