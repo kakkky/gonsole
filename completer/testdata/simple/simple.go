@@ -20,3 +20,8 @@ func (s SimpleType) SimpleMethod() string {
 func SimpleFunc() string {
 	return "function result"
 }
+
+type SimpleInterface interface {
+	// SimpleMethod is a method of SimpleInterface
+	SimpleMethod() string
+}

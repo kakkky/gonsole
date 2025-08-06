@@ -437,6 +437,139 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 		},
 		{
+			name:      "Complete methods of variable storing interface return value",
+			inputText: "reader.",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				funcs: map[pkgName][]funcSet{
+					"myapp": {
+						{
+							name:               "NewReader",
+							description:        "NewReader creates a new reader",
+							returnTypeNames:    []string{"Reader", "error"},
+							returnTypePkgNames: []string{"myapp", ""},
+						},
+					},
+				},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "MyReader",
+							name:               "Read",
+							description:        "Read reads data from the reader",
+							returnTypeNames:    []string{"int", "error"},
+							returnTypePkgNames: []string{"", ""},
+						},
+						{
+							receiverTypeName:   "MyReader",
+							name:               "Close",
+							description:        "Close closes the reader",
+							returnTypeNames:    []string{"error"},
+							returnTypePkgNames: []string{""},
+						},
+					},
+				},
+				interfaces: map[pkgName][]interfaceSet{
+					"myapp": {
+						{
+							name:         "Reader",
+							methods:      []string{"Read", "Close"},
+							descriptions: []string{"Read reads data from the reader", "Close closes the reader"},
+						},
+					},
+				},
+			},
+			setupDeclEntry: func() *decls.DeclEntry {
+				de := decls.NewDeclEntry()
+				if err := de.Register("reader, _ := myapp.NewReader()"); err != nil {
+					t.Fatalf("failed to register reader variable: %v", err)
+				}
+				return de
+			}(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "reader.Read()",
+					DisplayText: "Read()",
+					Description: "Method: Read reads data from the reader",
+				},
+				{
+					Text:        "reader.Close()",
+					DisplayText: "Close()",
+					Description: "Method: Close closes the reader",
+				},
+			},
+		},
+		{
+			name:      "Complete methods of variable storing interface return value from method",
+			inputText: "resource.",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				funcs: map[pkgName][]funcSet{
+					"myapp": {
+						{
+							name:               "CreateClient",
+							description:        "CreateClient creates a new client",
+							returnTypeNames:    []string{"Client", "error"},
+							returnTypePkgNames: []string{"myapp", ""},
+						},
+					},
+				},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Client",
+							name:               "GetResource",
+							description:        "GetResource returns a resource interface",
+							returnTypeNames:    []string{"Resource"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+					},
+				},
+				interfaces: map[pkgName][]interfaceSet{
+					"myapp": {
+						{
+							name:    "Resource",
+							methods: []string{"Open", "Save", "Delete"},
+							descriptions: []string{
+								"Open opens the resource",
+								"Save saves the resource",
+								"Delete deletes the resource",
+							},
+						},
+					},
+				},
+			},
+			setupDeclEntry: func() *decls.DeclEntry {
+				de := decls.NewDeclEntry()
+				// まずクライアント変数を作成
+				if err := de.Register("client, _ := myapp.CreateClient()"); err != nil {
+					t.Fatalf("failed to register client variable: %v", err)
+				}
+				// 次にリソース変数をクライアントのメソッドから作成
+				if err := de.Register("resource := client.GetResource()"); err != nil {
+					t.Fatalf("failed to register resource variable: %v", err)
+				}
+				return de
+			}(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "resource.Open()",
+					DisplayText: "Open()",
+					Description: "Method: Open opens the resource",
+				},
+				{
+					Text:        "resource.Save()",
+					DisplayText: "Save()",
+					Description: "Method: Save saves the resource",
+				},
+				{
+					Text:        "resource.Delete()",
+					DisplayText: "Delete()",
+					Description: "Method: Delete deletes the resource",
+				},
+			},
+		},
+		{
 			name:      "Do not complete private symbols",
 			inputText: "myapp.",
 			setupCandidates: &candidates{
