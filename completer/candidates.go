@@ -37,26 +37,35 @@ type (
 		fields      []string
 		description string
 	}
+	// interfaceの候補を返すわけではなく、関数がinterfaceを返す場合に、
+	// そのinterfaceのメソッドを候補として返すためのもの
+	interfaceSet struct {
+		name         string
+		methods      []string
+		descriptions []string
+	}
 )
 
 type candidates struct {
-	pkgs    []pkgName
-	funcs   map[pkgName][]funcSet
-	methods map[pkgName][]methodSet
-	vars    map[pkgName][]varSet
-	consts  map[pkgName][]constSet
-	structs map[pkgName][]structSet
+	pkgs       []pkgName
+	funcs      map[pkgName][]funcSet
+	methods    map[pkgName][]methodSet
+	vars       map[pkgName][]varSet
+	consts     map[pkgName][]constSet
+	structs    map[pkgName][]structSet
+	interfaces map[pkgName][]interfaceSet
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func NewCandidates(path string) (*candidates, error) {
 	c := candidates{
-		pkgs:    make([]pkgName, 0),
-		funcs:   make(map[pkgName][]funcSet),
-		methods: make(map[pkgName][]methodSet),
-		vars:    make(map[pkgName][]varSet),
-		consts:  make(map[pkgName][]constSet),
-		structs: make(map[pkgName][]structSet),
+		pkgs:       make([]pkgName, 0),
+		funcs:      make(map[pkgName][]funcSet),
+		methods:    make(map[pkgName][]methodSet),
+		vars:       make(map[pkgName][]varSet),
+		consts:     make(map[pkgName][]constSet),
+		structs:    make(map[pkgName][]structSet),
+		interfaces: make(map[pkgName][]interfaceSet),
 	}
 	node, err := analyzeGoAst(path)
 	if err != nil {
@@ -320,10 +329,10 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 	}
 	for _, spec := range genDecl.Specs {
 		typespec := spec.(*ast.TypeSpec)
-		var fields []string
-		structType, ok := typespec.Type.(*ast.StructType)
-		if ok {
-			for _, field := range structType.Fields.List {
+		switch typespecV := typespec.Type.(type) {
+		case *ast.StructType:
+			var fields []string
+			for _, field := range typespecV.Fields.List {
 				if len(field.Names) > 0 {
 					fields = append(fields, field.Names[0].Name)
 				}
@@ -333,6 +342,19 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 				specDescription += "   " + strings.TrimSpace(typespec.Doc.Text())
 			}
 			c.structs[pkgName(pkg)] = append(c.structs[pkgName(pkg)], structSet{name: typespec.Name.Name, fields: fields, description: genDeclDescription + specDescription})
+		case *ast.InterfaceType:
+			var methods []string
+			var descriptions []string
+			for _, method := range typespecV.Methods.List {
+				if len(method.Names) > 0 {
+					methods = append(methods, method.Names[0].Name)
+				}
+				if method.Doc != nil {
+					descriptions = append(descriptions, strings.ReplaceAll(method.Doc.Text(), "\n", ""))
+				}
+			}
+			c.interfaces[pkgName(pkg)] = append(c.interfaces[pkgName(pkg)], interfaceSet{name: typespec.Name.Name, methods: methods, descriptions: descriptions})
 		}
+
 	}
 }

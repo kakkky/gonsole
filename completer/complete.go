@@ -257,7 +257,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	if !ok {
 		return suggestions
 	}
-
 	// 関数の補完候補を回す
 	for _, rhsFuncSet := range rhsFuncSets {
 		// 関数名が一致
@@ -284,6 +283,45 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 						DisplayText: methodSet.name + "()",
 						Description: "Method: " + methodSet.description,
 					})
+				}
+			}
+		}
+	}
+
+	// メソッドの戻り値がinterfaceの場合、interfaceのメソッドを候補として表示する
+	rhsInterfaceSets, ok := c.candidates.interfaces[pkgName(decl.Pkg())]
+	if !ok {
+		return suggestions
+	}
+	for _, rhsFuncSet := range rhsFuncSets {
+		// 関数名が一致
+		if declRhsFuncName == rhsFuncSet.name {
+			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
+				if i != declRhsFuncReturnVarOrder {
+					continue // 何個目の戻り値かが一致しない場合はスキップ
+				}
+				for _, rhsInterfaceSet := range rhsInterfaceSets {
+					if returnTypeName == rhsInterfaceSet.name {
+						for mi, method := range rhsInterfaceSet.methods {
+							// memo: 現在はexecutorがprivateに対応していないため
+							if isPrivate(method) {
+								continue
+							}
+
+							// 重複チェック
+							methodKey := inputStr + method
+							if seenMethods[methodKey] {
+								continue
+							}
+							seenMethods[methodKey] = true
+
+							suggestions = append(suggestions, prompt.Suggest{
+								Text:        inputStr + method + "()",
+								DisplayText: method + "()",
+								Description: "Method: " + rhsInterfaceSet.descriptions[mi],
+							})
+						}
+					}
 				}
 			}
 		}
@@ -339,6 +377,46 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 						DisplayText: methodSet.name + "()",
 						Description: "Method: " + methodSet.description,
 					})
+				}
+			}
+		}
+	}
+
+	// メソッドの戻り値がinterfaceの場合、interfaceのメソッドを候補として表示する
+	rhsInterfaceSets, ok := c.candidates.interfaces[pkgName(decl.Pkg())]
+	if !ok {
+		return suggestions
+	}
+	for _, rhsMethodSet := range rhsMethodSets {
+		// メソッド名が一致
+		if declRhsMethodName == rhsMethodSet.name {
+			// メソッドの戻り値（複数）の型情報を確認
+			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
+				if i != declRhsMethodReturnVarOrder {
+					continue // 何個目の戻り値かが一致しない場合はスキップ
+				}
+				for _, rhsInterfaceSet := range rhsInterfaceSets {
+					if returnTypeName == rhsInterfaceSet.name {
+						for mi, method := range rhsInterfaceSet.methods {
+							// memo: 現在はexecutorがprivateに対応していないため
+							if isPrivate(method) {
+								continue
+							}
+
+							// 重複チェック
+							methodKey := inputStr + method
+							if seenMethods[methodKey] {
+								continue
+							}
+							seenMethods[methodKey] = true
+
+							suggestions = append(suggestions, prompt.Suggest{
+								Text:        inputStr + method + "()",
+								DisplayText: method + "()",
+								Description: "Method: " + rhsInterfaceSet.descriptions[mi],
+							})
+						}
+					}
 				}
 			}
 		}
