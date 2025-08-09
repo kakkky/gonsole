@@ -30,7 +30,7 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/complex/",
 			want: &candidates{
 				// パッケージ名の順序を実際の結果に合わせる
-				pkgs:    []pkgName{"subcomplex", "complex"},
+				pkgs:    []pkgName{"complex", "subcomplex"},
 				funcs:   map[pkgName][]funcSet{},
 				methods: map[pkgName][]methodSet{},
 				vars: map[pkgName][]varSet{
