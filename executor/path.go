@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,10 +23,11 @@ func getGoModPath(path string) (string, error) {
 
 // resolveImportPath はパッケージ名からインポートパスを解決する
 // 現在のディレクトリからパッケージ名に一致するディレクトリを探索し、相対パスを返す
+// 複数のパスが見つかる可能性があるので呼び出しもとで適切に選択する必要がある
 //
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
-func (e *Executor) resolveImportPath(pkgName string) (string, error) {
-	var importPath string
+func (e *Executor) resolveImportPath(pkgName string) ([]string, error) {
+	var importPaths []string
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -43,14 +43,12 @@ func (e *Executor) resolveImportPath(pkgName string) (string, error) {
 				return err
 			}
 			// モジュールルートのパスと相対パスを結合したものをインポートパスとする
-			importPath = filepath.ToSlash(filepath.Join(e.modPath, relPath))
-			return io.EOF // 早期終了
+			importPaths = append(importPaths, filepath.ToSlash(filepath.Join(e.modPath, relPath)))
 		}
 		return nil
 	})
-	if err != nil && err != io.EOF {
-		return "", errs.NewInternalError("failed to walk directory").Wrap(err)
+	if err != nil {
+		return nil, errs.NewInternalError("failed to walk directory").Wrap(err)
 	}
-
-	return importPath, nil
+	return importPaths, nil
 }

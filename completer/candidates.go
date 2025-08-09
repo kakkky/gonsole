@@ -3,6 +3,7 @@ package completer
 import (
 	"go/ast"
 	"go/token"
+	"slices"
 	"strings"
 )
 
@@ -71,8 +72,10 @@ func NewCandidates(path string) (*candidates, error) {
 	if err != nil {
 		return nil, err
 	}
-	for pkg, pkgAst := range node {
-		c.processPackageAst(pkg, pkgAst)
+	for pkg, pkgAsts := range node {
+		for _, pkgAst := range pkgAsts {
+			c.processPackageAst(pkg, pkgAst)
+		}
 	}
 
 	return &c, nil
@@ -80,7 +83,9 @@ func NewCandidates(path string) (*candidates, error) {
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func (c *candidates) processPackageAst(pkg string, pkgAst *ast.Package) {
-	c.pkgs = append(c.pkgs, pkgName(pkg))
+	if !slices.Contains(c.pkgs, pkgName(pkg)) {
+		c.pkgs = append(c.pkgs, pkgName(pkg))
+	}
 	for _, fileAst := range pkgAst.Files {
 		c.processFileAst(pkg, fileAst)
 	}

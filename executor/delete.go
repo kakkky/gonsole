@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/kakkky/gonsole/errs"
@@ -111,15 +112,17 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 
 // deleteImportDecl は指定されたパッケージ名のインポート宣言を削除する
 func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) error {
-	var importPathQuoted string
+	var importPathQuoteds []string
 	if pkgNameToDelete == "fmt" {
-		importPathQuoted = `"fmt"`
+		importPathQuoteds = append(importPathQuoteds, `"fmt"`)
 	} else {
-		importPath, err := e.resolveImportPath(pkgNameToDelete)
+		importPaths, err := e.resolveImportPath(pkgNameToDelete)
 		if err != nil {
 			return err
 		}
-		importPathQuoted = fmt.Sprintf(`"%s"`, importPath)
+		for _, importPath := range importPaths {
+			importPathQuoteds = append(importPathQuoteds, fmt.Sprintf(`"%s"`, importPath))
+		}
 	}
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
@@ -128,7 +131,7 @@ func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) erro
 		}
 		for j, spec := range genDecl.Specs {
 			importSpec := spec.(*ast.ImportSpec)
-			if importSpec.Path.Value == importPathQuoted {
+			if slices.Contains(importPathQuoteds, importSpec.Path.Value) {
 				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
 			}
 			break

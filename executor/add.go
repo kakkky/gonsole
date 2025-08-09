@@ -6,8 +6,10 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"slices"
 	"strings"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/kakkky/gonsole/errs"
 )
 
@@ -199,11 +201,21 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 		importPathQuoted = `"fmt"`
 	} else {
 		// パッケージパスを探索
-		importPath, err := e.resolveImportPath(pkgNameToImport)
+		importPaths, err := e.resolveImportPath(pkgNameToImport)
 		if err != nil {
 			return err
 		}
-		importPathQuoted = fmt.Sprintf(`"%s"`, importPath)
+		if len(importPaths) == 1 {
+			importPathQuoted = fmt.Sprintf(`"%s"`, importPaths[0])
+		}
+		if len(importPaths) > 1 {
+			// 複数の候補がある場合は選択を促す
+			selectedPath, err := selectImportPath(importPaths)
+			if err != nil {
+				return err
+			}
+			importPathQuoted = fmt.Sprintf(`"%s"`, selectedPath)
+		}
 	}
 
 	// インポート宣言部分を取得
@@ -243,4 +255,37 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 		Rhs: []ast.Expr{target},
 	}
 	*list = append(*list, blankAssign)
+}
+
+func selectImportPath(paths []string) (string, error) {
+	fmt.Print(toBlue("\nMultiple import candidates found.\n\nUse Tab to select import path.\n\n"))
+	for _, path := range paths {
+		fmt.Println(toBlue("- " + path))
+	}
+	completer := func(d prompt.Document) []prompt.Suggest {
+		s := make([]prompt.Suggest, len(paths))
+		for i, path := range paths {
+			s[i] = prompt.Suggest{Text: path}
+		}
+		return s
+	}
+	fmt.Print(toBlue("\n>>> "))
+	result := prompt.Input(
+		"",
+		completer, prompt.OptionShowCompletionAtStart(),
+		prompt.OptionPreviewSuggestionTextColor(prompt.Blue),
+		prompt.OptionInputTextColor(prompt.Blue),
+	)
+	if result == "" {
+		// Enterだけ押されたらそのまま抜ける
+		return "", errs.NewBadInputError("no import path selected")
+	}
+	if !slices.Contains(paths, result) {
+		return "", errs.NewBadInputError(fmt.Sprintf("no existing import path: %s", result))
+	}
+	return result, nil
+}
+
+func toBlue(text string) string {
+	return fmt.Sprintf("\033[94m%s\033[0m", text)
 }

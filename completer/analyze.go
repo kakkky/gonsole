@@ -11,10 +11,10 @@ import (
 )
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func analyzeGoAst(path string) (map[string]*ast.Package, error) {
+func analyzeGoAst(path string) (map[string][]*ast.Package, error) {
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
-	nodes := make(map[string]*ast.Package)
+	nodes := make(map[string][]*ast.Package)
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -27,7 +27,7 @@ func analyzeGoAst(path string) (map[string]*ast.Package, error) {
 		}
 		node, err := parser.ParseDir(fset, path, nil, mode)
 		for pkgName, pkg := range node {
-			nodes[pkgName] = pkg
+			nodes[pkgName] = append(nodes[pkgName], pkg)
 		}
 		if err != nil {
 			return err
