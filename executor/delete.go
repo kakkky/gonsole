@@ -67,7 +67,7 @@ func (e *Executor) deleteCallExpr() error {
 	}
 
 	// パッケージ名が使用されていない場合はインポートを削除
-	if !isPkgUsedInFile(pkgNameToDelete, file) {
+	if !isPkgUsed(pkgNameToDelete, file) {
 		if err := e.deleteImportDecl(file, pkgNameToDelete); err != nil {
 			return err
 		}
@@ -116,7 +116,7 @@ func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) erro
 	if pkgNameToDelete == "fmt" {
 		importPathQuoteds = append(importPathQuoteds, `"fmt"`)
 	} else {
-		importPaths, err := e.resolveImportPath(pkgNameToDelete)
+		importPaths, err := e.resolveImportPathForDelete(pkgNameToDelete)
 		if err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 	}
 
 	// 使用されていないパッケージのインポートを削除
-	if !isPkgUsedInFile(pkgNameToDelete, tmpFileAst) {
+	if !isPkgUsed(pkgNameToDelete, tmpFileAst) {
 		if err := e.deleteImportDecl(tmpFileAst, pkgNameToDelete); err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func extractPkgNameFromRhs(expr ast.Expr) string {
 }
 
 // パッケージが使用されているかをチェックする
-func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
+func isPkgUsed(pkgName string, fileAst *ast.File) bool {
 	if pkgName == "" {
 		return false
 	}
@@ -286,7 +286,7 @@ func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
 				case *ast.AssignStmt:
 					// 代入文の右辺をチェック
 					for _, expr := range stmt.Rhs {
-						if isPkgUsedInExpr(expr, pkgName) {
+						if isPkgInExpr(expr, pkgName) {
 							return true
 						}
 					}
@@ -300,7 +300,7 @@ func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
 							case *ast.ValueSpec:
 								// 変数宣言の値をチェック
 								for _, val := range spec.Values {
-									if isPkgUsedInExpr(val, pkgName) {
+									if isPkgInExpr(val, pkgName) {
 										return true
 									}
 								}
@@ -310,7 +310,7 @@ func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
 
 				case *ast.ExprStmt:
 					// 式文の場合
-					if isPkgUsedInExpr(stmt.X, pkgName) {
+					if isPkgInExpr(stmt.X, pkgName) {
 						return true
 					}
 				}
@@ -321,7 +321,7 @@ func isPkgUsedInFile(pkgName string, fileAst *ast.File) bool {
 }
 
 // 式内にパッケージが使用されているかをチェック
-func isPkgUsedInExpr(expr ast.Expr, pkgName string) bool {
+func isPkgInExpr(expr ast.Expr, pkgName string) bool {
 	switch expr := expr.(type) {
 	case *ast.SelectorExpr:
 		// pkg.Name パターン
