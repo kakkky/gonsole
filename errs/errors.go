@@ -73,5 +73,5 @@ func HandleError(err error) {
 	default:
 		errType = UNKNOWN_ERROR
 	}
-	fmt.Printf("\033[31m[%s]\n %s\033[0m\n", errType, err.Error())
+	fmt.Printf("\n\033[31m[%s]\n %s\033[0m\n\n", errType, err.Error())
 }

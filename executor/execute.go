@@ -105,5 +105,5 @@ func formatErr(input string) string {
 }
 
 func outputResult(output string) {
-	fmt.Printf("\033[32m%s\033[0m", output)
+	fmt.Printf("\n\033[32m%s\033[0m\n", output)
 }
