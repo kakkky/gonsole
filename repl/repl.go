@@ -31,5 +31,6 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 }
 
 func (r *Repl) Run() {
+	printAscii()
 	r.pt.Run()
 }
