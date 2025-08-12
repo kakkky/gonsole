@@ -5,6 +5,7 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/gonsole/decls"
 )
 
@@ -601,6 +602,231 @@ func TestCompleter_Complete(t *testing.T) {
 				},
 			},
 		},
+		// --- ここからメソッドチェーンのテストケース追加 ---
+		{
+			name:      "Method chain after function with single return value",
+			inputText: "myapp.NewClient().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				funcs: map[pkgName][]funcSet{
+					"myapp": {
+						{
+							name:               "NewClient",
+							description:        "Create new client",
+							returnTypeNames:    []string{"Client"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+					},
+				},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Client",
+							name:               "Do",
+							description:        "Do something",
+							returnTypeNames:    []string{"Result"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+					},
+				},
+			},
+			setupDeclEntry: decls.NewDeclEntry(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "myapp.NewClient().Do()",
+					DisplayText: "Do()",
+					Description: "Method: Do something",
+				},
+			},
+		},
+		{
+			name:      "No method chain after function with multiple return values",
+			inputText: "myapp.NewClient().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				funcs: map[pkgName][]funcSet{
+					"myapp": {
+						{
+							name:               "NewClient",
+							description:        "Create new client",
+							returnTypeNames:    []string{"Client", "error"},
+							returnTypePkgNames: []string{"myapp", ""},
+						},
+					},
+				},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Client",
+							name:               "Do",
+							description:        "Do something",
+							returnTypeNames:    []string{"Result"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+					},
+				},
+			},
+			setupDeclEntry: decls.NewDeclEntry(),
+			expected:       nil,
+		},
+		{
+			name:      "Method chain after function returning interface",
+			inputText: "myapp.NewReader().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				funcs: map[pkgName][]funcSet{
+					"myapp": {
+						{
+							name:               "NewReader",
+							description:        "Create new reader",
+							returnTypeNames:    []string{"Reader"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+					},
+				},
+				interfaces: map[pkgName][]interfaceSet{
+					"myapp": {
+						{
+							name:         "Reader",
+							methods:      []string{"Read", "Close"},
+							descriptions: []string{"Read reads data", "Close closes reader"},
+						},
+					},
+				},
+			},
+			setupDeclEntry: decls.NewDeclEntry(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "myapp.NewReader().Read()",
+					DisplayText: "Read()",
+					Description: "Method: Read reads data",
+				},
+				{
+					Text:        "myapp.NewReader().Close()",
+					DisplayText: "Close()",
+					Description: "Method: Close closes reader",
+				},
+			},
+		},
+		{
+			name:      "Method chain after method with single return value",
+			inputText: "client.GetResource().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Client",
+							name:               "GetResource",
+							description:        "Get resource",
+							returnTypeNames:    []string{"Resource"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+						{
+							receiverTypeName:   "Resource",
+							name:               "Open",
+							description:        "Open resource",
+							returnTypeNames:    []string{"error"},
+							returnTypePkgNames: []string{""},
+						},
+					},
+				},
+			},
+			setupDeclEntry: func() *decls.DeclEntry {
+				de := decls.NewDeclEntry()
+				_ = de.Register("client := myapp.Client{}")
+				return de
+			}(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "client.GetResource().Open()",
+					DisplayText: "Open()",
+					Description: "Method: Open resource",
+				},
+			},
+		},
+		{
+			name:      "No method chain after method with multiple return values",
+			inputText: "client.GetResource().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Client",
+							name:               "GetResource",
+							description:        "Get resource",
+							returnTypeNames:    []string{"Resource", "error"},
+							returnTypePkgNames: []string{"myapp", ""},
+						},
+						{
+							receiverTypeName:   "Resource",
+							name:               "Open",
+							description:        "Open resource",
+							returnTypeNames:    []string{"error"},
+							returnTypePkgNames: []string{""},
+						},
+					},
+				},
+			},
+			setupDeclEntry: func() *decls.DeclEntry {
+				de := decls.NewDeclEntry()
+				_ = de.Register("client := myapp.Client{}")
+				return de
+			}(),
+			expected: nil,
+		},
+		{
+			name:      "Method chain after interface-returning method chain",
+			inputText: "reader.Read().",
+			setupCandidates: &candidates{
+				pkgs: []pkgName{"myapp"},
+				methods: map[pkgName][]methodSet{
+					"myapp": {
+						{
+							receiverTypeName:   "Reader",
+							name:               "Read",
+							description:        "Read reads data from the reader",
+							returnTypeNames:    []string{"Reader"},
+							returnTypePkgNames: []string{"myapp"},
+						},
+						{
+							receiverTypeName:   "Reader",
+							name:               "Close",
+							description:        "Close closes the reader",
+							returnTypeNames:    []string{"error"},
+							returnTypePkgNames: []string{""},
+						},
+					},
+				},
+				interfaces: map[pkgName][]interfaceSet{
+					"myapp": {
+						{
+							name:         "Reader",
+							methods:      []string{"Read", "Close"},
+							descriptions: []string{"Read reads data from the reader", "Close closes the reader"},
+						},
+					},
+				},
+			},
+			setupDeclEntry: func() *decls.DeclEntry {
+				de := decls.NewDeclEntry()
+				_ = de.Register("reader := myapp.NewReader()")
+				return de
+			}(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "reader.Read().Read()",
+					DisplayText: "Read()",
+					Description: "Method: Read reads data from the reader",
+				},
+				{
+					Text:        "reader.Read().Close()",
+					DisplayText: "Close()",
+					Description: "Method: Close closes the reader",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -613,16 +839,15 @@ func TestCompleter_Complete(t *testing.T) {
 			got := completer.Complete(doc)
 
 			// 結果を比較（順序は考慮しない）
-			cmpOpts := []cmp.Option{
+			opts := []cmp.Option{
 				cmp.AllowUnexported(prompt.Suggest{}),
-				// 順序を無視して比較
-				cmp.Transformer("SortSuggestions", func(in []prompt.Suggest) []prompt.Suggest {
-					result := append([]prompt.Suggest{}, in...) // コピーを作成
-					return result
+				// prompt.SuggestのTextで順序を無視して比較
+				cmpopts.SortSlices(func(a, b prompt.Suggest) bool {
+					return a.Text < b.Text
 				}),
 			}
 
-			if diff := cmp.Diff(tt.expected, got, cmpOpts...); diff != "" {
+			if diff := cmp.Diff(tt.expected, got, opts...); diff != "" {
 				t.Errorf("Complete() mismatch (-want +got):\n%s", diff)
 			}
 		})
