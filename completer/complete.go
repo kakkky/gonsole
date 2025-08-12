@@ -440,11 +440,27 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 	methodSets := c.candidates.methods[pkgName(pkg)]
 	interfaceSets := c.candidates.interfaces[pkgName(pkg)]
 
+	// 重複排除用マップ
+	seen := make(map[string]struct{})
+	for _, s := range suggestions {
+		seen[s.Text] = struct{}{}
+	}
+
 	if funcSetPtr != nil && len(funcSetPtr.returnTypeNames) == 1 {
-		suggestions = append(suggestions, c.findMethodSuggestionsFromTypeOrInterface(inputStr, funcSetPtr.returnTypeNames[0], methodSets, interfaceSets)...)
+		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, funcSetPtr.returnTypeNames[0], methodSets, interfaceSets) {
+			if _, ok := seen[s.Text]; !ok {
+				suggestions = append(suggestions, s)
+				seen[s.Text] = struct{}{}
+			}
+		}
 	}
 	if methodSetPtr != nil && len(methodSetPtr.returnTypeNames) == 1 {
-		suggestions = append(suggestions, c.findMethodSuggestionsFromTypeOrInterface(inputStr, methodSetPtr.returnTypeNames[0], methodSets, interfaceSets)...)
+		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, methodSetPtr.returnTypeNames[0], methodSets, interfaceSets) {
+			if _, ok := seen[s.Text]; !ok {
+				suggestions = append(suggestions, s)
+				seen[s.Text] = struct{}{}
+			}
+		}
 	}
 	return suggestions
 }
