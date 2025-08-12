@@ -340,6 +340,12 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 			for _, field := range typespecV.Fields.List {
 				if len(field.Names) > 0 {
 					fields = append(fields, field.Names[0].Name)
+				} else {
+					// 埋め込み型（匿名フィールド）
+					switch t := field.Type.(type) {
+					case *ast.Ident:
+						fields = append(fields, t.Name)
+					}
 				}
 			}
 			var specDescription string
