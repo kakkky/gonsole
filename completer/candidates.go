@@ -354,9 +354,14 @@ func (c *candidates) processTypeDecl(pkg string, genDecl *ast.GenDecl) {
 				if len(method.Names) > 0 {
 					methods = append(methods, method.Names[0].Name)
 				}
+				commentBuilder := strings.Builder{}
 				if method.Doc != nil {
-					descriptions = append(descriptions, strings.ReplaceAll(method.Doc.Text(), "\n", ""))
+					commentBuilder.WriteString(strings.ReplaceAll(method.Doc.Text(), "\n", "") + "")
 				}
+				if method.Comment != nil {
+					commentBuilder.WriteString(strings.ReplaceAll(method.Comment.Text(), "\n", ""))
+				}
+				descriptions = append(descriptions, commentBuilder.String())
 			}
 			c.interfaces[pkgName(pkg)] = append(c.interfaces[pkgName(pkg)], interfaceSet{name: typespec.Name.Name, methods: methods, descriptions: descriptions})
 		}
