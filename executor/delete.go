@@ -96,9 +96,17 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 		// 第一引数をチェック
 		switch argExpr := callExpr.Args[0].(type) {
 		case *ast.CallExpr:
-			selExpr := argExpr.Fun.(*ast.SelectorExpr)
-			pkgIdent := selExpr.X.(*ast.Ident)
-			return pkgIdent.Name
+			selExpr, ok := argExpr.Fun.(*ast.SelectorExpr)
+			if !ok {
+				return ""
+			}
+			switch x := selExpr.X.(type) {
+			case *ast.Ident:
+				return x.Name
+			default:
+				// メソッドチェーンなどに対応
+				return extractPkgNameFromRhs(selExpr.X)
+			}
 		case *ast.SelectorExpr:
 			pkgIdent := argExpr.X.(*ast.Ident)
 			return pkgIdent.Name
@@ -257,10 +265,16 @@ func extractPkgNameFromRhs(expr ast.Expr) string {
 		}
 
 	case *ast.CallExpr:
-		// パッケージ.関数() の形式
+		// パッケージ.関数() の形式やメソッドチェーンにも対応
 		switch exprFuncV := exprV.Fun.(type) {
 		case *ast.SelectorExpr:
-			return exprFuncV.X.(*ast.Ident).Name
+			switch x := exprFuncV.X.(type) {
+			case *ast.Ident:
+				return x.Name
+			default:
+				// メソッドチェーンなどに対応
+				return extractPkgNameFromRhs(exprFuncV.X)
+			}
 		}
 	}
 

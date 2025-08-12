@@ -180,7 +180,13 @@ func extractPkgNameFromExpr(expr ast.Expr) (string, bool) {
 	case *ast.CallExpr:
 		switch funExprV := exprV.Fun.(type) {
 		case *ast.SelectorExpr:
-			return funExprV.X.(*ast.Ident).Name, true
+			switch x := funExprV.X.(type) {
+			case *ast.Ident:
+				return x.Name, true
+			default:
+				// メソッドチェーン対応
+				return extractPkgNameFromExpr(funExprV.X)
+			}
 		}
 	}
 	return "", false

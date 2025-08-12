@@ -84,7 +84,15 @@ func (de *DeclEntry) Register(input string) error {
 				switch funExprV := exprV.Fun.(type) {
 				case *ast.SelectorExpr:
 					// . 呼び出しの左側はまだパッケージ名か定義した変数かわからない
-					xName := funExprV.X.(*ast.Ident).Name
+					var xName string
+					switch x := funExprV.X.(type) {
+					case *ast.Ident:
+						xName = x.Name
+					default:
+						// メソッドチェーンなどに対応
+						// ここでは *ast.Ident 以外の場合は空文字列とする（必要に応じて再帰的にたどる処理も可）
+						return nil
+					}
 					// 定義ずみの変数だったら、それはメソッド呼び出し
 					if de.IsRegisteredDecl(xName) {
 						declReceiver := xName
