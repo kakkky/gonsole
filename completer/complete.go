@@ -153,6 +153,12 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 			}
 		}
 	}
+
+	// メソッドチェーン
+	if strings.HasSuffix(inputStr, ").") {
+		return c.findMethodSuggestionsFromChain(suggestions, inputStr)
+	}
+
 	return suggestions
 }
 
@@ -418,6 +424,110 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 						}
 					}
 				}
+			}
+		}
+	}
+	return suggestions
+}
+
+func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest, inputStr string) []prompt.Suggest {
+	pkg, isRecv := c.getPkgAndIsRecv(inputStr)
+	funcOrMethodName := getPrevFuncOrMethodName(inputStr)
+
+	funcSetPtr := c.findFuncSetPtr(pkg, funcOrMethodName)
+	methodSetPtr := c.findMethodSetPtr(pkg, funcOrMethodName, isRecv, inputStr)
+
+	methodSets := c.candidates.methods[pkgName(pkg)]
+	interfaceSets := c.candidates.interfaces[pkgName(pkg)]
+
+	if funcSetPtr != nil && len(funcSetPtr.returnTypeNames) == 1 {
+		suggestions = append(suggestions, c.findMethodSuggestionsFromTypeOrInterface(inputStr, funcSetPtr.returnTypeNames[0], methodSets, interfaceSets)...)
+	}
+	if methodSetPtr != nil && len(methodSetPtr.returnTypeNames) == 1 {
+		suggestions = append(suggestions, c.findMethodSuggestionsFromTypeOrInterface(inputStr, methodSetPtr.returnTypeNames[0], methodSets, interfaceSets)...)
+	}
+	return suggestions
+}
+
+// パッケージ名とレシーバかどうかを取得
+func (c *Completer) getPkgAndIsRecv(inputStr string) (string, bool) {
+	firstDotIdx := strings.Index(inputStr, ".")
+	pkgOrRecvName := inputStr[:firstDotIdx]
+	if c.declEntry.IsRegisteredDecl(pkgOrRecvName) {
+		for _, decl := range c.declEntry.Decls() {
+			if decl.Name() == pkgOrRecvName {
+				return decl.Pkg(), true
+			}
+		}
+	}
+	return pkgOrRecvName, false
+}
+
+// 直前の関数orメソッド名を取得
+func getPrevFuncOrMethodName(inputStr string) string {
+	lastOpeningParenthesisIdx := strings.LastIndex(inputStr, "(")
+	if lastOpeningParenthesisIdx == -1 {
+		return ""
+	}
+	secondLastDotIdx := strings.LastIndex(inputStr[:lastOpeningParenthesisIdx], ".")
+	if secondLastDotIdx == -1 {
+		return ""
+	}
+	return inputStr[secondLastDotIdx+1 : lastOpeningParenthesisIdx]
+}
+
+// 関数セットを取得
+func (c *Completer) findFuncSetPtr(pkg, name string) *funcSet {
+	funcSets := c.candidates.funcs[pkgName(pkg)]
+	for i := range funcSets {
+		if funcSets[i].name == name {
+			return &funcSets[i]
+		}
+	}
+	return nil
+}
+
+// メソッドセットを取得
+func (c *Completer) findMethodSetPtr(pkg, name string, isRecv bool, inputStr string) *methodSet {
+	if !isRecv && strings.Count(inputStr, "(") == 1 {
+		return nil
+	}
+	methodSets := c.candidates.methods[pkgName(pkg)]
+	for i := range methodSets {
+		if methodSets[i].name == name {
+			return &methodSets[i]
+		}
+	}
+	return nil
+}
+
+// 指定型のメソッド・インターフェースメソッドを補完候補として返す
+func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName string, methodSets []methodSet, interfaceSets []interfaceSet) []prompt.Suggest {
+	var suggestions []prompt.Suggest
+	for _, method := range methodSets {
+		if method.receiverTypeName == typeName && !isPrivate(method.name) {
+			suggestions = append(suggestions, prompt.Suggest{
+				Text:        inputStr + method.name + "()",
+				DisplayText: method.name + "()",
+				Description: "Method: " + method.description,
+			})
+		}
+	}
+	for _, interfaceSet := range interfaceSets {
+		if interfaceSet.name == typeName {
+			for mi, method := range interfaceSet.methods {
+				if isPrivate(method) {
+					continue
+				}
+				desc := ""
+				if mi < len(interfaceSet.descriptions) {
+					desc = interfaceSet.descriptions[mi]
+				}
+				suggestions = append(suggestions, prompt.Suggest{
+					Text:        inputStr + method + "()",
+					DisplayText: method + "()",
+					Description: "Method: " + desc,
+				})
 			}
 		}
 	}
