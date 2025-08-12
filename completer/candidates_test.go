@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestConvertFromNodeToCandidates(t *testing.T) {
@@ -61,7 +62,15 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewCandidates() error = %v", err)
 			}
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{})); diff != "" {
+			opts := []cmp.Option{
+				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}),
+				// pkgsの順序を無視
+				cmpopts.SortSlices(func(a, b pkgName) bool { return a < b }),
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
+				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("GenerateCandidates() mismatch (-want +got):\n%s", diff)
 			}
 		})
