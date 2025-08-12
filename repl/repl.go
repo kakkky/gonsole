@@ -1,6 +1,7 @@
 package repl
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/c-bata/go-prompt"
@@ -32,5 +33,6 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 
 func (r *Repl) Run() {
 	printAscii()
+	fmt.Print(" Interactive Golang Execution Console\n\n")
 	r.pt.Run()
 }
