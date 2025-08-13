@@ -169,6 +169,7 @@ It was called as expected.
 Currently, gonsole provides feedback on three types of errors to users.
 
 - `BAD INPUT ERROR`
+  
 Basically occurs during code execution. Caused by incorrect function arguments or mismatched numbers of return values and assignments.
 For example, here's an error that occurred when trying to redefine a variable with the same name and executing it with the wrong type for function arguments.
 
@@ -178,13 +179,15 @@ You can see that two errors were detected. In this case, the second attempt to d
 
 
 - `INTERNAL ERROR`
+  
 An error that occurs when gonsole's internal processing fails for some reason. Usually not caused by the user.
 For example, an error that occurs when gonsole cannot find `go.mod` at startup (project not initialized).
 
 ![alt text](assets/image-21.png)
 
 
-- `UNKNOWN ERROR` 
+- `UNKNOWN ERROR`
+  
 An error that gonsole cannot handle.
 If you encounter this error, please post it to the [Issues](https://github.com/kakkky/gonsole/issues) of this repository.
 
