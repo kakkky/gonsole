@@ -181,8 +181,8 @@ func (c *candidates) processMethodDecl(pkg string, funcDecl *ast.FuncDecl) {
 			returnTypeName = append(returnTypeName, typeName)
 			returnTypePkgName = append(returnTypePkgName, typePkgName)
 		}
-		c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
 	}
+	c.methods[pkgName(pkg)] = append(c.methods[pkgName(pkg)], methodSet{name: funcDecl.Name.Name, description: description, receiverTypeName: receiverTypeName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
 }
 
 func (c *candidates) processGenDecl(pkg string, genDecl *ast.GenDecl) {
