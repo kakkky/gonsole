@@ -31,9 +31,16 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/complex/",
 			want: &candidates{
 				// パッケージ名の順序を実際の結果に合わせる
-				pkgs:    []pkgName{"complex", "subcomplex"},
-				funcs:   map[pkgName][]funcSet{},
-				methods: map[pkgName][]methodSet{},
+				pkgs:  []pkgName{"complex", "subcomplex"},
+				funcs: map[pkgName][]funcSet{},
+				methods: map[pkgName][]methodSet{
+					"complex": {
+						{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverTypeName: "ComplexType"},
+					},
+					"subcomplex": {
+						{name: "SubComplexMethod", receiverTypeName: "SubComplexType"},
+					},
+				},
 				vars: map[pkgName][]varSet{
 					"complex": {
 						{name: "ComplexC", description: "Complex variable", typeName: "string", typePkgName: ""},
