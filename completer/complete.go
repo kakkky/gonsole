@@ -124,38 +124,28 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 
 	// repl内で宣言された変数名エントリを回す
 	for _, decl := range c.declEntry.Decls() {
-		// エントリにある宣言された変数名 + "." が入力と一致する場合は、メソッドを呼び出すことを期待していると想定
-		// つまり、変数をレシーバにしようとしている
-		if (decl.Name() + ".") == inputStr {
-			// エントリの変数名に紐づくパッケージ名からメソッドの補完候補を引き、その変数の型に対応するメソッドを返す
+		// 変数名.メソッド名の入力に対応（例: foo.Do）
+		if strings.HasPrefix(inputStr, decl.Name()+".") {
+			// 入力値からメソッド名部分を抽出
+			methodPrefix := inputStr[len(decl.Name())+1:]
 			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg())] {
-				// 構造体リテラルから宣言された変数のメソッド候補を追加
-				suggestions = c.findMethodSuggestionsFromVarRhsStructLit(
-					suggestions, seenMethods, inputStr, decl, methodSet)
-
-				// レシーバに取っている変数が、
-				// 1. ソースコード上の変数を格納している場合
-				// 2. ソースコード上の関数の戻り値を格納している場合
-				// 3. ソースコード上のメソッドの戻り値を格納している場合
-				// の場合に、メソッドの補完候補を追加する
-
-				// ソースコード上の変数を格納している場合
-				suggestions = c.findMethodSuggestionsFromVarRhsDeclVar(
-					suggestions, seenMethods, inputStr, decl, methodSet)
-
-				// ソースコード上の関数の戻り値を格納している場合
-				suggestions = c.findMethodSuggestionsFromVarRhsFuncReturnValues(
-					suggestions, seenMethods, inputStr, decl, methodSet)
-
-				// ソースコード上のメソッドの戻り値を格納している場合
-				suggestions = c.findMethodSuggestionsFromVarRhsMethodReturnValues(
-					suggestions, seenMethods, inputStr, decl, methodSet)
+				// メソッド名の前方一致フィルタ
+				if methodPrefix == "" || strings.HasPrefix(methodSet.name, methodPrefix) {
+					suggestions = c.findMethodSuggestionsFromVarRhsStructLit(
+						suggestions, seenMethods, decl.Name()+".", decl, methodSet)
+					suggestions = c.findMethodSuggestionsFromVarRhsDeclVar(
+						suggestions, seenMethods, decl.Name()+".", decl, methodSet)
+					suggestions = c.findMethodSuggestionsFromVarRhsFuncReturnValues(
+						suggestions, seenMethods, decl.Name()+".", decl, methodSet)
+					suggestions = c.findMethodSuggestionsFromVarRhsMethodReturnValues(
+						suggestions, seenMethods, decl.Name()+".", decl, methodSet)
+				}
 			}
 		}
 	}
 
 	// メソッドチェーン
-	if strings.HasSuffix(inputStr, ").") {
+	if strings.Contains(inputStr, ").") {
 		return c.findMethodSuggestionsFromChain(suggestions, inputStr)
 	}
 
@@ -520,13 +510,20 @@ func (c *Completer) findMethodSetPtr(pkg, name string, isRecv bool, inputStr str
 // 指定型のメソッド・インターフェースメソッドを補完候補として返す
 func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName string, methodSets []methodSet, interfaceSets []interfaceSet) []prompt.Suggest {
 	var suggestions []prompt.Suggest
+	var inputingMethodName string
+	if dotIdx := strings.LastIndex(inputStr, "."); dotIdx != -1 && dotIdx+1 < len(inputStr) {
+		inputingMethodName = inputStr[dotIdx+1:]
+	}
+
 	for _, method := range methodSets {
 		if method.receiverTypeName == typeName && !isPrivate(method.name) {
-			suggestions = append(suggestions, prompt.Suggest{
-				Text:        inputStr + method.name + "()",
-				DisplayText: method.name + "()",
-				Description: "Method: " + method.description,
-			})
+			if strings.HasPrefix(method.name, inputingMethodName) {
+				suggestions = append(suggestions, prompt.Suggest{
+					Text:        inputStr + method.name + "()",
+					DisplayText: method.name + "()",
+					Description: "Method: " + method.description,
+				})
+			}
 		}
 	}
 	for _, interfaceSet := range interfaceSets {
@@ -535,15 +532,17 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 				if isPrivate(method) {
 					continue
 				}
-				desc := ""
-				if mi < len(interfaceSet.descriptions) {
-					desc = interfaceSet.descriptions[mi]
+				if strings.HasPrefix(method, inputingMethodName) {
+					desc := ""
+					if mi < len(interfaceSet.descriptions) {
+						desc = interfaceSet.descriptions[mi]
+					}
+					suggestions = append(suggestions, prompt.Suggest{
+						Text:        inputStr + method + "()",
+						DisplayText: method + "()",
+						Description: "Method: " + desc,
+					})
 				}
-				suggestions = append(suggestions, prompt.Suggest{
-					Text:        inputStr + method + "()",
-					DisplayText: method + "()",
-					Description: "Method: " + desc,
-				})
 			}
 		}
 	}
