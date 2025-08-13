@@ -46,7 +46,7 @@ Execute the following in the project root:
 gonsole
 ```
 You'll see a screen like this:
-```sh
+```
   ____   ___   _   _  ____    ___   _      _____
  / ___| / _ \ | \ | |/ ___|  / _ \ | |    | ____|
 | |  _ | | | ||  \| |\___ \ | | | || |    |  _|
