@@ -1,4 +1,3 @@
-[![日本語訳](https://img.shields.io/badge/docs-日本語-blue)](./README-ja.md)
 # gonsole
 
 Goプロジェクトの関数やメソッドを、REPL形式で対話的に実行できるCLIツールです。
