@@ -1,3 +1,5 @@
+[![日本語訳](https://img.shields.io/badge/docs-日本語-blue)](./README-ja.md)
+
 # gonsole
 
 A CLI tool that allows you to interactively execute functions and methods in Go projects in REPL format.
