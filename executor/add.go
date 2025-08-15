@@ -58,7 +58,6 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
 						return err
 					}
-
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
 					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
@@ -201,8 +200,8 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 
 	// インポートパスの準備
 	var importPathQuoted string
-	if pkgNameToImport == "fmt" { // プロジェクトのパッケージ以外でfmtパッケージのみ使用される
-		importPathQuoted = `"fmt"`
+	if standardPkgName, found := isStandardPackage(pkgNameToImport); found {
+		importPathQuoted = fmt.Sprintf(`"%s"`, standardPkgName)
 	} else {
 		// パッケージパスを探索
 		importPath, err := e.resolveImportPathForAdd(pkgNameToImport)
