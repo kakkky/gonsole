@@ -3,10 +3,8 @@ package executor
 import (
 	"fmt"
 	"go/ast"
-	"go/importer"
 	"go/parser"
 	"go/token"
-	"go/types"
 	"os"
 	"strings"
 
@@ -296,28 +294,19 @@ func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
 		return false, errs.NewInternalError(fmt.Sprintf("no source files found for package %q", pkgName))
 	}
 
-	// go/types を使ってパッケージの型チェックを実行
-	conf := types.Config{Importer: importer.Default()}
-	info := &types.Info{
-		Defs: make(map[*ast.Ident]types.Object),
-	}
-	_, err := conf.Check(pkgName, e.astCache.fset, files, info)
-	if err != nil {
-		// 型チェックが完全に失敗した場合は、型情報を取得できません
-		return false, errs.NewInternalError("type checking failed").Wrap(err)
-	}
-
-	// info.Defs から関数の定義を探す
-	for id, obj := range info.Defs {
-		// オブジェクトが関数(Func)で、名前が一致するかをチェック
-		if fn, ok := obj.(*types.Func); ok && id.Name == funcName {
-			// 関数のシグネチャ（型情報）を取得
-			sig := fn.Type().(*types.Signature)
-			// Results() の要素数が0なら返り値なし（void）
-			if sig.Results().Len() == 0 {
-				return true, nil
+	// MEMO:
+	// パッケージ名が同じで、かつ関数名が同じであった場合、最初に見つかった関数の返り値をチェックすることになるので
+	// 正しくvoidかどうかの判別ができない可能性がある。しかし、そもそも同名のパッケージ名が存在すること自体がバッドプラクティスであるため
+	// ここではそのようなケースは考慮しない。
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == funcName {
+				// 関数が見つかった場合、返り値の型リストをチェック
+				if funcDecl.Type.Results == nil || len(funcDecl.Type.Results.List) == 0 {
+					return true, nil // 返り値なし（void）
+				}
+				return false, nil // 返り値あり
 			}
-			return false, nil
 		}
 	}
 
