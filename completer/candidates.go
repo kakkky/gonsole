@@ -58,7 +58,7 @@ type candidates struct {
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewCandidates(path string) (*candidates, error) {
+func NewCandidates(nodes map[string][]*ast.Package) (*candidates, error) {
 	c := candidates{
 		pkgs:       make([]pkgName, 0),
 		funcs:      make(map[pkgName][]funcSet),
@@ -68,11 +68,7 @@ func NewCandidates(path string) (*candidates, error) {
 		structs:    make(map[pkgName][]structSet),
 		interfaces: make(map[pkgName][]interfaceSet),
 	}
-	node, err := analyzeGoAst(path)
-	if err != nil {
-		return nil, err
-	}
-	for pkg, pkgAsts := range node {
+	for pkg, pkgAsts := range nodes {
 		for _, pkgAst := range pkgAsts {
 			c.processPackageAst(pkg, pkgAst)
 		}

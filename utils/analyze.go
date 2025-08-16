@@ -1,4 +1,4 @@
-package completer
+package utils
 
 import (
 	"go/ast"
@@ -11,9 +11,10 @@ import (
 )
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func analyzeGoAst(path string) (map[string][]*ast.Package, error) {
+func AnalyzeGoAst(path string) (map[string][]*ast.Package, *token.FileSet, error) {
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
+	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 	nodes := make(map[string][]*ast.Package)
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -37,7 +38,7 @@ func analyzeGoAst(path string) (map[string][]*ast.Package, error) {
 	})
 
 	if err != nil {
-		return nil, errs.NewInternalError("failed to walk directory").Wrap(err)
+		return nil, nil, errs.NewInternalError("failed to walk directory").Wrap(err)
 	}
-	return nodes, nil
+	return nodes, fset, nil
 }

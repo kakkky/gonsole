@@ -3,8 +3,10 @@ package executor
 import (
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"os"
 	"strings"
 
@@ -45,12 +47,38 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 			switch stmt := inputStmt.(type) {
 			// 式だった場合は、それを評価して値を返すためにfmt.Printlnでラップする
 			case *ast.ExprStmt:
-
 				switch exprV := stmt.X.(type) {
 				// 関数呼び出しの場合
-				case *ast.CallExpr, *ast.SelectorExpr:
+				case *ast.CallExpr:
 					// 式からパッケージ名を抽出
-					pkgNameToImport, found := extractPkgNameFromExpr(stmt.X)
+					pkgNameToImport, found := extractPkgNameFromExpr(exprV)
+					if !found {
+						return errs.NewInternalError("failed to extract package name from expression")
+					}
+					// パッケージのインポート文を追加
+					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+						return err
+					}
+					ok, err := e.isFuncVoid(pkgNameToImport, exprV.Fun.(*ast.SelectorExpr).Sel.Name)
+					if err != nil {
+						return err
+					}
+					var exprStmt *ast.ExprStmt
+					if !ok {
+						// 関数が返り値を持つ場合はfmt.Printlnでラップ
+						exprStmt = wrapWithPrintln(exprV)
+						// fmtが必要になるのでimportに追加
+						if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+							return err
+						}
+					} else {
+						// 関数が返り値を持たない場合はそのまま使用
+						exprStmt = &ast.ExprStmt{X: exprV}
+					}
+					addInputStmt(exprStmt, mainFuncBody)
+				// 変数だった場合(repl上で定義した変数単体)
+				case *ast.SelectorExpr:
+					pkgNameToImport, found := extractPkgNameFromExpr(exprV)
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
@@ -63,7 +91,6 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
 						return err
 					}
-				// 変数だった場合(repl上で定義した変数単体)
 				case *ast.Ident:
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
@@ -248,4 +275,51 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 		Rhs: []ast.Expr{target},
 	}
 	*list = append(*list, blankAssign)
+}
+
+// isFuncVoid は、指定されたパッケージ内の関数が返り値を持たないか(void)を判定します。
+// この処理はパッケージ全体の型チェックを伴うため、コストが高い可能性があります。
+func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
+	targetPkgs, ok := e.astCache.nodes[pkgName]
+	if !ok {
+		return false, errs.NewInternalError(fmt.Sprintf("package %q not found", pkgName))
+	}
+
+	var files []*ast.File
+	for _, pkg := range targetPkgs {
+		for _, file := range pkg.Files {
+			files = append(files, file)
+		}
+	}
+
+	if len(files) == 0 {
+		return false, errs.NewInternalError(fmt.Sprintf("no source files found for package %q", pkgName))
+	}
+
+	// go/types を使ってパッケージの型チェックを実行
+	conf := types.Config{Importer: importer.Default()}
+	info := &types.Info{
+		Defs: make(map[*ast.Ident]types.Object),
+	}
+	_, err := conf.Check(pkgName, e.astCache.fset, files, info)
+	if err != nil {
+		// 型チェックが完全に失敗した場合は、型情報を取得できません
+		return false, errs.NewInternalError("type checking failed").Wrap(err)
+	}
+
+	// info.Defs から関数の定義を探す
+	for id, obj := range info.Defs {
+		// オブジェクトが関数(Func)で、名前が一致するかをチェック
+		if fn, ok := obj.(*types.Func); ok && id.Name == funcName {
+			// 関数のシグネチャ（型情報）を取得
+			sig := fn.Type().(*types.Signature)
+			// Results() の要素数が0なら返り値なし（void）
+			if sig.Results().Len() == 0 {
+				return true, nil
+			}
+			return false, nil
+		}
+	}
+
+	return false, errs.NewInternalError(fmt.Sprintf("function %q not found in package %q", funcName, pkgName))
 }

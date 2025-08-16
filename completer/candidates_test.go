@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/kakkky/gonsole/utils"
 )
 
 func TestConvertFromNodeToCandidates(t *testing.T) {
@@ -65,7 +66,11 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCandidates(tt.path)
+			nodes, _, err := utils.AnalyzeGoAst(tt.path)
+			if err != nil {
+				t.Fatalf("AnalyzeGoAst() error = %v", err)
+			}
+			got, err := NewCandidates(nodes) // 解析したパッケージを渡して候補を生成
 			if err != nil {
 				t.Fatalf("NewCandidates() error = %v", err)
 			}
