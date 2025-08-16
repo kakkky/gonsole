@@ -14,6 +14,7 @@ import (
 func AnalyzeGoAst(path string) (map[string][]*ast.Package, *token.FileSet, error) {
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
+	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 	nodes := make(map[string][]*ast.Package)
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
