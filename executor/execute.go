@@ -3,6 +3,8 @@ package executor
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
+	"go/token"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -16,9 +18,15 @@ type Executor struct {
 	tmpCleaner  func()
 	tmpFilePath string
 	declEntry   *decls.DeclEntry
+	astCache    *astCache
 }
 
-func NewExecutor(declEntry *decls.DeclEntry) (*Executor, error) {
+type astCache struct {
+	nodes map[string][]*ast.Package
+	fset  *token.FileSet
+}
+
+func NewExecutor(declEntry *decls.DeclEntry, nodes map[string][]*ast.Package, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
 		return nil, err
@@ -32,6 +40,10 @@ func NewExecutor(declEntry *decls.DeclEntry) (*Executor, error) {
 		tmpCleaner:  cleaner,
 		tmpFilePath: tmpFilePath,
 		declEntry:   declEntry,
+		astCache: &astCache{
+			nodes: nodes,
+			fset:  fset,
+		},
 	}, nil
 }
 
