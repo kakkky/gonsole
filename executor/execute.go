@@ -27,6 +27,7 @@ type astCache struct {
 	fset  *token.FileSet
 }
 
+// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func NewExecutor(declEntry *decls.DeclEntry, nodes map[string][]*ast.Package, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
