@@ -6,7 +6,7 @@
 ## Related Issues
 
 <!-- If there are any related issues, link them here. -->
-<!-- e.g., Close #123 -->
+<!-- e.g., hogehoge #123 -->
 
 
 ## Changes
@@ -16,11 +16,17 @@
 <!-- - [ ] Change 2 -->
 
 
-## How to Test
+## Steps to Verify 
 
 <!-- Describe how to test the changes. -->
 <!-- e.g., Start `gonsole` and run `my_pkg.MyFunc()` to... -->
 
+- [ ] build project 
+    - `go build cmd/gonsole/main.go ` 
+- [ ] run the binary in the [example repository](https://github.com/kakkky/gonsole-example)
+    - If you don't `git clone` that, please execute bellow command.
+        - `git clone https://github.com/kakkky/gonsole-example.git`
+- [ ] 
 
 ## Screenshots (if needed)
 
