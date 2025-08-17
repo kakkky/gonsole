@@ -31,8 +31,17 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 	}
 }
 
-func (r *Repl) Run() {
+func (r *Repl) Run() error {
 	printAscii()
-	fmt.Print(" Interactive Golang Execution Console\n\n")
+	fmt.Println("   " + VERSION)
+	fmt.Print("\n\n Interactive Golang Execution Console\n\n")
+	ok, latestVersion, err := isLatestVersion()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		printNoteLatestVersion(latestVersion)
+	}
 	r.pt.Run()
+	return nil
 }

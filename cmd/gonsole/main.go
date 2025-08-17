@@ -25,5 +25,7 @@ func main() {
 	}
 	completer := completer.NewCompleter(candidates, declEntry)
 	repl := repl.NewRepl(completer, executor)
-	repl.Run()
+	if err := repl.Run(); err != nil {
+		errs.HandleError(err)
+	}
 }
