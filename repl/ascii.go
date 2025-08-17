@@ -10,5 +10,5 @@ var ascii []byte
 
 func printAscii() {
 	// Print the ASCII art to the console
-	fmt.Println(string(ascii))
+	fmt.Print(string(ascii))
 }
