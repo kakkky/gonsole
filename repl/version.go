@@ -136,7 +136,7 @@ func printNoteLatestVersion(latestVersion string) {
 	fmt.Println("│                                                                 │")
 	fmt.Println("│     Please Update with:                                    	  │")
 	fmt.Println("│                                                                 │")
-	fmt.Println("│         go install github.com/kakkky/gonsole@latest             │")
+	fmt.Println("│       go install github.com/kakkky/gonsole/cmd/gonsole@latest   │")
 	fmt.Println("│                                                                 │")
 	fmt.Println("└─────────────────────────────────────────────────────────────────┘")
 }
