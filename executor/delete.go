@@ -121,17 +121,15 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 // deleteImportDecl は指定されたパッケージ名のインポート宣言を削除する
 func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) error {
 	var importPathQuoteds []string
-	if pkgNameToDelete == "fmt" {
-		importPathQuoteds = append(importPathQuoteds, `"fmt"`)
-	} else {
-		importPaths, err := e.resolveImportPathForDelete(pkgNameToDelete)
-		if err != nil {
-			return err
-		}
-		for _, importPath := range importPaths {
-			importPathQuoteds = append(importPathQuoteds, fmt.Sprintf(`"%s"`, importPath))
-		}
+
+	importPaths, err := e.resolveImportPathForDelete(pkgNameToDelete)
+	if err != nil {
+		return err
 	}
+	for _, importPath := range importPaths {
+		importPathQuoteds = append(importPathQuoteds, fmt.Sprintf(`"%s"`, importPath))
+	}
+
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.IMPORT {
@@ -141,8 +139,9 @@ func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) erro
 			importSpec := spec.(*ast.ImportSpec)
 			if slices.Contains(importPathQuoteds, importSpec.Path.Value) {
 				genDecl.Specs = append(genDecl.Specs[:j], genDecl.Specs[j+1:]...)
+				break
 			}
-			break
+			continue
 		}
 	}
 	return nil

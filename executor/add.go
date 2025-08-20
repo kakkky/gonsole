@@ -223,18 +223,12 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 		return nil
 	}
 
-	// インポートパスの準備
-	var importPathQuoted string
-	if standardPkgName, found := isStandardPackage(pkgNameToImport); found {
-		importPathQuoted = fmt.Sprintf(`"%s"`, standardPkgName)
-	} else {
-		// パッケージパスを探索
-		importPath, err := e.resolveImportPathForAdd(pkgNameToImport)
-		if err != nil {
-			return err
-		}
-		importPathQuoted = fmt.Sprintf(`"%s"`, importPath)
+	// パッケージパスを探索
+	importPath, err := e.resolveImportPathForAdd(pkgNameToImport)
+	if err != nil {
+		return err
 	}
+	importPathQuoted := fmt.Sprintf(`"%s"`, importPath)
 
 	// インポート宣言部分を取得
 	var importGenDecl *ast.GenDecl
@@ -280,6 +274,10 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
 	targetPkgs, ok := e.astCache.nodes[pkgName]
 	if !ok {
+		if _, ok := isStandardPackage(pkgName); ok {
+			// 標準パッケージの場合はvoidではないと仮定
+			return false, nil
+		}
 		return false, errs.NewInternalError(fmt.Sprintf("package %q not found", pkgName))
 	}
 
