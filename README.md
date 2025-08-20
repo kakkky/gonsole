@@ -15,6 +15,7 @@ Like Ruby on Rails' `rails console`, you can instantly try Go code functions, va
     - [Package Selection](#package-selection)
     - [Variable Definition](#variable-definition)
     - [Method Invocation](#method-invocation)
+    - [Accessing Standard Packages](#accessing-standard-packages)
   - [When Packages with the Same Name Exist (Import Path Selection Mode)](#when-packages-with-the-same-name-exist-import-path-selection-mode)
   - [Error Detection](#error-detection)
 - [⚠️Current Limitations](#️current-limitations)
@@ -137,6 +138,149 @@ You can also call methods without storing them in variables using method chainin
 ![alt text](assets/image-13.png)
 ![alt text](assets/image-14.png)
 
+#### Accessing Standard Packages
+You can access most standard packages on the console.
+
+`fmt.PrintXxxx()` functions work, but they are not recommended on the gonsole console. If you want to check the contents of a variable, you can simply input the variable directly to see its output.
+Here are the supported standard packages.
+
+<details>
+<summary>List of supported standard packages</summary>
+
+| Package Name |
+| :--- |
+| `fmt` |
+| `errors` |
+| `context` |
+| `sort` |
+| `reflect` |
+| `unsafe` |
+| `embed` |
+| `io` |
+| `io/ioutil` |
+| `io/fs` |
+| `bufio` |
+| `bytes` |
+| `os` |
+| `net/http` |
+| `net/url` |
+| `net/mail` |
+| `net/rpc` |
+| `net/smtp` |
+| `net/textproto` |
+| `net/http/httputil` |
+| `net/http/httptrace` |
+| `net/http/httptest` |
+| `net/http/cookiejar` |
+| `net/http/fcgi` |
+| `net/http/pprof` | 
+| `net/rpc/jsonrpc` |
+| `encoding/json` |
+| `encoding/xml` |
+| `encoding/csv` |
+| `encoding/base64` |
+| `encoding/base32` |
+| `encoding/hex` |
+| `encoding/ascii85` |
+| `encoding/binary` |
+| `encoding/gob` |
+| `encoding/pem` |
+| `encoding/asn1` |
+| `crypto` |
+| `crypto/md5` |
+| `crypto/sha1` |
+| `crypto/sha256` |
+| `crypto/sha512` |
+| `crypto/aes` |
+| `crypto/cipher` |
+| `crypto/des` |
+| `crypto/dsa` |
+| `crypto/ecdsa` |
+| `crypto/ed25519` |
+| `crypto/elliptic` |
+| `crypto/hmac` |
+| `crypto/rc4` |
+| `crypto/rsa` |
+| `crypto/subtle` |
+| `crypto/tls` |
+| `crypto/x509` |
+| `hash` |
+| `hash/adler32` |
+| `hash/crc32` |
+| `hash/crc64` |
+| `hash/fnv` |
+| `hash/maphash` |
+| `math` |
+| `math/rand` |
+| `math/big` |
+| `math/bits` |
+| `math/cmplx` |
+| `testing` |
+| `testing/quick` |
+| `testing/iotest` |
+| `testing/fstest` |
+| `runtime` |
+| `runtime/cgo` |
+| `runtime/debug` |
+| `runtime/metrics` |
+| `runtime/race` |
+| `runtime/trace` |
+| `syscall` |
+| `plugin` |
+| `sync` |
+| `sync/atomic` |
+| `strings` |
+| `strconv` |
+| `regexp` |
+| `text/scanner` |
+| `text/template` |
+| `text/tabwriter` |
+| `pkgName` |
+| `pkgName/filepkgName` |
+| `time` |
+| `slices` |
+| `container` |
+| `container/heap` |
+| `container/list` |
+| `container/ring` |
+| `compress` |
+| `compress/bzip2` |
+| `compress/flate` |
+| `compress/gzip` |
+| `compress/lzw` |
+| `compress/zlib` |
+| `archive` |
+| `archive/tar` |
+| `archive/zip` |
+| `database/sql` |
+| `database/sql/driver` |
+| `image` |
+| `image/color` |
+| `image/draw` |
+| `image/gif` |
+| `image/jpeg` |
+| `image/png` |
+| `go` |
+| `go/ast` |
+| `go/build` |
+| `go/constant` |
+| `go/doc` |
+| `go/format` |
+| `go/importer` |
+| `go/parser` |
+| `go/printer` |
+| `go/token` |
+| `go/types` |
+| `html` |
+| `mime` |
+| `mime/multipart` |
+| `mime/quotedprintable` |
+| `unicode` |
+| `unicode/utf8` |
+| `unicode/utf16` |
+</details>
+
+Note that completion is not currently supported when accessing standard packages.
 
 
 ### When Packages with the Same Name Exist (Import Path Selection Mode)

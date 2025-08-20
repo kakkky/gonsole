@@ -13,6 +13,7 @@ Ruby on Railsの`rails console`のように、Goコードの関数・変数・�
     - [パッケージの選択](#パッケージの選択)
     - [変数定義](#変数定義)
     - [メソッド呼び出し](#メソッド呼び出し)
+    - [標準パッケージへのアクセス](#標準パッケージへのアクセス)
   - [同名のパッケージ名が存在した場合（importパス選択モード）](#同名のパッケージ名が存在した場合importパス選択モード)
   - [エラー検知](#エラー検知)
 - [⚠️現状対応できていないこと](#️現状対応できていないこと)
@@ -135,7 +136,158 @@ func NewDog(name string, age int) *Dog {
 ![alt text](assets/image-13.png)
 ![alt text](assets/image-14.png)
 
+#### 標準パッケージへのアクセス
+コンソール上でほとんどの標準パッケージにアクセスできます。
+```
+> http.StatusOK
 
+200
+
+> fmt.Sprintf("%s","hogehoge")
+
+hogehoge
+```
+
+`fmt.PrintXxxx()`系の関数は動作しますが、gonsoleのコンソール上では非推奨です。変数の内容を確認したい場合はその変数をダイレクトに入力するだけで出力されます。
+以下が対応している標準パッケージです。
+
+<details>
+<summary>対応している標準パッケージ一覧</summary>
+
+| パッケージ名 |
+| :--- |
+| `fmt` |
+| `errors` |
+| `context` |
+| `sort` |
+| `reflect` |
+| `unsafe` |
+| `embed` |
+| `io` |
+| `io/ioutil` |
+| `io/fs` |
+| `bufio` |
+| `bytes` |
+| `os` |
+| `net/http` |
+| `net/url` |
+| `net/mail` |
+| `net/rpc` |
+| `net/smtp` |
+| `net/textproto` |
+| `net/http/httputil` |
+| `net/http/httptrace` |
+| `net/http/httptest` |
+| `net/http/cookiejar` |
+| `net/http/fcgi` |
+| `net/http/pprof` | 
+| `net/rpc/jsonrpc` |
+| `encoding/json` |
+| `encoding/xml` |
+| `encoding/csv` |
+| `encoding/base64` |
+| `encoding/base32` |
+| `encoding/hex` |
+| `encoding/ascii85` |
+| `encoding/binary` |
+| `encoding/gob` |
+| `encoding/pem` |
+| `encoding/asn1` |
+| `crypto` |
+| `crypto/md5` |
+| `crypto/sha1` |
+| `crypto/sha256` |
+| `crypto/sha512` |
+| `crypto/aes` |
+| `crypto/cipher` |
+| `crypto/des` |
+| `crypto/dsa` |
+| `crypto/ecdsa` |
+| `crypto/ed25519` |
+| `crypto/elliptic` |
+| `crypto/hmac` |
+| `crypto/rc4` |
+| `crypto/rsa` |
+| `crypto/subtle` |
+| `crypto/tls` |
+| `crypto/x509` |
+| `hash` |
+| `hash/adler32` |
+| `hash/crc32` |
+| `hash/crc64` |
+| `hash/fnv` |
+| `hash/maphash` |
+| `math` |
+| `math/rand` |
+| `math/big` |
+| `math/bits` |
+| `math/cmplx` |
+| `testing` |
+| `testing/quick` |
+| `testing/iotest` |
+| `testing/fstest` |
+| `runtime` |
+| `runtime/cgo` |
+| `runtime/debug` |
+| `runtime/metrics` |
+| `runtime/race` |
+| `runtime/trace` |
+| `syscall` |
+| `plugin` |
+| `sync` |
+| `sync/atomic` |
+| `strings` |
+| `strconv` |
+| `regexp` |
+| `text/scanner` |
+| `text/template` |
+| `text/tabwriter` |
+| `pkgName` |
+| `pkgName/filepkgName` |
+| `time` |
+| `slices` |
+| `container` |
+| `container/heap` |
+| `container/list` |
+| `container/ring` |
+| `compress` |
+| `compress/bzip2` |
+| `compress/flate` |
+| `compress/gzip` |
+| `compress/lzw` |
+| `compress/zlib` |
+| `archive` |
+| `archive/tar` |
+| `archive/zip` |
+| `database/sql` |
+| `database/sql/driver` |
+| `image` |
+| `image/color` |
+| `image/draw` |
+| `image/gif` |
+| `image/jpeg` |
+| `image/png` |
+| `go` |
+| `go/ast` |
+| `go/build` |
+| `go/constant` |
+| `go/doc` |
+| `go/format` |
+| `go/importer` |
+| `go/parser` |
+| `go/printer` |
+| `go/token` |
+| `go/types` |
+| `html` |
+| `mime` |
+| `mime/multipart` |
+| `mime/quotedprintable` |
+| `unicode` |
+| `unicode/utf8` |
+| `unicode/utf16` |
+</details>
+
+なお、現状、標準パッケージへのアクセスする際は補完に対応できていません。
 
 ### 同名のパッケージ名が存在した場合（importパス選択モード）
 サンプルプロジェクトでは、`animal/utils`、`plant/utils`、`vehicle/utils`といったように名前空間で分かれていますが、`utils`パッケージが複数ある状況です。
