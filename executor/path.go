@@ -31,6 +31,9 @@ func getGoModPath(path string) (string, error) {
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
 func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
 	var importPaths []string
+	if stdPkg, ok := isStandardPackage(pkgName); ok {
+		importPaths = append(importPaths, stdPkg)
+	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -40,6 +43,10 @@ func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
 		}
 		// パッケージ名に一致するディレクトリか？
 		base := filepath.Base(path)
+		if base == "vendor" {
+			// vendorディレクトリはスキップ
+			return filepath.SkipDir
+		}
 		if base == pkgName {
 			relPath, err := filepath.Rel(".", path)
 			if err != nil {
@@ -111,6 +118,9 @@ func toBlue(text string) string {
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
 func (e *Executor) resolveImportPathForDelete(pkgName string) ([]string, error) {
 	var importPaths []string
+	if stdPkg, ok := isStandardPackage(pkgName); ok {
+		importPaths = append(importPaths, stdPkg)
+	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
