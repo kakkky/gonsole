@@ -96,7 +96,7 @@ func (de *DeclEntry) Register(input string) error {
 					// 定義ずみの変数だったら、それはメソッド呼び出し
 					if de.IsRegisteredDecl(xName) {
 						declReceiver := xName
-						pkgName := de.receiverTypePkgName(declReceiver)
+						pkgName := de.ReceiverTypePkgName(declReceiver)
 						for j, lhsExpr := range stmt.Lhs {
 							methodDecl := &declMethod{
 								name:  funExprV.Sel.Name,
@@ -195,7 +195,7 @@ func (de *DeclEntry) Register(input string) error {
 	return nil
 }
 
-func (de *DeclEntry) receiverTypePkgName(receiverName string) string {
+func (de *DeclEntry) ReceiverTypePkgName(receiverName string) string {
 	for _, decl := range *de.decls {
 		if decl.Name() == receiverName {
 			return decl.Pkg()

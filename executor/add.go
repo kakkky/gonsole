@@ -272,6 +272,9 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 // isFuncVoid は、指定されたパッケージ内の関数が返り値を持たないか(void)を判定します。
 // この処理はパッケージ全体の型チェックを伴うため、コストが高い可能性があります。
 func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
+	if e.declEntry.IsRegisteredDecl(pkgName) {
+		pkgName = e.declEntry.ReceiverTypePkgName(pkgName)
+	}
 	targetPkgs, ok := e.astCache.nodes[pkgName]
 	if !ok {
 		if _, ok := isStandardPackage(pkgName); ok {
