@@ -140,6 +140,15 @@ You can also call methods without storing them in variables using method chainin
 
 #### Accessing Standard Packages
 You can access most standard packages on the console.
+```
+> http.StatusOK
+
+200
+
+> fmt.Sprintf("%s","hogehoge")
+
+hogehoge
+```
 
 `fmt.PrintXxxx()` functions work, but they are not recommended on the gonsole console. If you want to check the contents of a variable, you can simply input the variable directly to see its output.
 Here are the supported standard packages.
