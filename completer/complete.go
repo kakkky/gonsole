@@ -97,9 +97,6 @@ func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
 		for _, funcSet := range funcSets {
-			if isPrivate(funcSet.name) {
-				continue
-			}
 			var text string
 			if pai.isAndOperandInclude {
 				text = "&" + pai.pkg + "." + funcSet.name + "()"
@@ -161,11 +158,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsStructLit(
 	decl decls.Decl,
 	methodSet methodSet) []prompt.Suggest {
 	if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
-		// memo: 現在はexecutorがprivateに対応していないため
-		if isPrivate(methodSet.name) {
-			return suggestions
-		}
-
 		// 重複チェック
 		methodKey := inputStr + methodSet.name
 		if seenMethods[methodKey] {
@@ -209,12 +201,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 		if (decl.Pkg() == rhsVarSet.typePkgName) && // パッケージ名が一致
 			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
 			(rhsVarSet.typeName == methodSet.receiverTypeName) { // 型名が一致
-
-			// memo: 現在はexecutorがprivateに対応していないため
-			if isPrivate(methodSet.name) {
-				continue
-			}
-
 			// 重複チェック
 			methodKey := inputStr + methodSet.name
 			if seenMethods[methodKey] {
@@ -261,12 +247,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
 				if (i == declRhsFuncReturnVarOrder) && // 何個目の戻り値かが一致
 					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
-
-					// memo: 現在はexecutorがprivateに対応していないため
-					if isPrivate(methodSet.name) {
-						continue
-					}
-
 					// 重複チェック
 					methodKey := inputStr + methodSet.name
 					if seenMethods[methodKey] {
@@ -299,11 +279,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
 					if returnTypeName == rhsInterfaceSet.name {
 						for mi, method := range rhsInterfaceSet.methods {
-							// memo: 現在はexecutorがprivateに対応していないため
-							if isPrivate(method) {
-								continue
-							}
-
 							// 重複チェック
 							methodKey := inputStr + method
 							if seenMethods[methodKey] {
@@ -355,12 +330,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
 				if (i == declRhsMethodReturnVarOrder) && // 何個目の戻り値かが一致
 					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
-
-					// memo: 現在はexecutorがprivateに対応していないため
-					if isPrivate(methodSet.name) {
-						continue
-					}
-
 					// 重複チェック
 					methodKey := inputStr + methodSet.name
 					if seenMethods[methodKey] {
@@ -394,11 +363,6 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
 					if returnTypeName == rhsInterfaceSet.name {
 						for mi, method := range rhsInterfaceSet.methods {
-							// memo: 現在はexecutorがprivateに対応していないため
-							if isPrivate(method) {
-								continue
-							}
-
 							// 重複チェック
 							methodKey := inputStr + method
 							if seenMethods[methodKey] {
