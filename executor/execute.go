@@ -14,11 +14,17 @@ import (
 )
 
 type Executor struct {
-	modPath     string
-	tmpCleaner  func()
+	modPath                   string
+	tmpCleaner                func()
+	tmpFilePath               string
+	declEntry                 *decls.DeclEntry
+	astCache                  *astCache
+	privateIdentManageInfoMap map[string]*privateIdentManageInfo
+}
+
+type privateIdentManageInfo struct {
 	tmpFilePath string
-	declEntry   *decls.DeclEntry
-	astCache    *astCache
+	cleaner     func()
 }
 
 type astCache struct {
@@ -46,6 +52,7 @@ func NewExecutor(declEntry *decls.DeclEntry, nodes map[string][]*ast.Package, fs
 			nodes: nodes,
 			fset:  fset,
 		},
+		privateIdentManageInfoMap: make(map[string]*privateIdentManageInfo),
 	}, nil
 }
 
@@ -94,6 +101,11 @@ func (e *Executor) Execute(input string) {
 func (e *Executor) Close() {
 	if e.tmpCleaner != nil {
 		e.tmpCleaner()
+	}
+	for _, info := range e.privateIdentManageInfoMap {
+		if info.cleaner != nil {
+			info.cleaner()
+		}
 	}
 }
 
