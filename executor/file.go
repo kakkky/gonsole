@@ -44,6 +44,17 @@ func makeTmpMainFile() (string, func(), error) {
 	return tmpFilePath, cleaner, nil
 }
 
+func makeTmpFile(dir string) (string, func(), error) {
+	tmpFile, err := os.CreateTemp(dir, "tmp_gonsole_*.go")
+	if err != nil {
+		return "", nil, errs.NewInternalError("failed to create temporary file").Wrap(err)
+	}
+	cleaner := func() {
+		os.Remove(tmpFile.Name())
+	}
+	return tmpFile.Name(), cleaner, nil
+}
+
 func outputToFile(outputPath string, fileAst *ast.File) error {
 	outFile, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
