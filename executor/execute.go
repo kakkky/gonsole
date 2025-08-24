@@ -22,11 +22,6 @@ type Executor struct {
 	privateIdentManageInfoMap map[string]*privateIdentManageInfo
 }
 
-type privateIdentManageInfo struct {
-	tmpFilePath string
-	cleaner     func()
-}
-
 type astCache struct {
 	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 	nodes map[string][]*ast.Package

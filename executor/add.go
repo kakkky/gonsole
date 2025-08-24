@@ -7,10 +7,8 @@ import (
 	"go/token"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/utils"
 )
 
 // 作成済みのtmpファイルに入力値を追加する
@@ -28,14 +26,19 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 
 	var isPrivate bool
 	var inputWithPrivateIdent string
+	var wrappedWithPublicFunc string
 	if isIncludePrivateIdent(input) {
 		isPrivate = true
 		inputWithPrivateIdent = input
 
-		wrappedWithPublicFunc := wrapWithPublicFunc(input)
+		wrappedWithPublicFunc = wrapWithPublicFunc(input)
 
 		// tmpFileにはラッパー関数を追加するように代入
-		input = wrappedWithPublicFunc
+		if strings.Contains(input, "=") {
+			input = strings.Split(input, "=")[0] + "=" + wrappedWithPublicFunc
+		} else {
+			input = wrappedWithPublicFunc
+		}
 	}
 
 	// 入力値をmain関数でラップしてparseする
@@ -74,7 +77,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, input, importPath, pkgNameToImport); err != nil {
+						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
 							return err
 						}
 					}
@@ -116,7 +119,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						e.defineWrappedPublicFunc(inputWithPrivateIdent, input, importPath, pkgNameToImport)
+						e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport)
 					}
 				case *ast.Ident:
 					wrappedExpr := wrapWithPrintln(exprV)
@@ -141,7 +144,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						e.defineWrappedPublicFunc(inputWithPrivateIdent, input, importPath, pkgNameToImport)
+						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 				}
 				addInputStmt(stmt, mainFuncBody)
@@ -170,7 +175,9 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 									return err
 								}
 								if isPrivate {
-									e.defineWrappedPublicFunc(inputWithPrivateIdent, input, importPath, pkgNameToImport)
+									if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+										return err
+									}
 								}
 							}
 							// 宣言文を追加
@@ -258,7 +265,7 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) (str
 	// repl内で定義された変数エントリにある場合は無視
 	// 理由：パッケージ名ではなく、メソッド呼び出しに対するレシーバー名として使用されていると予測できるため
 	if e.declEntry.IsRegisteredDecl(pkgNameToImport) {
-		return "", nil
+		pkgNameToImport = e.declEntry.ReceiverTypePkgName(pkgNameToImport)
 	}
 
 	// パッケージパスを探索
@@ -350,194 +357,4 @@ func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
 	}
 
 	return false, errs.NewInternalError(fmt.Sprintf("function %q not found in package %q", funcName, pkgName))
-}
-
-// 流れを整理
-// privateな構造体、変数、関数、メソッドへのアクセス（呼び出し)だった場合、
-// wrappedSrcに入れるのはこちら側でパブリックにラップした関数の呼び出し。
-//
-// そして、実行する前にラッパーした関数の定義をそのパッケージのあるディレクトリにtmpfileとして保存する
-//  関数であれば、その関数の返り値を返り値に取るパブリックラッパー関数
-//  メソッドであれば、同じレシーバをとり、返り値もそろえたパブリックラッパー関数
-//  変数、構造体であれば、その変数(の型)、構造体を返り値に取るパブリックラッパー関数
-
-func isIncludePrivateIdent(input string) bool {
-	// = があればそれ以降を取得
-	if strings.Contains(input, "=") {
-		input = strings.Split(input, "=")[1]
-	}
-	// . の後を取得
-	ident := strings.SplitN(input, ".", 2)[1]
-	return unicode.IsLower(rune(ident[0]))
-}
-
-func wrapWithPublicFunc(input string) string {
-	// = があればそれ以降を取得
-	if strings.Contains(input, "=") {
-		input = strings.Split(input, "=")[1]
-	}
-	// . の後を取得
-	ident := strings.SplitN(input, ".", 2)[1]
-	// ( か { があればその前までを取得
-	if idx := strings.IndexAny(ident, "{("); idx != -1 {
-		return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident[:idx]+"()"))
-	}
-	return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident)+"()")
-}
-
-func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicFunc, importPath, pkgName string) error {
-	pimf := e.privateIdentManageInfoMap[importPath]
-	if pimf == nil {
-		relativeDir := strings.TrimPrefix(importPath, e.modPath)
-		createdTmpFilePath, cleaner, err := makeTmpFile("." + relativeDir)
-		if err != nil {
-			return err
-		}
-		pimf = &privateIdentManageInfo{
-			tmpFilePath: createdTmpFilePath,
-			cleaner:     cleaner,
-		}
-		e.privateIdentManageInfoMap[importPath] = pimf
-	}
-	// tmpファイル内容を直接読み込む
-	tmpContent, err := os.ReadFile(pimf.tmpFilePath)
-	if err != nil {
-		return errs.NewInternalError("failed to read temporary file").Wrap(err)
-	}
-	fset := token.NewFileSet()
-	if strings.Contains(string(tmpContent), strings.ReplaceAll(wrappedPublicFunc, pkgName+".", "")) {
-		// すでに定義されている場合は何もしない
-		return nil
-	}
-	tmpFileAst, err := parser.ParseFile(fset, e.tmpFilePath, string(tmpContent), parser.AllErrors)
-	if err != nil {
-		// EOFなら無視して新たなFileAst作成
-		if !strings.Contains(err.Error(), "expected ';', found 'EOF'") {
-			return errs.NewInternalError("failed to parse temporary file").Wrap(err)
-		}
-		tmpFileAst = &ast.File{
-			Name:  ast.NewIdent(pkgName),
-			Decls: []ast.Decl{},
-		}
-	}
-
-	// 入力値をmain関数でラップしてparseする
-	wrappedSrc := "package main\nfunc main() {\n" + inputWithPrivateIdent + "\n}"
-	wrappedInputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
-	if err != nil {
-		return errs.NewInternalError("failed to parse input source").Wrap(err)
-	}
-	// 入力文をASTとして取得
-	var inputStmtWithPrivateIdent ast.Stmt
-	for _, decl := range wrappedInputAst.Decls {
-		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
-			inputStmtWithPrivateIdent = funcDecl.Body.List[0]
-		}
-	}
-
-	switch stmt := inputStmtWithPrivateIdent.(type) {
-	// 式だった場合は、それを評価して値を返すためにfmt.Printlnでラップする
-	case *ast.ExprStmt:
-		switch exprV := stmt.X.(type) {
-		// 関数呼び出しの場合
-		case *ast.CallExpr:
-			funcOrMethodName := exprV.Fun.(*ast.SelectorExpr).Sel.Name
-			if e.declEntry.IsRegisteredDecl(pkgName) {
-				pkgName = e.declEntry.ReceiverTypePkgName(pkgName)
-			}
-			for _, pkgAst := range e.astCache.nodes[pkgName] {
-				for _, fileAst := range pkgAst.Files {
-					for _, decls := range fileAst.Decls {
-						switch declV := decls.(type) {
-						case *ast.FuncDecl:
-							if declV.Name.Name == funcOrMethodName {
-								var recv *ast.FieldList
-								if declV.Recv != nil {
-									receiverName := declV.Recv.List[0].Names[0].Name
-									receiverType := declV.Recv.List[0].Type
-									recv = &ast.FieldList{
-										List: []*ast.Field{
-											{Names: []*ast.Ident{{Name: receiverName}}, Type: receiverType},
-										},
-									}
-								}
-								returnTypes := declV.Type.Results
-
-								// exprVから識別子削除
-								exprV.Fun = &ast.Ident{Name: funcOrMethodName}
-
-								var bodyStmt ast.Stmt
-								if returnTypes != nil && len(returnTypes.List) > 0 {
-									// 戻り値がある場合はreturnでラップ
-									bodyStmt = &ast.ReturnStmt{Results: []ast.Expr{exprV}}
-								} else {
-									// 戻り値がない場合は式文としてそのまま
-									bodyStmt = &ast.ExprStmt{X: exprV}
-
-								}
-
-								// tmpFileにラッパー関数を追加
-								name := strings.ReplaceAll(wrappedPublicFunc, pkgName+".", "")
-								name = strings.ReplaceAll(name, "()", "")
-								tmpFileAst.Decls = append(tmpFileAst.Decls, &ast.FuncDecl{
-									Name: ast.NewIdent(name),
-									Recv: recv,
-									Type: &ast.FuncType{
-										Results: returnTypes,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											bodyStmt,
-										},
-									},
-								})
-							}
-						}
-					}
-				}
-
-			}
-		case *ast.SelectorExpr:
-
-		}
-	// 短縮変数宣言だった場合
-	case *ast.AssignStmt:
-		switch stmt.Rhs[0].(type) {
-		case *ast.BasicLit:
-		// 基本リテラルの場合はインポート文を追加しない
-		default:
-
-		}
-	// 宣言の場合
-	case *ast.DeclStmt:
-		// switch decl := stmt.Decl.(type) {
-		// case *ast.GenDecl:
-		// 	for _, spec := range decl.Specs {
-		// 		switch specV := spec.(type) {
-		// 		case *ast.ValueSpec:
-		// 			switch valueExprV := specV.Values[0].(type) {
-		// 			case *ast.BasicLit:
-		// 			// 基本リテラルの場合はimport文を追加しない
-		// 			default:
-
-		// 			}
-
-		// 		}
-		// 	}
-		// }
-	}
-	if err := outputToFile(pimf.tmpFilePath, tmpFileAst); err != nil {
-		return err
-	}
-	// ASTキャッシュを更新
-	nodes, fset, err := utils.AnalyzeGoAst(".")
-	if err != nil {
-		return err
-	}
-	e.astCache = &astCache{
-		nodes: nodes,
-		fset:  fset,
-	}
-
-	return nil
 }
