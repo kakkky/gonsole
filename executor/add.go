@@ -23,6 +23,24 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 	if err != nil {
 		return errs.NewInternalError("failed to parse temporary file").Wrap(err)
 	}
+
+	var isPrivate bool
+	var inputWithPrivateIdent string
+	var wrappedWithPublicFunc string
+	if isIncludePrivateIdent(input) {
+		isPrivate = true
+		inputWithPrivateIdent = input
+
+		wrappedWithPublicFunc = wrapWithPublicFunc(input)
+
+		// tmpFileにはラッパー関数を追加するように代入
+		if strings.Contains(input, "=") {
+			input = strings.Split(input, "=")[0] + "=" + wrappedWithPublicFunc
+		} else {
+			input = wrappedWithPublicFunc
+		}
+	}
+
 	// 入力値をmain関数でラップしてparseする
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
 	wrappedInputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
@@ -54,8 +72,14 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
 					// パッケージのインポート文を追加
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+					importPath, err := e.addImportDecl(tmpFileAst, pkgNameToImport)
+					if err != nil {
 						return err
+					}
+					if isPrivate {
+						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 					ok, err := e.isFuncVoid(pkgNameToImport, exprV.Fun.(*ast.SelectorExpr).Sel.Name)
 					if err != nil {
@@ -66,14 +90,17 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						// 関数が返り値を持つ場合はfmt.Printlnでラップ
 						exprStmt = wrapWithPrintln(exprV)
 						// fmtが必要になるのでimportに追加
-						if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+						_, err := e.addImportDecl(tmpFileAst, "fmt")
+						if err != nil {
 							return err
 						}
+
 					} else {
 						// 関数が返り値を持たない場合はそのまま使用
 						exprStmt = &ast.ExprStmt{X: exprV}
 					}
 					addInputStmt(exprStmt, mainFuncBody)
+
 				// 変数だった場合(repl上で定義した変数単体)
 				case *ast.SelectorExpr:
 					pkgNameToImport, found := extractPkgNameFromExpr(exprV)
@@ -81,18 +108,24 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
 					// パッケージのインポート文を追加
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+					importPath, err := e.addImportDecl(tmpFileAst, pkgNameToImport)
+					if err != nil {
 						return err
 					}
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
-					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+					_, err = e.addImportDecl(tmpFileAst, "fmt")
+					if err != nil {
 						return err
+					}
+					if isPrivate {
+						e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport)
 					}
 				case *ast.Ident:
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
-					if err := e.addImportDecl(tmpFileAst, "fmt"); err != nil {
+					_, err := e.addImportDecl(tmpFileAst, "fmt")
+					if err != nil {
 						return err
 					}
 				}
@@ -106,8 +139,14 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+					importPath, err := e.addImportDecl(tmpFileAst, pkgNameToImport)
+					if err != nil {
 						return err
+					}
+					if isPrivate {
+						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 				}
 				addInputStmt(stmt, mainFuncBody)
@@ -131,8 +170,14 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 								if !found {
 									return errs.NewInternalError("failed to extract package name from expression")
 								}
-								if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+								importPath, err := e.addImportDecl(tmpFileAst, pkgNameToImport)
+								if err != nil {
 									return err
+								}
+								if isPrivate {
+									if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+										return err
+									}
 								}
 							}
 							// 宣言文を追加
@@ -216,17 +261,17 @@ func extractPkgNameFromExpr(expr ast.Expr) (string, bool) {
 	return "", false
 }
 
-func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) error {
+func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) (string, error) {
 	// repl内で定義された変数エントリにある場合は無視
 	// 理由：パッケージ名ではなく、メソッド呼び出しに対するレシーバー名として使用されていると予測できるため
 	if e.declEntry.IsRegisteredDecl(pkgNameToImport) {
-		return nil
+		pkgNameToImport = e.declEntry.ReceiverTypePkgName(pkgNameToImport)
 	}
 
 	// パッケージパスを探索
 	importPath, err := e.resolveImportPathForAdd(pkgNameToImport)
 	if err != nil {
-		return err
+		return importPath, err
 	}
 	importPathQuoted := fmt.Sprintf(`"%s"`, importPath)
 
@@ -239,7 +284,7 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 			for _, spec := range genDecl.Specs {
 				if importSpec, ok := spec.(*ast.ImportSpec); ok {
 					if importSpec.Path.Value == importPathQuoted {
-						return nil // すでにインポート済みとして何もしない
+						return importPath, nil // すでにインポート済みとして何もしない
 					}
 				}
 			}
@@ -253,7 +298,7 @@ func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) erro
 			Value: importPathQuoted,
 		},
 	})
-	return nil
+	return importPath, nil
 }
 
 func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
