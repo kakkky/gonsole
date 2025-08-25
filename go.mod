@@ -16,3 +16,5 @@ require (
 	github.com/pkg/term v1.2.0-beta.2 // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect
 )
+
+replace github.com/c-bata/go-prompt => github.com/kakkky/go-prompt v0.0.0-20250825160533-52f05135aabb
