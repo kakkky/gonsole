@@ -3,9 +3,9 @@ package completer
 import (
 	"testing"
 
-	"github.com/c-bata/go-prompt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/decls"
 )
 

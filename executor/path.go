@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/c-bata/go-prompt"
+	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/errs"
 	"golang.org/x/mod/modfile"
 )
