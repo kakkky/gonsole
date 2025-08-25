@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/c-bata/go-prompt"
 	"github.com/kakkky/gonsole/errs"
@@ -43,7 +44,8 @@ func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
 		}
 		// パッケージ名に一致するディレクトリか？
 		base := filepath.Base(path)
-		if base == "vendor" {
+		// 隠しディレクトリやvendor、tmp、node_modules、testdata、アンダースコアで始まるディレクトリはスキップ
+		if base == "vendor" || strings.HasPrefix(base, ".") || base == "tmp" || base == "node_modules" || base == "testdata" || strings.HasPrefix(base, "_") {
 			// vendorディレクトリはスキップ
 			return filepath.SkipDir
 		}
