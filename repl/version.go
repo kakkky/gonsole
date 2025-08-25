@@ -12,7 +12,7 @@ import (
 	"github.com/kakkky/gonsole/errs"
 )
 
-const VERSION = "v1.2"
+const VERSION = "v1.3"
 
 type relesasesInfoResponse struct {
 	LatestVersion string `json:"tag_name"`
