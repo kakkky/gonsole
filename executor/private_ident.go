@@ -23,7 +23,13 @@ func isIncludePrivateIdent(input string) bool {
 		input = strings.Split(input, "=")[1]
 	}
 	// . の後を取得
-	ident := strings.SplitN(input, ".", 2)[1]
+	// .がなければprivate要素ではないと判断
+	// 例：プリミティブ型の変数宣言、repl内での変数宣言
+	parts := strings.SplitN(input, ".", 2)
+	if len(parts) < 2 {
+		return false
+	}
+	ident := parts[1]
 	return unicode.IsLower(rune(ident[0]))
 }
 

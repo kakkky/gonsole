@@ -132,8 +132,8 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 			// 短縮変数宣言だった場合
 			case *ast.AssignStmt:
 				switch stmt.Rhs[0].(type) {
-				case *ast.BasicLit:
-				// 基本リテラルの場合はインポート文を追加しない
+				case *ast.BasicLit, *ast.Ident:
+				// 基本リテラル、Identの場合はインポート文を追加しない
 				default:
 					pkgNameToImport, found := extractPkgNameFromExpr(stmt.Rhs[0])
 					if !found {
@@ -162,8 +162,8 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						switch specV := spec.(type) {
 						case *ast.ValueSpec:
 							switch valueExprV := specV.Values[0].(type) {
-							case *ast.BasicLit:
-							// 基本リテラルの場合はimport文を追加しない
+							case *ast.BasicLit, *ast.Ident:
+							// 基本リテラル、Identの場合はimport文を追加しない
 							default:
 								// 値の各式からパッケージ名を抽出
 								pkgNameToImport, found := extractPkgNameFromExpr(valueExprV)
