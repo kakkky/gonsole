@@ -571,7 +571,7 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 		},
 		{
-			name:      "Do not complete private symbols",
+			name:      "complete private symbols",
 			inputText: "myapp.",
 			setupCandidates: &candidates{
 				pkgs: []pkgName{"myapp"},
@@ -599,6 +599,11 @@ func TestCompleter_Complete(t *testing.T) {
 					Text:        "myapp.Version",
 					DisplayText: "Version",
 					Description: "Variable: Package version",
+				},
+				{
+					Text:        "myapp.printf()",
+					DisplayText: "printf()",
+					Description: "Function: Internal printing function",
 				},
 			},
 		},
