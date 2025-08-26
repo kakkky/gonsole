@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/c-bata/go-prompt"
+	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/decls"
 )
 

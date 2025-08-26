@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/c-bata/go-prompt v0.2.6
 	github.com/google/go-cmp v0.7.0
+	github.com/kakkky/go-prompt v0.0.0-20250825171554-abe6d66ac243
 	golang.org/x/mod v0.26.0
 )
 

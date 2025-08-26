@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/c-bata/go-prompt"
+	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/completer"
 	"github.com/kakkky/gonsole/executor"
 )

@@ -6,8 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
-	"github.com/c-bata/go-prompt"
+	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/errs"
 	"golang.org/x/mod/modfile"
 )
@@ -43,7 +44,8 @@ func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
 		}
 		// パッケージ名に一致するディレクトリか？
 		base := filepath.Base(path)
-		if base == "vendor" {
+		// 隠しディレクトリやvendor、tmp、node_modules、testdata、アンダースコアで始まるディレクトリはスキップ
+		if base == "vendor" || base == "tmp" || base == "node_modules" || base == "testdata" || strings.HasPrefix(base, "_") || (strings.HasPrefix(base, ".") && base != ".") {
 			// vendorディレクトリはスキップ
 			return filepath.SkipDir
 		}
@@ -130,6 +132,11 @@ func (e *Executor) resolveImportPathForDelete(pkgName string) ([]string, error) 
 		}
 		// パッケージ名に一致するディレクトリか？
 		base := filepath.Base(path)
+		// 隠しディレクトリやvendor、tmp、node_modules、testdata、アンダースコアで始まるディレクトリはスキップ
+		if base == "vendor" || base == "tmp" || base == "node_modules" || base == "testdata" || strings.HasPrefix(base, "_") || (strings.HasPrefix(base, ".") && base != ".") {
+			// vendorディレクトリはスキップ
+			return filepath.SkipDir
+		}
 		if base == pkgName {
 			relPath, err := filepath.Rel(".", path)
 			if err != nil {
