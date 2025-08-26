@@ -26,18 +26,23 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 
 	var isPrivate bool
 	var inputWithPrivateIdent string
-	var wrappedWithPublicFunc string
+	var publicFuncWrapperName string
 	if isIncludePrivateIdent(input) {
 		isPrivate = true
 		inputWithPrivateIdent = input
 
-		wrappedWithPublicFunc = wrapWithPublicFunc(input)
-
+		publicFuncWrapperName = toPublicWrapperName(input)
+		// input から ()の塊ごととる
+		var parenthesisPart string
+		if idx := strings.Index(input, "("); idx != -1 {
+			parenthesisPart = input[idx:]
+		}
+		wrappedWithPublicFuncCaller := publicFuncWrapperName + parenthesisPart
 		// tmpFileにはラッパー関数を追加するように代入
 		if strings.Contains(input, "=") {
-			input = strings.Split(input, "=")[0] + "=" + wrappedWithPublicFunc
+			input = strings.Split(input, "=")[0] + "=" + wrappedWithPublicFuncCaller
 		} else {
-			input = wrappedWithPublicFunc
+			input = wrappedWithPublicFuncCaller
 		}
 	}
 
@@ -77,7 +82,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+						if err := e.definePublicWrapper(inputWithPrivateIdent, publicFuncWrapperName, importPath, pkgNameToImport); err != nil {
 							return err
 						}
 					}
@@ -119,7 +124,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport)
+						e.definePublicWrapper(inputWithPrivateIdent, publicFuncWrapperName, importPath, pkgNameToImport)
 					}
 				case *ast.Ident:
 					wrappedExpr := wrapWithPrintln(exprV)
@@ -144,7 +149,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 						return err
 					}
 					if isPrivate {
-						if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+						if err := e.definePublicWrapper(inputWithPrivateIdent, publicFuncWrapperName, importPath, pkgNameToImport); err != nil {
 							return err
 						}
 					}
@@ -175,7 +180,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 									return err
 								}
 								if isPrivate {
-									if err := e.defineWrappedPublicFunc(inputWithPrivateIdent, wrappedWithPublicFunc, importPath, pkgNameToImport); err != nil {
+									if err := e.definePublicWrapper(inputWithPrivateIdent, publicFuncWrapperName, importPath, pkgNameToImport); err != nil {
 										return err
 									}
 								}

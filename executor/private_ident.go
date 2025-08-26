@@ -33,7 +33,7 @@ func isIncludePrivateIdent(input string) bool {
 	return unicode.IsLower(rune(ident[0]))
 }
 
-func wrapWithPublicFunc(input string) string {
+func toPublicWrapperName(input string) string {
 	// = があればそれ以降を取得
 	if strings.Contains(input, "=") {
 		input = strings.Split(input, "=")[1]
@@ -42,12 +42,12 @@ func wrapWithPublicFunc(input string) string {
 	ident := strings.SplitN(input, ".", 2)[1]
 	// ( か { があればその前までを取得
 	if idx := strings.IndexAny(ident, "{("); idx != -1 {
-		return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident[:idx]+"()"))
+		return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident[:idx]))
 	}
-	return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident)+"()")
+	return strings.ReplaceAll(input, ident, "Wrapped"+strings.Title(ident))
 }
 
-func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicFunc, importPath, pkgName string) error {
+func (e *Executor) definePublicWrapper(inputWithPrivateIdent, wrappedPublicFuncName, importPath, pkgName string) error {
 	if e.declEntry.IsRegisteredDecl(pkgName) {
 		pkgName = e.declEntry.ReceiverTypePkgName(pkgName)
 	}
@@ -71,7 +71,7 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 		return errs.NewInternalError("failed to read temporary file").Wrap(err)
 	}
 	fset := token.NewFileSet()
-	if strings.Contains(string(tmpContent), strings.ReplaceAll(wrappedPublicFunc, pkgName+".", "")) {
+	if strings.Contains(string(tmpContent), strings.ReplaceAll(wrappedPublicFuncName, pkgName+".", "")) {
 		// すでに定義されている場合は何もしない
 		return nil
 	}
@@ -138,11 +138,14 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 								}
 
 								returnTypes := declV.Type.Results
-
+								var args []ast.Expr
+								for _, param := range declV.Type.Params.List {
+									args = append(args, param.Names[0])
+								}
 								// 新しいCallExprを作成
 								newCallExpr := &ast.CallExpr{
 									Fun:  funExpr,
-									Args: exprV.Args, // 引数はコピー
+									Args: args,
 								}
 
 								var bodyStmt ast.Stmt
@@ -154,19 +157,18 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 									bodyStmt = &ast.ExprStmt{X: newCallExpr}
 								}
 
-								// tmpFileにラッパー関数を追加
-								var name string
-								if dotIdx := strings.Index(wrappedPublicFunc, "."); dotIdx != -1 {
-									name = strings.TrimSuffix(wrappedPublicFunc[dotIdx+1:], "()")
-								} else {
-									name = strings.TrimSuffix(wrappedPublicFunc, "()")
+								// .があればその後ろを関数名にする
+								if dotIdx := strings.Index(wrappedPublicFuncName, "."); dotIdx != -1 {
+									wrappedPublicFuncName = wrappedPublicFuncName[dotIdx+1:]
 								}
 
+								// tmpFileにラッパー関数を追加
 								tmpFileAst.Decls = append(tmpFileAst.Decls, &ast.FuncDecl{
-									Name: ast.NewIdent(name),
+									Name: ast.NewIdent(wrappedPublicFuncName),
 									Recv: recv,
 									Type: &ast.FuncType{
 										Results: returnTypes,
+										Params:  declV.Type.Params,
 									},
 									Body: &ast.BlockStmt{
 										List: []ast.Stmt{
@@ -223,10 +225,15 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 
 								returnTypes := declV.Type.Results
 
+								var args []ast.Expr
+								for _, param := range declV.Type.Params.List {
+									args = append(args, param.Names[0])
+								}
+
 								// 新しいCallExprを作成
 								newCallExpr := &ast.CallExpr{
 									Fun:  funExpr,
-									Args: exprV.Args, // 引数はコピー
+									Args: args,
 								}
 
 								var bodyStmt ast.Stmt
@@ -238,19 +245,12 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 									bodyStmt = &ast.ExprStmt{X: newCallExpr}
 								}
 
-								// tmpFileにラッパー関数を追加
-								var name string
-								if dotIdx := strings.Index(wrappedPublicFunc, "."); dotIdx != -1 {
-									name = strings.TrimSuffix(wrappedPublicFunc[dotIdx+1:], "()")
-								} else {
-									name = strings.TrimSuffix(wrappedPublicFunc, "()")
-								}
-
 								tmpFileAst.Decls = append(tmpFileAst.Decls, &ast.FuncDecl{
-									Name: ast.NewIdent(name),
+									Name: ast.NewIdent(wrappedPublicFuncName),
 									Recv: recv,
 									Type: &ast.FuncType{
 										Results: returnTypes,
+										Params:  declV.Type.Params,
 									},
 									Body: &ast.BlockStmt{
 										List: []ast.Stmt{
@@ -323,10 +323,10 @@ func (e *Executor) defineWrappedPublicFunc(inputWithPrivateIdent, wrappedPublicF
 
 											// tmpFileにラッパー関数を追加
 											var name string
-											if dotIdx := strings.Index(wrappedPublicFunc, "."); dotIdx != -1 {
-												name = strings.TrimSuffix(wrappedPublicFunc[dotIdx+1:], "()")
+											if dotIdx := strings.Index(wrappedPublicFuncName, "."); dotIdx != -1 {
+												name = strings.TrimSuffix(wrappedPublicFuncName[dotIdx+1:], "()")
 											} else {
-												name = strings.TrimSuffix(wrappedPublicFunc, "()")
+												name = strings.TrimSuffix(wrappedPublicFuncName, "()")
 											}
 
 											tmpFileAst.Decls = append(tmpFileAst.Decls, &ast.FuncDecl{
