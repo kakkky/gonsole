@@ -480,7 +480,7 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 	}
 
 	for _, method := range methodSets {
-		if method.receiverTypeName == typeName && !isPrivate(method.name) {
+		if method.receiverTypeName == typeName {
 			if strings.HasPrefix(method.name, inputingMethodName) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        inputStr + method.name + "()",
@@ -493,9 +493,6 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 	for _, interfaceSet := range interfaceSets {
 		if interfaceSet.name == typeName {
 			for mi, method := range interfaceSet.methods {
-				if isPrivate(method) {
-					continue
-				}
 				if strings.HasPrefix(method, inputingMethodName) {
 					desc := ""
 					if mi < len(interfaceSet.descriptions) {
