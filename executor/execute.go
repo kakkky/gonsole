@@ -67,7 +67,7 @@ func (e *Executor) Execute(input string) {
 	defer func() {
 		// panicが発生した場合に備えてrecover
 		// エラーメッセージはerrs.HandleErrorで表示されるため、ここでは特に何もせず、復帰するようにしておくのみ
-		recover()
+		_ = recover()
 	}()
 	if err := cmd.Run(); err != nil {
 		// エラーが発生した場合は、エラーメッセージを整形して表示
