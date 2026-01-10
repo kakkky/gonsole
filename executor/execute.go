@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kakkky/gonsole/decls"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/registry"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -19,7 +19,7 @@ type Executor struct {
 	modPath     string
 	tmpCleaner  func()
 	tmpFilePath string
-	declEntry   *decls.DeclEntry
+	registry    *registry.Registry
 	astCache    *astCache
 }
 
@@ -30,7 +30,7 @@ type astCache struct {
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewExecutor(declEntry *decls.DeclEntry, nodes map[types.PkgName][]*ast.Package, fset *token.FileSet) (*Executor, error) {
+func NewExecutor(registry *registry.Registry, nodes map[types.PkgName][]*ast.Package, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func NewExecutor(declEntry *decls.DeclEntry, nodes map[types.PkgName][]*ast.Pack
 		modPath:     modPath,
 		tmpCleaner:  cleaner,
 		tmpFilePath: tmpFilePath,
-		declEntry:   declEntry,
+		registry:    registry,
 		astCache: &astCache{
 			nodes: nodes,
 			fset:  fset,
@@ -94,7 +94,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// 変数エントリに登録する
-	if err := e.declEntry.Register(input); err != nil {
+	if err := e.registry.Register(input); err != nil {
 		errs.HandleError(err)
 	}
 }

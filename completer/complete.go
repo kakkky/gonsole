@@ -6,19 +6,20 @@ import (
 	"unicode"
 
 	"github.com/kakkky/go-prompt"
-	"github.com/kakkky/gonsole/decls"
+
+	"github.com/kakkky/gonsole/registry"
 	"github.com/kakkky/gonsole/types"
 )
 
 type Completer struct {
 	candidates *candidates
-	declEntry  *decls.DeclEntry
+	registry   *registry.Registry
 }
 
-func NewCompleter(candidates *candidates, declEntry *decls.DeclEntry) *Completer {
+func NewCompleter(candidates *candidates, registry *registry.Registry) *Completer {
 	return &Completer{
 		candidates: candidates,
-		declEntry:  declEntry,
+		registry:   registry,
 	}
 }
 
@@ -124,7 +125,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 	seenMethods := make(map[string]bool)
 
 	// repl内で宣言された変数名エントリを回す
-	for _, decl := range c.declEntry.Decls() {
+	for _, decl := range c.registry.Decls() {
 		// 変数名.メソッド名の入力に対応（例: foo.Do）
 		if strings.HasPrefix(inputStr, decl.Name()+".") {
 			// 入力値からメソッド名部分を抽出
@@ -159,7 +160,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsStructLit(
 	suggestions []prompt.Suggest,
 	seenMethods map[string]bool,
 	inputStr string,
-	decl decls.Decl,
+	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 	if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
 		// memo: 現在はexecutorがprivateに対応していないため
@@ -190,7 +191,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 	suggestions []prompt.Suggest,
 	seenMethods map[string]bool,
 	inputStr string,
-	decl decls.Decl,
+	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	// 右辺の変数名を取得
@@ -240,7 +241,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	suggestions []prompt.Suggest,
 	seenMethods map[string]bool,
 	inputStr string,
-	decl decls.Decl,
+	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	// 右辺の関数名と戻り値の順序を取得
@@ -333,7 +334,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 	suggestions []prompt.Suggest,
 	seenMethods map[string]bool,
 	inputStr string,
-	decl decls.Decl,
+	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	// 右辺のメソッド名と戻り値の順序を取得
@@ -459,8 +460,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 func (c *Completer) getPkgNameAndIsRecv(inputStr string) (types.PkgName, bool) {
 	firstDotIdx := strings.Index(inputStr, ".")
 	pkgOrRecvName := inputStr[:firstDotIdx]
-	if c.declEntry.IsRegisteredDecl(pkgOrRecvName) {
-		for _, decl := range c.declEntry.Decls() {
+	if c.registry.IsRegisteredDecl(pkgOrRecvName) {
+		for _, decl := range c.registry.Decls() {
 			if decl.Name() == pkgOrRecvName {
 				return types.PkgName(decl.PkgName()), true
 			}

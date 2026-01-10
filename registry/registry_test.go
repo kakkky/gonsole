@@ -1,4 +1,4 @@
-package decls
+package registry
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestDeclEntry_Register(t *testing.T) {
+func TestRegistry_Register(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -156,7 +156,7 @@ func TestDeclEntry_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sut := NewDeclEntry()
+			sut := NewRegistry()
 			err := sut.Register(tt.input)
 
 			// エラーステータスの確認
@@ -178,7 +178,7 @@ func TestDeclEntry_Register(t *testing.T) {
 	}
 }
 
-func TestDeclEntry_IsRegisteredDecl(t *testing.T) {
+func TestRegistry_IsRegisteredDecl(t *testing.T) {
 	tests := []struct {
 		name          string
 		existingDecls []Decl
@@ -258,8 +258,8 @@ func TestDeclEntry_IsRegisteredDecl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// DeclEntryの準備
-			de := &DeclEntry{
+			// Registryの準備
+			de := &Registry{
 				decls: &tt.existingDecls,
 			}
 

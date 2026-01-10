@@ -1,4 +1,4 @@
-package decls
+package registry
 
 import (
 	"go/ast"
@@ -9,17 +9,17 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
-type DeclEntry struct {
+type Registry struct {
 	decls *[]Decl
 }
 
-func NewDeclEntry() *DeclEntry {
-	return &DeclEntry{
+func NewRegistry() *Registry {
+	return &Registry{
 		decls: &[]Decl{},
 	}
 }
 
-func (de *DeclEntry) Register(input string) error {
+func (de *Registry) Register(input string) error {
 	fset := token.NewFileSet()
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
 	inputAst, err := parser.ParseFile(fset, "", wrappedSrc, parser.AllErrors)
@@ -196,7 +196,7 @@ func (de *DeclEntry) Register(input string) error {
 	return nil
 }
 
-func (de *DeclEntry) ReceiverTypePkgName(receiverName string) types.PkgName {
+func (de *Registry) ReceiverTypePkgName(receiverName string) types.PkgName {
 	for _, decl := range *de.decls {
 		if decl.Name() == receiverName {
 			return decl.PkgName()
@@ -205,11 +205,11 @@ func (de *DeclEntry) ReceiverTypePkgName(receiverName string) types.PkgName {
 	return ""
 }
 
-func (de *DeclEntry) Decls() []Decl {
+func (de *Registry) Decls() []Decl {
 	return *de.decls
 }
 
-func (de *DeclEntry) IsRegisteredDecl(name string) bool {
+func (de *Registry) IsRegisteredDecl(name string) bool {
 	for _, decl := range *de.decls {
 		if decl.Name() == name {
 			return true
@@ -218,7 +218,7 @@ func (de *DeclEntry) IsRegisteredDecl(name string) bool {
 	return false
 }
 
-func (de *DeclEntry) register(pkg types.PkgName, name string, rhs any) {
+func (de *Registry) register(pkg types.PkgName, name string, rhs any) {
 	switch v := rhs.(type) {
 	case declVar:
 		*de.decls = append(*de.decls, Decl{

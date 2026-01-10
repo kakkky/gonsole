@@ -1,4 +1,4 @@
-package decls
+package registry
 
 import "github.com/kakkky/gonsole/types"
 

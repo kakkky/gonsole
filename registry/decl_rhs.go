@@ -1,4 +1,4 @@
-package decls
+package registry
 
 type declRhs struct {
 	declStruct declStruct
