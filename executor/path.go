@@ -10,6 +10,7 @@ import (
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/types"
 	"golang.org/x/mod/modfile"
 )
 
@@ -30,10 +31,10 @@ func getGoModPath(path string) (string, error) {
 // 複数のパスが見つかった場合は、ユーザーに選択を促す
 //
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
-func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
+func (e *Executor) resolveImportPathForAdd(pkgName types.PkgName) (string, error) {
 	var importPaths []string
 	if stdPkg, ok := isStandardPackage(pkgName); ok {
-		importPaths = append(importPaths, stdPkg)
+		importPaths = append(importPaths, string(stdPkg))
 	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -49,7 +50,7 @@ func (e *Executor) resolveImportPathForAdd(pkgName string) (string, error) {
 			// vendorディレクトリはスキップ
 			return filepath.SkipDir
 		}
-		if base == pkgName {
+		if base == string(pkgName) {
 			relPath, err := filepath.Rel(".", path)
 			if err != nil {
 				return err
@@ -118,10 +119,10 @@ func toBlue(text string) string {
 // resolveImportPathForAddと処理をまとめなかったは、削除ではrepl機能が必要なかったため
 //
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
-func (e *Executor) resolveImportPathForDelete(pkgName string) ([]string, error) {
+func (e *Executor) resolveImportPathForDelete(pkgName types.PkgName) ([]string, error) {
 	var importPaths []string
 	if stdPkg, ok := isStandardPackage(pkgName); ok {
-		importPaths = append(importPaths, stdPkg)
+		importPaths = append(importPaths, string(stdPkg))
 	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -137,7 +138,7 @@ func (e *Executor) resolveImportPathForDelete(pkgName string) ([]string, error) 
 			// vendorディレクトリはスキップ
 			return filepath.SkipDir
 		}
-		if base == pkgName {
+		if base == string(pkgName) {
 			relPath, err := filepath.Rel(".", path)
 			if err != nil {
 				return err

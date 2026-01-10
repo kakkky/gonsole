@@ -18,8 +18,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "a := pkg.Var",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "a",
+					pkgName: "pkg",
+					name:    "a",
 					rhs: declRhs{
 						declVar: declVar{name: "Var"},
 					},
@@ -32,8 +32,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "s := pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "s",
+					pkgName: "pkg",
+					name:    "s",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -46,8 +46,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "p := &pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "p",
+					pkgName: "pkg",
+					name:    "p",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -60,8 +60,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "f := pkg.Func()",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "f",
+					pkgName: "pkg",
+					name:    "f",
 					rhs: declRhs{
 						declFunc: declFunc{name: "Func", order: 0},
 					},
@@ -74,15 +74,15 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "a, b := pkg.Func()",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "a",
+					pkgName: "pkg",
+					name:    "a",
 					rhs: declRhs{
 						declFunc: declFunc{name: "Func", order: 0},
 					},
 				},
 				{
-					pkg:  "pkg",
-					name: "b",
+					pkgName: "pkg",
+					name:    "b",
 					rhs: declRhs{
 						declFunc: declFunc{name: "Func", order: 1},
 					},
@@ -95,8 +95,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "var v = pkg.Var",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "v",
+					pkgName: "pkg",
+					name:    "v",
 					rhs: declRhs{
 						declVar: declVar{name: "Var"},
 					},
@@ -109,8 +109,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "var s = pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "s",
+					pkgName: "pkg",
+					name:    "s",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -123,8 +123,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "var p = &pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "p",
+					pkgName: "pkg",
+					name:    "p",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -137,8 +137,8 @@ func TestDeclEntry_Register(t *testing.T) {
 			input: "var f = pkg.Func()",
 			expected: []Decl{
 				{
-					pkg:  "pkg",
-					name: "f",
+					pkgName: "pkg",
+					name:    "f",
 					rhs: declRhs{
 						declFunc: declFunc{name: "Func", order: 0},
 					},
@@ -189,15 +189,15 @@ func TestDeclEntry_IsRegisteredDecl(t *testing.T) {
 			name: "found registered declaration",
 			existingDecls: []Decl{
 				{
-					pkg:  "pkg1",
-					name: "var1",
+					pkgName: "pkg1",
+					name:    "var1",
 					rhs: declRhs{
 						declVar: declVar{name: "Var"},
 					},
 				},
 				{
-					pkg:  "pkg2",
-					name: "struct1",
+					pkgName: "pkg2",
+					name:    "struct1",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -210,15 +210,15 @@ func TestDeclEntry_IsRegisteredDecl(t *testing.T) {
 			name: "found registered declaration (from multiple declarations)",
 			existingDecls: []Decl{
 				{
-					pkg:  "pkg1",
-					name: "var1",
+					pkgName: "pkg1",
+					name:    "var1",
 					rhs: declRhs{
 						declVar: declVar{name: "Var"},
 					},
 				},
 				{
-					pkg:  "pkg2",
-					name: "struct1",
+					pkgName: "pkg2",
+					name:    "struct1",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},
@@ -231,15 +231,15 @@ func TestDeclEntry_IsRegisteredDecl(t *testing.T) {
 			name: "not found registered declaration",
 			existingDecls: []Decl{
 				{
-					pkg:  "pkg1",
-					name: "var1",
+					pkgName: "pkg1",
+					name:    "var1",
 					rhs: declRhs{
 						declVar: declVar{name: "Var"},
 					},
 				},
 				{
-					pkg:  "pkg2",
-					name: "struct1",
+					pkgName: "pkg2",
+					name:    "struct1",
 					rhs: declRhs{
 						declStruct: declStruct{typeName: "Struct"},
 					},

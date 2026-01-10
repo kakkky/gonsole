@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+
 	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/kakkky/gonsole/decls"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/types"
 )
 
 type Executor struct {
@@ -23,12 +25,12 @@ type Executor struct {
 
 type astCache struct {
 	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-	nodes map[string][]*ast.Package
+	nodes map[types.PkgName][]*ast.Package
 	fset  *token.FileSet
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewExecutor(declEntry *decls.DeclEntry, nodes map[string][]*ast.Package, fset *token.FileSet) (*Executor, error) {
+func NewExecutor(declEntry *decls.DeclEntry, nodes map[types.PkgName][]*ast.Package, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
 		return nil, err

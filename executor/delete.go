@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/types"
 )
 
 func (e *Executor) deleteCallExpr() error {
@@ -25,7 +26,7 @@ func (e *Executor) deleteCallExpr() error {
 		return err
 	}
 
-	var pkgNameToDelete string
+	var pkgNameToDelete types.PkgName
 	// main関数を探す
 	for _, decl := range file.Decls {
 		funcDecl, ok := decl.(*ast.FuncDecl)
@@ -78,7 +79,7 @@ func (e *Executor) deleteCallExpr() error {
 
 // fmt.Println(pkg.func()) パターンからパッケージ名を抽出
 // 該当しない場合は空文字列を返す
-func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
+func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) types.PkgName {
 	// 関数式をチェック
 	switch funExprV := callExpr.Fun.(type) {
 	case *ast.SelectorExpr:
@@ -102,14 +103,14 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 			}
 			switch x := selExpr.X.(type) {
 			case *ast.Ident:
-				return x.Name
+				return types.PkgName(x.Name)
 			default:
 				// メソッドチェーンなどに対応
 				return extractPkgNameFromRhs(selExpr.X)
 			}
 		case *ast.SelectorExpr:
 			pkgIdent := argExpr.X.(*ast.Ident)
-			return pkgIdent.Name
+			return types.PkgName(pkgIdent.Name)
 		case *ast.Ident:
 			// 直接識別子の場合はパッケージ名がないので空
 			return ""
@@ -119,7 +120,7 @@ func extractPkgNameFromPrintlnExprArg(callExpr *ast.CallExpr) string {
 }
 
 // deleteImportDecl は指定されたパッケージ名のインポート宣言を削除する
-func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete string) error {
+func (e *Executor) deleteImportDecl(file *ast.File, pkgNameToDelete types.PkgName) error {
 	var importPathQuoteds []string
 
 	importPaths, err := e.resolveImportPathForDelete(pkgNameToDelete)
@@ -170,7 +171,7 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 		return errs.NewInternalError("failed to parse temporary file").Wrap(err)
 	}
 
-	var pkgNameToDelete string
+	var pkgNameToDelete types.PkgName
 	var isblankAssignExist bool
 
 	// main関数を探して対象行を削除
@@ -202,7 +203,7 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 						switch exprFuncV := exprV.Fun.(type) {
 						case *ast.SelectorExpr:
 							// パッケージ関数呼び出し
-							pkgNameToDelete = exprFuncV.X.(*ast.Ident).Name
+							pkgNameToDelete = types.PkgName(exprFuncV.X.(*ast.Ident).Name)
 						}
 					}
 
@@ -250,17 +251,16 @@ func (e *Executor) deleteErrLine(errMsg string) error {
 }
 
 // 右辺式からパッケージ名を抽出するヘルパー関数
-func extractPkgNameFromRhs(expr ast.Expr) string {
+func extractPkgNameFromRhs(expr ast.Expr) types.PkgName {
 	switch exprV := expr.(type) {
 	case *ast.SelectorExpr:
 		// パッケージ.名前 の形式
-		return exprV.X.(*ast.Ident).Name
-
+		return types.PkgName(exprV.X.(*ast.Ident).Name)
 	case *ast.CompositeLit:
 		// パッケージ.型{} の形式
 		switch exprTypeV := exprV.Type.(type) {
 		case *ast.SelectorExpr:
-			return exprTypeV.X.(*ast.Ident).Name
+			return types.PkgName(exprTypeV.X.(*ast.Ident).Name)
 		}
 
 	case *ast.CallExpr:
@@ -269,7 +269,7 @@ func extractPkgNameFromRhs(expr ast.Expr) string {
 		case *ast.SelectorExpr:
 			switch x := exprFuncV.X.(type) {
 			case *ast.Ident:
-				return x.Name
+				return types.PkgName(x.Name)
 			default:
 				// メソッドチェーンなどに対応
 				return extractPkgNameFromRhs(exprFuncV.X)
@@ -281,7 +281,7 @@ func extractPkgNameFromRhs(expr ast.Expr) string {
 }
 
 // パッケージが使用されているかをチェックする
-func isPkgUsed(pkgName string, fileAst *ast.File) bool {
+func isPkgUsed(pkgName types.PkgName, fileAst *ast.File) bool {
 	if pkgName == "" {
 		return false
 	}
@@ -334,13 +334,13 @@ func isPkgUsed(pkgName string, fileAst *ast.File) bool {
 }
 
 // 式内にパッケージが使用されているかをチェック
-func isPkgInExpr(expr ast.Expr, pkgName string) bool {
+func isPkgInExpr(expr ast.Expr, pkgName types.PkgName) bool {
 	switch expr := expr.(type) {
 	case *ast.SelectorExpr:
 		// pkg.Name パターン
 		switch x := expr.X.(type) {
 		case *ast.Ident:
-			return x.Name == pkgName
+			return x.Name == string(pkgName)
 		}
 
 	case *ast.CompositeLit:
@@ -349,7 +349,7 @@ func isPkgInExpr(expr ast.Expr, pkgName string) bool {
 		case *ast.SelectorExpr:
 			switch x := typ.X.(type) {
 			case *ast.Ident:
-				return x.Name == pkgName
+				return x.Name == string(pkgName)
 			}
 		}
 
@@ -359,7 +359,7 @@ func isPkgInExpr(expr ast.Expr, pkgName string) bool {
 		case *ast.SelectorExpr:
 			switch x := fun.X.(type) {
 			case *ast.Ident:
-				return x.Name == pkgName
+				return x.Name == string(pkgName)
 			}
 		}
 	}

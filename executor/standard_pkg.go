@@ -1,8 +1,10 @@
 package executor
 
+import "github.com/kakkky/gonsole/types"
+
 // isStandardPackage は指定されたパッケージ名が標準パッケージかどうかを判定し、
 // 適切なインポートパスを返す
-func isStandardPackage(pkgNameToImport string) (string, bool) {
+func isStandardPackage(pkgNameToImport types.PkgName) (types.PkgName, bool) {
 	// 各カテゴリの標準パッケージをチェック
 	if pkgName, found := getCorePackages()[pkgNameToImport]; found {
 		return pkgName, true
@@ -35,8 +37,8 @@ func isStandardPackage(pkgNameToImport string) (string, bool) {
 }
 
 // getCorePackages は基本的なパッケージのマップを返す
-func getCorePackages() map[string]string {
-	return map[string]string{
+func getCorePackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"fmt":     "fmt",
 		"errors":  "errors",
 		"context": "context",
@@ -48,8 +50,8 @@ func getCorePackages() map[string]string {
 }
 
 // getIOPackages はIO関連パッケージのマップを返す
-func getIOPackages() map[string]string {
-	return map[string]string{
+func getIOPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"io":     "io",
 		"ioutil": "io/ioutil",
 		"fs":     "io/fs",
@@ -60,8 +62,8 @@ func getIOPackages() map[string]string {
 }
 
 // getNetworkPackages はネットワーク関連パッケージのマップを返す
-func getNetworkPackages() map[string]string {
-	return map[string]string{
+func getNetworkPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"http":      "net/http",
 		"url":       "net/url",
 		"mail":      "net/mail",
@@ -79,8 +81,8 @@ func getNetworkPackages() map[string]string {
 }
 
 // getEncodingPackages はエンコーディング関連パッケージのマップを返す
-func getEncodingPackages() map[string]string {
-	return map[string]string{
+func getEncodingPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"json":    "encoding/json",
 		"xml":     "encoding/xml",
 		"csv":     "encoding/csv",
@@ -96,8 +98,8 @@ func getEncodingPackages() map[string]string {
 }
 
 // getCryptoPackages は暗号化関連パッケージのマップを返す
-func getCryptoPackages() map[string]string {
-	return map[string]string{
+func getCryptoPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"crypto":   "crypto",
 		"md5":      "crypto/md5",
 		"sha1":     "crypto/sha1",
@@ -126,8 +128,8 @@ func getCryptoPackages() map[string]string {
 }
 
 // getMathPackages は数学関連パッケージのマップを返す
-func getMathPackages() map[string]string {
-	return map[string]string{
+func getMathPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"math":  "math",
 		"rand":  "math/rand",
 		"big":   "math/big",
@@ -137,8 +139,8 @@ func getMathPackages() map[string]string {
 }
 
 // getTestingPackages はテスト関連パッケージのマップを返す
-func getTestingPackages() map[string]string {
-	return map[string]string{
+func getTestingPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"testing": "testing",
 		"quick":   "testing/quick",
 		"iotest":  "testing/iotest",
@@ -147,8 +149,8 @@ func getTestingPackages() map[string]string {
 }
 
 // getSystemPackages はシステム関連パッケージのマップを返す
-func getSystemPackages() map[string]string {
-	return map[string]string{
+func getSystemPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		"runtime": "runtime",
 		"cgo":     "runtime/cgo",
 		"debug":   "runtime/debug",
@@ -163,8 +165,8 @@ func getSystemPackages() map[string]string {
 }
 
 // getUtilityPackages はユーティリティ関連パッケージのマップを返す
-func getUtilityPackages() map[string]string {
-	return map[string]string{
+func getUtilityPackages() map[types.PkgName]types.PkgName {
+	return map[types.PkgName]types.PkgName{
 		// 文字列・テキスト処理
 		"strings":   "strings",
 		"strconv":   "strconv",

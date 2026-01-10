@@ -7,6 +7,7 @@ import (
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/decls"
+	"github.com/kakkky/gonsole/types"
 )
 
 type Completer struct {
@@ -53,14 +54,14 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 	}
 
 	// 補完候補の検索をしやすくするために、パッケージ名とその後の文字列を分ける
-	pkgAndInput := buildPkgAndInput(inputStr, isAndOperandInclude)
+	pkgNameAndInput := buildPkgAndInput(inputStr, isAndOperandInclude)
 
-	suggestions := c.findSuggestions(pkgAndInput)
+	suggestions := c.findSuggestions(pkgNameAndInput)
 
 	return suggestions
 }
 
-func (c *Completer) findSuggestions(pai pkgAndInput) []prompt.Suggest {
+func (c *Completer) findSuggestions(pai pkgNameAndInput) []prompt.Suggest {
 	// 先頭に&が含まれていたら構造体リテラルを入力しようとしていると想定
 	if pai.isAndOperandInclude {
 		return c.findStructSuggestions(pai)
@@ -93,18 +94,18 @@ func (c *Completer) findPackageSuggestions(inputStr string, isAndOperandInclude 
 	return suggestions
 }
 
-func (c *Completer) findFunctionSuggestions(pai pkgAndInput) []prompt.Suggest {
+func (c *Completer) findFunctionSuggestions(pai pkgNameAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-	if funcSets, ok := c.candidates.funcs[pkgName(pai.pkg)]; ok {
+	if funcSets, ok := c.candidates.funcs[pai.pkgName]; ok {
 		for _, funcSet := range funcSets {
 			if isPrivate(funcSet.name) {
 				continue
 			}
 			var text string
 			if pai.isAndOperandInclude {
-				text = "&" + pai.pkg + "." + funcSet.name + "()"
+				text = "&" + string(pai.pkgName) + "." + funcSet.name + "()"
 			} else {
-				text = pai.pkg + "." + funcSet.name + "()"
+				text = string(pai.pkgName) + "." + funcSet.name + "()"
 			}
 			if strings.HasPrefix(funcSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
@@ -128,7 +129,7 @@ func (c *Completer) findMethodSuggestions(inputStr string) []prompt.Suggest {
 		if strings.HasPrefix(inputStr, decl.Name()+".") {
 			// 入力値からメソッド名部分を抽出
 			methodPrefix := inputStr[len(decl.Name())+1:]
-			for _, methodSet := range c.candidates.methods[pkgName(decl.Pkg())] {
+			for _, methodSet := range c.candidates.methods[types.PkgName(decl.PkgName())] {
 				// メソッド名の前方一致フィルタ
 				if methodPrefix == "" || strings.HasPrefix(methodSet.name, methodPrefix) {
 					suggestions = c.findMethodSuggestionsFromVarRhsStructLit(
@@ -199,14 +200,14 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 	}
 
 	// 変数の補完候補を取得
-	rhsVarSets, ok := c.candidates.vars[pkgName(decl.Pkg())]
+	rhsVarSets, ok := c.candidates.vars[types.PkgName(decl.PkgName())]
 	if !ok {
 		return suggestions
 	}
 
 	// 変数の補完候補を回す
 	for _, rhsVarSet := range rhsVarSets {
-		if (decl.Pkg() == rhsVarSet.typePkgName) && // パッケージ名が一致
+		if (types.PkgName(decl.PkgName()) == rhsVarSet.typePkgName) && // パッケージ名が一致
 			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
 			(rhsVarSet.typeName == methodSet.receiverTypeName) { // 型名が一致
 
@@ -249,7 +250,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	}
 
 	declRhsFuncReturnVarOrder := decl.Rhs().Func().ReturnedOrder()
-	rhsFuncSets, ok := c.candidates.funcs[pkgName(decl.Pkg())]
+	rhsFuncSets, ok := c.candidates.funcs[types.PkgName(decl.PkgName())]
 	if !ok {
 		return suggestions
 	}
@@ -285,7 +286,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	}
 
 	// メソッドの戻り値がinterfaceの場合、interfaceのメソッドを候補として表示する
-	rhsInterfaceSets, ok := c.candidates.interfaces[pkgName(decl.Pkg())]
+	rhsInterfaceSets, ok := c.candidates.interfaces[types.PkgName(decl.PkgName())]
 	if !ok {
 		return suggestions
 	}
@@ -342,7 +343,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 	}
 
 	declRhsMethodReturnVarOrder := decl.Rhs().Method().ReturnedOrder()
-	rhsMethodSets, ok := c.candidates.methods[pkgName(decl.Pkg())]
+	rhsMethodSets, ok := c.candidates.methods[types.PkgName(decl.PkgName())]
 	if !ok {
 		return suggestions
 	}
@@ -379,7 +380,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 	}
 
 	// メソッドの戻り値がinterfaceの場合、interfaceのメソッドを候補として表示する
-	rhsInterfaceSets, ok := c.candidates.interfaces[pkgName(decl.Pkg())]
+	rhsInterfaceSets, ok := c.candidates.interfaces[types.PkgName(decl.PkgName())]
 	if !ok {
 		return suggestions
 	}
@@ -421,14 +422,13 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 }
 
 func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest, inputStr string) []prompt.Suggest {
-	pkg, isRecv := c.getPkgAndIsRecv(inputStr)
+	pkgName, isRecv := c.getPkgNameAndIsRecv(inputStr)
 	funcOrMethodName := getPrevFuncOrMethodName(inputStr)
 
-	funcSetPtr := c.findFuncSetPtr(pkg, funcOrMethodName)
-	methodSetPtr := c.findMethodSetPtr(pkg, funcOrMethodName, isRecv, inputStr)
-
-	methodSets := c.candidates.methods[pkgName(pkg)]
-	interfaceSets := c.candidates.interfaces[pkgName(pkg)]
+	funcSetPtr := c.findFuncSetPtr(pkgName, funcOrMethodName)
+	methodSetPtr := c.findMethodSetPtr(pkgName, funcOrMethodName, isRecv, inputStr)
+	methodSets := c.candidates.methods[pkgName]
+	interfaceSets := c.candidates.interfaces[pkgName]
 
 	// 重複排除用マップ
 	seen := make(map[string]struct{})
@@ -456,17 +456,17 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 }
 
 // パッケージ名とレシーバかどうかを取得
-func (c *Completer) getPkgAndIsRecv(inputStr string) (string, bool) {
+func (c *Completer) getPkgNameAndIsRecv(inputStr string) (types.PkgName, bool) {
 	firstDotIdx := strings.Index(inputStr, ".")
 	pkgOrRecvName := inputStr[:firstDotIdx]
 	if c.declEntry.IsRegisteredDecl(pkgOrRecvName) {
 		for _, decl := range c.declEntry.Decls() {
 			if decl.Name() == pkgOrRecvName {
-				return decl.Pkg(), true
+				return types.PkgName(decl.PkgName()), true
 			}
 		}
 	}
-	return pkgOrRecvName, false
+	return types.PkgName(pkgOrRecvName), false
 }
 
 // 直前の関数orメソッド名を取得
@@ -483,8 +483,8 @@ func getPrevFuncOrMethodName(inputStr string) string {
 }
 
 // 関数セットを取得
-func (c *Completer) findFuncSetPtr(pkg, name string) *funcSet {
-	funcSets := c.candidates.funcs[pkgName(pkg)]
+func (c *Completer) findFuncSetPtr(pkg types.PkgName, name string) *funcSet {
+	funcSets := c.candidates.funcs[pkg]
 	for i := range funcSets {
 		if funcSets[i].name == name {
 			return &funcSets[i]
@@ -494,11 +494,11 @@ func (c *Completer) findFuncSetPtr(pkg, name string) *funcSet {
 }
 
 // メソッドセットを取得
-func (c *Completer) findMethodSetPtr(pkg, name string, isRecv bool, inputStr string) *methodSet {
+func (c *Completer) findMethodSetPtr(pkg types.PkgName, name string, isRecv bool, inputStr string) *methodSet {
 	if !isRecv && strings.Count(inputStr, "(") == 1 {
 		return nil
 	}
-	methodSets := c.candidates.methods[pkgName(pkg)]
+	methodSets := c.candidates.methods[pkg]
 	for i := range methodSets {
 		if methodSets[i].name == name {
 			return &methodSets[i]
@@ -549,16 +549,16 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 	return suggestions
 }
 
-func (c *Completer) findVariableSuggestions(pai pkgAndInput) []prompt.Suggest {
+func (c *Completer) findVariableSuggestions(pai pkgNameAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-	if varSets, ok := c.candidates.vars[pkgName(pai.pkg)]; ok {
+	if varSets, ok := c.candidates.vars[types.PkgName(pai.pkgName)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(varSet.name, pai.input) {
 				if isPrivate(varSet.name) {
 					continue
 				}
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        pai.pkg + "." + varSet.name,
+					Text:        string(pai.pkgName) + "." + varSet.name,
 					DisplayText: varSet.name,
 					Description: "Variable: " + varSet.description,
 				})
@@ -568,16 +568,16 @@ func (c *Completer) findVariableSuggestions(pai pkgAndInput) []prompt.Suggest {
 	return suggestions
 }
 
-func (c *Completer) findConstantSuggestions(pai pkgAndInput) []prompt.Suggest {
+func (c *Completer) findConstantSuggestions(pai pkgNameAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-	if constSets, ok := c.candidates.consts[pkgName(pai.pkg)]; ok {
+	if constSets, ok := c.candidates.consts[pai.pkgName]; ok {
 		for _, constSet := range constSets {
 			if isPrivate(constSet.name) {
 				continue
 			}
 			if strings.HasPrefix(constSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
-					Text:        pai.pkg + "." + constSet.name,
+					Text:        string(pai.pkgName) + "." + constSet.name,
 					DisplayText: constSet.name,
 					Description: "Constant: " + constSet.description,
 				})
@@ -587,9 +587,9 @@ func (c *Completer) findConstantSuggestions(pai pkgAndInput) []prompt.Suggest {
 	return suggestions
 }
 
-func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
+func (c *Completer) findStructSuggestions(pai pkgNameAndInput) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-	if structSets, ok := c.candidates.structs[pkgName(pai.pkg)]; ok {
+	if structSets, ok := c.candidates.structs[pai.pkgName]; ok {
 		for _, structSet := range structSets {
 			if isPrivate(structSet.name) {
 				continue
@@ -604,9 +604,9 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 			}
 			var text string
 			if pai.isAndOperandInclude {
-				text = "&" + pai.pkg + "." + structSet.name + field
+				text = "&" + string(pai.pkgName) + "." + structSet.name + field
 			} else {
-				text = pai.pkg + "." + structSet.name + field
+				text = string(pai.pkgName) + "." + structSet.name + field
 			}
 			if strings.HasPrefix(structSet.name, pai.input) {
 				suggestions = append(suggestions, prompt.Suggest{
@@ -621,24 +621,24 @@ func (c *Completer) findStructSuggestions(pai pkgAndInput) []prompt.Suggest {
 }
 
 // 補完候補の検索をしやすくするための構造体
-type pkgAndInput struct {
-	pkg                 string
+type pkgNameAndInput struct {
+	pkgName             types.PkgName
 	input               string
 	isAndOperandInclude bool
 }
 
 // {pkg名}. まで入力されている場合は、pkg名とその後の文字列を構造体にまとめる
-func buildPkgAndInput(input string, isAndOperandInclude bool) pkgAndInput {
-	var pkgAndInput pkgAndInput
+func buildPkgAndInput(input string, isAndOperandInclude bool) pkgNameAndInput {
+	var pkgNameAndInput pkgNameAndInput
 	if strings.Contains(input, ".") {
 		parts := strings.SplitN(input, ".", 2)
-		pkgAndInput.pkg = parts[0]
+		pkgNameAndInput.pkgName = types.PkgName(parts[0])
 		if len(parts) == 2 {
-			pkgAndInput.input = parts[1]
+			pkgNameAndInput.input = parts[1]
 		}
 	}
-	pkgAndInput.isAndOperandInclude = isAndOperandInclude
-	return pkgAndInput
+	pkgNameAndInput.isAndOperandInclude = isAndOperandInclude
+	return pkgNameAndInput
 }
 
 // "= "の位置を探し、見つかったらその位置とtrueを返す

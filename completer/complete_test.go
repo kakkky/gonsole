@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/decls"
+	"github.com/kakkky/gonsole/types"
 )
 
 func TestCompleter_Complete(t *testing.T) {
@@ -21,7 +22,7 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete package name",
 			inputText: "myapp",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp", "mylib", "myutil"},
+				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
 			setupDeclEntry: decls.NewDeclEntry(),
 			expected: []prompt.Suggest{
@@ -36,7 +37,7 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete package name with multiple candidates",
 			inputText: "my",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp", "mylib", "myutil"},
+				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
 			setupDeclEntry: decls.NewDeclEntry(),
 			expected: []prompt.Suggest{
@@ -61,7 +62,7 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete package name with & operator",
 			inputText: "&myapp",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp", "mylib", "myutil"},
+				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
 			setupDeclEntry: decls.NewDeclEntry(),
 			expected: []prompt.Suggest{
@@ -76,8 +77,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete functions",
 			inputText: "myapp.P",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{name: "Print", description: "Print outputs a message"},
 						{name: "Printf", description: "Printf formats a message"},
@@ -108,8 +109,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete variables",
 			inputText: "myapp.S",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				vars: map[pkgName][]varSet{
+				pkgs: []types.PkgName{"myapp"},
+				vars: map[types.PkgName][]varSet{
 					"myapp": {
 						{name: "StdIn", description: "Standard input", typeName: "Stream", typePkgName: "myapp"},
 						{name: "StdOut", description: "Standard output", typeName: "Stream", typePkgName: "myapp"},
@@ -140,8 +141,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete constants",
 			inputText: "mylib.M",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"mylib"},
-				consts: map[pkgName][]constSet{
+				pkgs: []types.PkgName{"mylib"},
+				consts: map[types.PkgName][]constSet{
 					"mylib": {
 						{name: "MaxRetries", description: "Maximum number of retries"},
 						{name: "MinBufferSize", description: "Minimum buffer size"},
@@ -166,8 +167,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete structs",
 			inputText: "myapp.C",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				structs: map[pkgName][]structSet{
+				pkgs: []types.PkgName{"myapp"},
+				structs: map[types.PkgName][]structSet{
 					"myapp": {
 						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
 						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
@@ -192,8 +193,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete structs with & operator",
 			inputText: "&myapp.C",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				structs: map[pkgName][]structSet{
+				pkgs: []types.PkgName{"myapp"},
+				structs: map[types.PkgName][]structSet{
 					"myapp": {
 						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
 						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
@@ -218,8 +219,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete after variable declaration with =",
 			inputText: "var client = myapp.C",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				structs: map[pkgName][]structSet{
+				pkgs: []types.PkgName{"myapp"},
+				structs: map[types.PkgName][]structSet{
 					"myapp": {
 						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
 						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
@@ -244,8 +245,8 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable declared from struct literal",
 			inputText: "client.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				methods: map[pkgName][]methodSet{
+				pkgs: []types.PkgName{"myapp"},
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName: "Client",
@@ -286,13 +287,13 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable declared from another variable",
 			inputText: "stream.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				vars: map[pkgName][]varSet{
+				pkgs: []types.PkgName{"myapp"},
+				vars: map[types.PkgName][]varSet{
 					"myapp": {
 						{name: "StdOut", description: "Standard output", typeName: "Stream", typePkgName: "myapp"},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName: "Stream",
@@ -333,25 +334,25 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable declared from function return",
 			inputText: "response.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "FetchData",
 							description:        "FetchData retrieves data from a source",
 							returnTypeNames:    []string{"Response", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Response",
 							name:               "GetContent",
 							description:        "GetContent returns the response content",
 							returnTypeNames:    []string{"Content"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
@@ -375,39 +376,39 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable declared from method return",
 			inputText: "content.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "FetchData",
 							description:        "FetchData retrieves data from a source",
 							returnTypeNames:    []string{"Response", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Response",
 							name:               "GetContent",
 							description:        "GetContent returns the response content",
 							returnTypeNames:    []string{"Content"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
 							receiverTypeName:   "Content",
 							name:               "Read",
 							description:        "Read reads data from the content",
 							returnTypeNames:    []string{"int", "error"},
-							returnTypePkgNames: []string{"", ""},
+							returnTypePkgNames: []types.PkgName{"", ""},
 						},
 						{
 							receiverTypeName:   "Content",
 							name:               "Type",
 							description:        "Type returns the content type",
 							returnTypeNames:    []string{"string"},
-							returnTypePkgNames: []string{""},
+							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
 				},
@@ -441,36 +442,36 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable storing interface return value",
 			inputText: "reader.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "NewReader",
 							description:        "NewReader creates a new reader",
 							returnTypeNames:    []string{"Reader", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "MyReader",
 							name:               "Read",
 							description:        "Read reads data from the reader",
 							returnTypeNames:    []string{"int", "error"},
-							returnTypePkgNames: []string{"", ""},
+							returnTypePkgNames: []types.PkgName{"", ""},
 						},
 						{
 							receiverTypeName:   "MyReader",
 							name:               "Close",
 							description:        "Close closes the reader",
 							returnTypeNames:    []string{"error"},
-							returnTypePkgNames: []string{""},
+							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
 				},
-				interfaces: map[pkgName][]interfaceSet{
+				interfaces: map[types.PkgName][]interfaceSet{
 					"myapp": {
 						{
 							name:         "Reader",
@@ -504,29 +505,29 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Complete methods of variable storing interface return value from method",
 			inputText: "resource.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "CreateClient",
 							description:        "CreateClient creates a new client",
 							returnTypeNames:    []string{"Client", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Client",
 							name:               "GetResource",
 							description:        "GetResource returns a resource interface",
 							returnTypeNames:    []string{"Resource"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
-				interfaces: map[pkgName][]interfaceSet{
+				interfaces: map[types.PkgName][]interfaceSet{
 					"myapp": {
 						{
 							name:    "Resource",
@@ -574,14 +575,14 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Do not complete private symbols",
 			inputText: "myapp.",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{name: "Print", description: "Print outputs a message"},
 						{name: "printf", description: "Internal printing function"},
 					},
 				},
-				vars: map[pkgName][]varSet{
+				vars: map[types.PkgName][]varSet{
 					"myapp": {
 						{name: "Version", description: "Package version"},
 						{name: "privateVar", description: "Internal variable"},
@@ -607,25 +608,25 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Method chain after function with single return value",
 			inputText: "myapp.NewClient().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "NewClient",
 							description:        "Create new client",
 							returnTypeNames:    []string{"Client"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Client",
 							name:               "Do",
 							description:        "Do something",
 							returnTypeNames:    []string{"Result"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
@@ -643,25 +644,25 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "No method chain after function with multiple return values",
 			inputText: "myapp.NewClient().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "NewClient",
 							description:        "Create new client",
 							returnTypeNames:    []string{"Client", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
 				},
-				methods: map[pkgName][]methodSet{
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Client",
 							name:               "Do",
 							description:        "Do something",
 							returnTypeNames:    []string{"Result"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
@@ -673,18 +674,18 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Method chain after function returning interface",
 			inputText: "myapp.NewReader().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				funcs: map[pkgName][]funcSet{
+				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
 					"myapp": {
 						{
 							name:               "NewReader",
 							description:        "Create new reader",
 							returnTypeNames:    []string{"Reader"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
 				},
-				interfaces: map[pkgName][]interfaceSet{
+				interfaces: map[types.PkgName][]interfaceSet{
 					"myapp": {
 						{
 							name:         "Reader",
@@ -712,22 +713,22 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Method chain after method with single return value",
 			inputText: "client.GetResource().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				methods: map[pkgName][]methodSet{
+				pkgs: []types.PkgName{"myapp"},
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Client",
 							name:               "GetResource",
 							description:        "Get resource",
 							returnTypeNames:    []string{"Resource"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
 							receiverTypeName:   "Resource",
 							name:               "Open",
 							description:        "Open resource",
 							returnTypeNames:    []string{"error"},
-							returnTypePkgNames: []string{""},
+							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
 				},
@@ -749,22 +750,22 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "No method chain after method with multiple return values",
 			inputText: "client.GetResource().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				methods: map[pkgName][]methodSet{
+				pkgs: []types.PkgName{"myapp"},
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Client",
 							name:               "GetResource",
 							description:        "Get resource",
 							returnTypeNames:    []string{"Resource", "error"},
-							returnTypePkgNames: []string{"myapp", ""},
+							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 						{
 							receiverTypeName:   "Resource",
 							name:               "Open",
 							description:        "Open resource",
 							returnTypeNames:    []string{"error"},
-							returnTypePkgNames: []string{""},
+							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
 				},
@@ -780,26 +781,26 @@ func TestCompleter_Complete(t *testing.T) {
 			name:      "Method chain after interface-returning method chain",
 			inputText: "reader.Read().",
 			setupCandidates: &candidates{
-				pkgs: []pkgName{"myapp"},
-				methods: map[pkgName][]methodSet{
+				pkgs: []types.PkgName{"myapp"},
+				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
 							receiverTypeName:   "Reader",
 							name:               "Read",
 							description:        "Read reads data from the reader",
 							returnTypeNames:    []string{"Reader"},
-							returnTypePkgNames: []string{"myapp"},
+							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
 							receiverTypeName:   "Reader",
 							name:               "Close",
 							description:        "Close closes the reader",
 							returnTypeNames:    []string{"error"},
-							returnTypePkgNames: []string{""},
+							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
 				},
-				interfaces: map[pkgName][]interfaceSet{
+				interfaces: map[types.PkgName][]interfaceSet{
 					"myapp": {
 						{
 							name:         "Reader",

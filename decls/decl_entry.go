@@ -6,6 +6,7 @@ import (
 	"go/token"
 
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/types"
 )
 
 type DeclEntry struct {
@@ -38,7 +39,7 @@ func (de *DeclEntry) Register(input string) error {
 			switch exprV := rhsExpr.(type) {
 			// 右辺がセレクタ式の場合
 			case *ast.SelectorExpr:
-				pkgSelName := exprV.X.(*ast.Ident).Name
+				pkgSelName := types.PkgName(exprV.X.(*ast.Ident).Name)
 				name := stmt.Lhs[i].(*ast.Ident).Name
 				declVar := &declVar{
 					name: exprV.Sel.Name,
@@ -50,7 +51,7 @@ func (de *DeclEntry) Register(input string) error {
 				// セレクタ式の場合
 				// 基本的にセレクタ式しか想定しない
 				case *ast.SelectorExpr:
-					pkgName := innerExprV.X.(*ast.Ident).Name
+					pkgName := types.PkgName(innerExprV.X.(*ast.Ident).Name)
 					declStruct := &declStruct{
 						// 型名を取得
 						typeName: innerExprV.Sel.Name,
@@ -70,7 +71,7 @@ func (de *DeclEntry) Register(input string) error {
 					case *ast.CompositeLit:
 						switch typeExpr := innerExprV.Type.(type) {
 						case *ast.SelectorExpr:
-							pkgName := typeExpr.X.(*ast.Ident).Name
+							pkgName := types.PkgName(typeExpr.X.(*ast.Ident).Name)
 							declStruct := &declStruct{
 								typeName: typeExpr.Sel.Name,
 							}
@@ -107,7 +108,7 @@ func (de *DeclEntry) Register(input string) error {
 						}
 					}
 					// パッケージ名付きの関数呼び出し (pkg.Func())
-					pkgName := xName
+					pkgName := types.PkgName(xName)
 					for j, lhsExpr := range stmt.Lhs {
 						funcDecl := &declFunc{
 							name:  funExprV.Sel.Name,
@@ -134,7 +135,7 @@ func (de *DeclEntry) Register(input string) error {
 						switch valExprV := valExpr.(type) {
 						// セレクタ式の場合
 						case *ast.SelectorExpr:
-							pkgName := valExprV.X.(*ast.Ident).Name
+							pkgName := types.PkgName(valExprV.X.(*ast.Ident).Name)
 							declVar := &declVar{
 								name: valExprV.Sel.Name,
 							}
@@ -145,7 +146,7 @@ func (de *DeclEntry) Register(input string) error {
 							switch valTypeExprV := valExprV.Type.(type) {
 							// セレクタ式の場合
 							case *ast.SelectorExpr:
-								pkgName := valTypeExprV.X.(*ast.Ident).Name
+								pkgName := types.PkgName(valTypeExprV.X.(*ast.Ident).Name)
 								declStruct := &declStruct{
 									typeName: valTypeExprV.Sel.Name,
 								}
@@ -162,7 +163,7 @@ func (de *DeclEntry) Register(input string) error {
 								case *ast.CompositeLit:
 									switch compositeLitTypeV := innerValExprV.Type.(type) {
 									case *ast.SelectorExpr:
-										pkgName := compositeLitTypeV.X.(*ast.Ident).Name
+										pkgName := types.PkgName(compositeLitTypeV.X.(*ast.Ident).Name)
 										declStruct := &declStruct{
 											typeName: compositeLitTypeV.Sel.Name,
 										}
@@ -176,7 +177,7 @@ func (de *DeclEntry) Register(input string) error {
 							switch funExprV := valExprV.Fun.(type) {
 							case *ast.SelectorExpr:
 								// パッケージ名付きの関数呼び出し (pkg.Func())
-								pkgName := funExprV.X.(*ast.Ident).Name
+								pkgName := types.PkgName(funExprV.X.(*ast.Ident).Name)
 								funcName := funExprV.Sel.Name
 								for j, nameIdent := range specV.Names {
 									funcDecl := &declFunc{
@@ -195,10 +196,10 @@ func (de *DeclEntry) Register(input string) error {
 	return nil
 }
 
-func (de *DeclEntry) ReceiverTypePkgName(receiverName string) string {
+func (de *DeclEntry) ReceiverTypePkgName(receiverName string) types.PkgName {
 	for _, decl := range *de.decls {
 		if decl.Name() == receiverName {
-			return decl.Pkg()
+			return decl.PkgName()
 		}
 	}
 	return ""
@@ -217,31 +218,31 @@ func (de *DeclEntry) IsRegisteredDecl(name string) bool {
 	return false
 }
 
-func (de *DeclEntry) register(pkg, name string, rhs any) {
+func (de *DeclEntry) register(pkg types.PkgName, name string, rhs any) {
 	switch v := rhs.(type) {
 	case declVar:
 		*de.decls = append(*de.decls, Decl{
-			pkg:  pkg,
-			name: name,
-			rhs:  declRhs{declVar: v},
+			pkgName: pkg,
+			name:    name,
+			rhs:     declRhs{declVar: v},
 		})
 	case declFunc:
 		*de.decls = append(*de.decls, Decl{
-			pkg:  pkg,
-			name: name,
-			rhs:  declRhs{declFunc: v},
+			pkgName: pkg,
+			name:    name,
+			rhs:     declRhs{declFunc: v},
 		})
 	case declMethod:
 		*de.decls = append(*de.decls, Decl{
-			pkg:  pkg,
-			name: name,
-			rhs:  declRhs{declMethod: v},
+			pkgName: pkg,
+			name:    name,
+			rhs:     declRhs{declMethod: v},
 		})
 	case declStruct:
 		*de.decls = append(*de.decls, Decl{
-			pkg:  pkg,
-			name: name,
-			rhs:  declRhs{declStruct: v},
+			pkgName: pkg,
+			name:    name,
+			rhs:     declRhs{declStruct: v},
 		})
 	default:
 	}

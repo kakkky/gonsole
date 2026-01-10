@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/types"
 )
 
 // 作成済みのtmpファイルに入力値を追加する
@@ -40,6 +41,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 	// 一時ファイルに入力文を追加していく
 	// 必要であればパッケージ名を取得してインポート文も追加する
 	for _, decl := range tmpFileAst.Decls {
+		var pkgNameToImport types.PkgName
 		if funcDecl, ok := decl.(*ast.FuncDecl); ok && funcDecl.Name.Name == "main" {
 			mainFuncBody := &funcDecl.Body.List
 			switch stmt := inputStmt.(type) {
@@ -49,13 +51,18 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 				// 関数呼び出しの場合
 				case *ast.CallExpr:
 					// 式からパッケージ名を抽出
-					pkgNameToImport, found := extractPkgNameFromExpr(exprV)
+					selectorBase, found := extractSelectorBaseFrom(exprV)
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					// パッケージのインポート文を追加
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
-						return err
+					if e.declEntry.IsRegisteredDecl(selectorBase) {
+						pkgNameToImport = e.declEntry.ReceiverTypePkgName(selectorBase)
+					} else {
+						pkgNameToImport = types.PkgName(selectorBase)
+						// パッケージのインポート文を追加
+						if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 					ok, err := e.isFuncVoid(pkgNameToImport, exprV.Fun.(*ast.SelectorExpr).Sel.Name)
 					if err != nil {
@@ -76,13 +83,16 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					addInputStmt(exprStmt, mainFuncBody)
 				// 変数だった場合(repl上で定義した変数単体)
 				case *ast.SelectorExpr:
-					pkgNameToImport, found := extractPkgNameFromExpr(exprV)
+					selectorBase, found := extractSelectorBaseFrom(exprV)
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					// パッケージのインポート文を追加
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
-						return err
+					if !e.declEntry.IsRegisteredDecl(selectorBase) {
+						pkgNameToImport = types.PkgName(selectorBase)
+						// パッケージのインポート文を追加
+						if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 					wrappedExpr := wrapWithPrintln(exprV)
 					addInputStmt(wrappedExpr, mainFuncBody)
@@ -102,12 +112,15 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 				case *ast.BasicLit:
 				// 基本リテラルの場合はインポート文を追加しない
 				default:
-					pkgNameToImport, found := extractPkgNameFromExpr(stmt.Rhs[0])
+					selectorBase, found := extractSelectorBaseFrom(stmt.Rhs[0])
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
-						return err
+					if !e.declEntry.IsRegisteredDecl(selectorBase) {
+						pkgNameToImport = types.PkgName(selectorBase)
+						if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+							return err
+						}
 					}
 				}
 				addInputStmt(stmt, mainFuncBody)
@@ -127,12 +140,16 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 							// 基本リテラルの場合はimport文を追加しない
 							default:
 								// 値の各式からパッケージ名を抽出
-								pkgNameToImport, found := extractPkgNameFromExpr(valueExprV)
+								selectorBase, found := extractSelectorBaseFrom(valueExprV)
 								if !found {
 									return errs.NewInternalError("failed to extract package name from expression")
 								}
-								if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
-									return err
+								if !e.declEntry.IsRegisteredDecl(selectorBase) {
+									pkgNameToImport = types.PkgName(selectorBase)
+									// パッケージのインポート文を追加
+									if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
+										return err
+									}
 								}
 							}
 							// 宣言文を追加
@@ -170,8 +187,8 @@ func wrapWithPrintln(exprV ast.Expr) *ast.ExprStmt {
 	}
 }
 
-// extractPkgNameFromExpr は式からパッケージ名を抽出する
-func extractPkgNameFromExpr(expr ast.Expr) (string, bool) {
+// extractSelectorBase は式からセレクタのベース部分を抽出する
+func extractSelectorBaseFrom(expr ast.Expr) (string, bool) {
 	switch exprV := expr.(type) {
 	// セレクタ式の場合（pkg.Name）
 	case *ast.SelectorExpr:
@@ -209,20 +226,14 @@ func extractPkgNameFromExpr(expr ast.Expr) (string, bool) {
 				return x.Name, true
 			default:
 				// メソッドチェーン対応
-				return extractPkgNameFromExpr(funExprV.X)
+				return extractSelectorBaseFrom(funExprV.X)
 			}
 		}
 	}
 	return "", false
 }
 
-func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport string) error {
-	// repl内で定義された変数エントリにある場合は無視
-	// 理由：パッケージ名ではなく、メソッド呼び出しに対するレシーバー名として使用されていると予測できるため
-	if e.declEntry.IsRegisteredDecl(pkgNameToImport) {
-		return nil
-	}
-
+func (e *Executor) addImportDecl(fileAst *ast.File, pkgNameToImport types.PkgName) error {
 	// パッケージパスを探索
 	importPath, err := e.resolveImportPathForAdd(pkgNameToImport)
 	if err != nil {
@@ -271,10 +282,7 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 
 // isFuncVoid は、指定されたパッケージ内の関数が返り値を持たないか(void)を判定します。
 // この処理はパッケージ全体の型チェックを伴うため、コストが高い可能性があります。
-func (e *Executor) isFuncVoid(pkgName, funcName string) (bool, error) {
-	if e.declEntry.IsRegisteredDecl(pkgName) {
-		pkgName = e.declEntry.ReceiverTypePkgName(pkgName)
-	}
+func (e *Executor) isFuncVoid(pkgName types.PkgName, funcName string) (bool, error) {
 	targetPkgs, ok := e.astCache.nodes[pkgName]
 	if !ok {
 		if _, ok := isStandardPackage(pkgName); ok {
