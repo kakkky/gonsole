@@ -10,6 +10,7 @@ import (
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/stdpkg"
 	"github.com/kakkky/gonsole/types"
 	"golang.org/x/mod/modfile"
 )
@@ -33,7 +34,7 @@ func getGoModPath(path string) (string, error) {
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
 func (e *Executor) resolveImportPathForAdd(pkgName types.PkgName) (string, error) {
 	var importPaths []string
-	if stdPkg, ok := isStandardPackage(pkgName); ok {
+	if stdPkg, ok := stdpkg.IsStandardPackage(pkgName); ok {
 		importPaths = append(importPaths, string(stdPkg))
 	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {
@@ -121,7 +122,7 @@ func toBlue(text string) string {
 // MEMO: 現状はパッケージ名としてディレクトリ名が一致することを前提としている
 func (e *Executor) resolveImportPathForDelete(pkgName types.PkgName) ([]string, error) {
 	var importPaths []string
-	if stdPkg, ok := isStandardPackage(pkgName); ok {
+	if stdPkg, ok := stdpkg.IsStandardPackage(pkgName); ok {
 		importPaths = append(importPaths, string(stdPkg))
 	}
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {

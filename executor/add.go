@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/stdpkg"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -285,7 +286,7 @@ func addBlankAssignStmt(target ast.Expr, list *[]ast.Stmt) {
 func (e *Executor) isFuncVoid(pkgName types.PkgName, funcName string) (bool, error) {
 	targetPkgs, ok := e.astCache.nodes[pkgName]
 	if !ok {
-		if _, ok := isStandardPackage(pkgName); ok {
+		if _, ok := stdpkg.IsStandardPackage(pkgName); ok {
 			// 標準パッケージの場合はvoidではないと仮定
 			return false, nil
 		}

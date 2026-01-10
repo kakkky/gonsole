@@ -1,10 +1,10 @@
-package executor
+package stdpkg
 
 import "github.com/kakkky/gonsole/types"
 
-// isStandardPackage は指定されたパッケージ名が標準パッケージかどうかを判定し、
+// IsStandardPackage は指定されたパッケージ名が標準パッケージかどうかを判定し、
 // 適切なインポートパスを返す
-func isStandardPackage(pkgNameToImport types.PkgName) (types.PkgName, bool) {
+func IsStandardPackage(pkgNameToImport types.PkgName) (types.PkgName, bool) {
 	// 各カテゴリの標準パッケージをチェック
 	if pkgName, found := getCorePackages()[pkgNameToImport]; found {
 		return pkgName, true
