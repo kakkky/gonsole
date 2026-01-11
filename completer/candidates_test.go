@@ -20,9 +20,9 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/simple",
 			want: &candidates{
 				pkgs:       []types.PkgName{"simple"},
-				funcs:      map[types.PkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeNames: []string{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
-				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverName: "SimpleType", returnTypeNames: []string{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
-				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: "string", typePkgName: ""}}},
+				funcs:      map[types.PkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeNames: []types.TypeName{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
+				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverName: "SimpleType", returnTypeNames: []types.TypeName{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
+				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: types.TypeName("string"), typePkgName: ""}}},
 				consts:     map[types.PkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
 				structs:    map[types.PkgName][]structSet{"simple": {{name: "SimpleType", fields: []string{"SimpleField"}, description: "SimpleType is a simple type"}}},
 				interfaces: map[types.PkgName][]interfaceSet{"simple": {{name: "SimpleInterface", methods: []string{"SimpleMethod"}, descriptions: []string{"SimpleMethod is a method of SimpleInterface"}}}},
@@ -45,12 +45,12 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 				},
 				vars: map[types.PkgName][]varSet{
 					"complex": {
-						{name: "ComplexC", description: "Complex variable", typeName: "string", typePkgName: ""},
-						{name: "ComplexD", description: "Complex variable", typeName: "string", typePkgName: ""},
+						{name: "ComplexC", description: "Complex variable", typeName: types.TypeName("string"), typePkgName: ""},
+						{name: "ComplexD", description: "Complex variable", typeName: types.TypeName("string"), typePkgName: ""},
 					},
 					"subcomplex": {
-						{name: "SubComplexA", description: "", typeName: "string", typePkgName: ""},
-						{name: "SubComplexB", description: "", typeName: "string", typePkgName: ""},
+						{name: "SubComplexA", description: "", typeName: types.TypeName("string"), typePkgName: ""},
+						{name: "SubComplexB", description: "", typeName: types.TypeName("string"), typePkgName: ""},
 					},
 				},
 				consts: map[types.PkgName][]constSet{

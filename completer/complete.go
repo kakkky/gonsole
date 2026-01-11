@@ -210,7 +210,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 	for _, rhsVarSet := range rhsVarSets {
 		if decl.PkgName() == rhsVarSet.typePkgName && // パッケージ名が一致
 			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
-			(rhsVarSet.typeName == string(methodSet.receiverName)) { // 型名が一致
+			(rhsVarSet.typeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
 
 			// memo: 現在はexecutorがprivateに対応していないため
 			if isPrivate(methodSet.name) {
@@ -262,7 +262,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 			// 関数の戻り値（複数）の型情報を確認
 			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
 				if (i == declRhsFuncReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == string(methodSet.receiverName)) { // 型名が一致
+					(returnTypeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -299,7 +299,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 					continue // 何個目の戻り値かが一致しない場合はスキップ
 				}
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
-					if returnTypeName == string(rhsInterfaceSet.name) {
+					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
 							if isPrivate(types.DeclName(method)) {
@@ -356,7 +356,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 			// メソッドの戻り値（複数）の型情報を確認
 			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
 				if (i == declRhsMethodReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == string(methodSet.receiverName)) { // 型名が一致
+					(returnTypeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -394,7 +394,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 					continue // 何個目の戻り値かが一致しない場合はスキップ
 				}
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
-					if returnTypeName == string(rhsInterfaceSet.name) {
+					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
 							if isPrivate(types.DeclName(method)) {
@@ -511,7 +511,7 @@ func (c *Completer) findMethodSetPtr(pkg types.PkgName, name string, isRecv bool
 }
 
 // 指定型のメソッド・インターフェースメソッドを補完候補として返す
-func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName string, methodSets []methodSet, interfaceSets []interfaceSet) []prompt.Suggest {
+func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr string, typeName types.TypeName, methodSets []methodSet, interfaceSets []interfaceSet) []prompt.Suggest {
 	var suggestions []prompt.Suggest
 	var inputingMethodName string
 	if dotIdx := strings.LastIndex(inputStr, "."); dotIdx != -1 && dotIdx+1 < len(inputStr) {
@@ -519,7 +519,7 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 	}
 
 	for _, method := range methodSets {
-		if string(method.receiverName) == typeName && !isPrivate(method.name) {
+		if types.TypeName(method.receiverName) == typeName && !isPrivate(method.name) {
 			if strings.HasPrefix(string(method.name), inputingMethodName) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        inputStr + string(method.name) + "()",
@@ -530,7 +530,7 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 		}
 	}
 	for _, interfaceSet := range interfaceSets {
-		if string(interfaceSet.name) == typeName {
+		if types.TypeName(interfaceSet.name) == typeName {
 			for mi, method := range interfaceSet.methods {
 				if isPrivate(types.DeclName(method)) {
 					continue

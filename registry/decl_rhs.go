@@ -2,6 +2,7 @@ package registry
 
 import "github.com/kakkky/gonsole/types"
 
+// いずれかのフィールドのみがセットされる
 type declRhs struct {
 	declStruct declStruct
 	declVar    declVar

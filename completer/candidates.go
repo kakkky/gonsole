@@ -23,20 +23,20 @@ type (
 	funcSet struct {
 		name               types.DeclName
 		description        string
-		returnTypeNames    []string
+		returnTypeNames    []types.TypeName
 		returnTypePkgNames []types.PkgName
 	}
 	methodSet struct {
 		name               types.DeclName
 		description        string
 		receiverName       types.DeclName
-		returnTypeNames    []string
+		returnTypeNames    []types.TypeName
 		returnTypePkgNames []types.PkgName
 	}
 	varSet struct {
 		name        types.DeclName
 		description string
-		typeName    string
+		typeName    types.TypeName
 		typePkgName types.PkgName
 	}
 	constSet struct {
@@ -112,26 +112,26 @@ func isMethod(funcDecl *ast.FuncDecl) bool {
 
 func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
 	var description string
-	var returnTypeName []string
+	var returnTypeName []types.TypeName
 	var returnTypePkgName []types.PkgName
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
 	if funcDecl.Type.Results != nil {
 		for _, result := range funcDecl.Type.Results.List {
-			var typeName string
+			var typeName types.TypeName
 			var typePkgName types.PkgName
 			switch resultType := result.Type.(type) {
 			case *ast.Ident:
-				typeName = resultType.Name
+				typeName = types.TypeName(resultType.Name)
 				typePkgName = pkgName
 			case *ast.SelectorExpr:
-				typeName = resultType.Sel.Name
+				typeName = types.TypeName(resultType.Sel.Name)
 				typePkgName = types.PkgName(resultType.X.(*ast.Ident).Name)
 			case *ast.StarExpr:
 				typePkgName = pkgName
 				if ident, ok := resultType.X.(*ast.Ident); ok {
-					typeName = ident.Name
+					typeName = types.TypeName(ident.Name)
 				}
 			}
 			returnTypeName = append(returnTypeName, typeName)
@@ -143,7 +143,7 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 
 func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
 	var receiverName types.DeclName
-	var returnTypeName []string
+	var returnTypeName []types.TypeName
 	var returnTypePkgName []types.PkgName
 	switch receiverType := funcDecl.Recv.List[0].Type.(type) {
 	case *ast.Ident:
@@ -159,19 +159,19 @@ func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.Func
 	}
 	if funcDecl.Type.Results != nil {
 		for _, result := range funcDecl.Type.Results.List {
-			var typeName string
+			var typeName types.TypeName
 			var typePkgName types.PkgName
 			switch resultType := result.Type.(type) {
 			case *ast.Ident:
-				typeName = resultType.Name
+				typeName = types.TypeName(resultType.Name)
 				typePkgName = pkgName
 			case *ast.SelectorExpr:
-				typeName = resultType.Sel.Name
+				typeName = types.TypeName(resultType.Sel.Name)
 				typePkgName = types.PkgName(resultType.X.(*ast.Ident).Name)
 			case *ast.StarExpr:
 				typePkgName = pkgName
 				if ident, ok := resultType.X.(*ast.Ident); ok {
-					typeName = ident.Name
+					typeName = types.TypeName(ident.Name)
 				}
 			}
 			returnTypeName = append(returnTypeName, typeName)
@@ -209,16 +209,16 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 			switch rhs := val.(type) {
 			case *ast.CompositeLit:
 				// 構造体リテラルの型を適切に処理
-				var typeName string
+				var typeName types.TypeName
 				var typePkgName types.PkgName
 				switch typeExpr := rhs.Type.(type) {
 				case *ast.SelectorExpr:
 					// パッケージ名付きの型 (pkg.Type{})
-					typeName = typeExpr.Sel.Name
+					typeName = types.TypeName(typeExpr.Sel.Name)
 					typePkgName = types.PkgName(typeExpr.X.(*ast.Ident).Name)
 				case *ast.Ident:
 					// 単純な型名 (Type{})
-					typeName = typeExpr.Name
+					typeName = types.TypeName(typeExpr.Name)
 					typePkgName = pkgName // 現在のパッケージ名
 				}
 				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
@@ -227,16 +227,16 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 					// & 演算子の場合
 					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
 						// 構造体リテラルの型を適切に処理
-						var typeName string
+						var typeName types.TypeName
 						var typePkgName types.PkgName
 						switch typeExpr := compLit.Type.(type) {
 						case *ast.SelectorExpr:
 							// パッケージ名付きの型 (pkg.Type{})
-							typeName = typeExpr.Sel.Name
+							typeName = types.TypeName(typeExpr.Sel.Name)
 							typePkgName = types.PkgName(typeExpr.X.(*ast.Ident).Name)
 						case *ast.Ident:
 							// 単純な型名 (Type{})
-							typeName = typeExpr.Name
+							typeName = types.TypeName(typeExpr.Name)
 							typePkgName = pkgName // 現在のパッケージ名
 						}
 						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
@@ -276,7 +276,7 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 				}
 			case *ast.BasicLit:
 				// 基本リテラル (文字列、数値など)
-				var typeName string
+				var typeName types.TypeName
 				var typePkgName types.PkgName
 
 				// リテラルの種類に基づいて型を推測

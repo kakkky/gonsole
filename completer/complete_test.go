@@ -112,9 +112,9 @@ func TestCompleter_Complete(t *testing.T) {
 				pkgs: []types.PkgName{"myapp"},
 				vars: map[types.PkgName][]varSet{
 					"myapp": {
-						{name: "StdIn", description: "Standard input", typeName: "Stream", typePkgName: "myapp"},
-						{name: "StdOut", description: "Standard output", typeName: "Stream", typePkgName: "myapp"},
-						{name: "StdErr", description: "Standard error", typeName: "Stream", typePkgName: "myapp"},
+						{name: "StdIn", description: "Standard input", typeName: types.TypeName("Stream"), typePkgName: "myapp"},
+						{name: "StdOut", description: "Standard output", typeName: types.TypeName("Stream"), typePkgName: "myapp"},
+						{name: "StdErr", description: "Standard error", typeName: types.TypeName("Stream"), typePkgName: "myapp"},
 					},
 				},
 			},
@@ -249,16 +249,16 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName: "Client",
-							name:             "Do",
-							description:      "Do executes a request",
-							returnTypeNames:  []string{"Response", "error"},
+							receiverName:    "Client",
+							name:            "Do",
+							description:     "Do executes a request",
+							returnTypeNames: []types.TypeName{types.TypeName("Response"), types.TypeName("error")},
 						},
 						{
-							receiverName: "Client",
-							name:             "Get",
-							description:      "Get sends a GET request",
-							returnTypeNames:  []string{"Response", "error"},
+							receiverName:    "Client",
+							name:            "Get",
+							description:     "Get sends a GET request",
+							returnTypeNames: []types.TypeName{types.TypeName("Response"), types.TypeName("error")},
 						},
 					},
 				},
@@ -290,22 +290,22 @@ func TestCompleter_Complete(t *testing.T) {
 				pkgs: []types.PkgName{"myapp"},
 				vars: map[types.PkgName][]varSet{
 					"myapp": {
-						{name: "StdOut", description: "Standard output", typeName: "Stream", typePkgName: "myapp"},
+						{name: "StdOut", description: "Standard output", typeName: types.TypeName("Stream"), typePkgName: "myapp"},
 					},
 				},
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName: "Stream",
-							name:             "Write",
-							description:      "Write writes data to the stream",
-							returnTypeNames:  []string{"int", "error"},
+							receiverName:    "Stream",
+							name:            "Write",
+							description:     "Write writes data to the stream",
+							returnTypeNames: []types.TypeName{types.TypeName("int"), types.TypeName("error")},
 						},
 						{
-							receiverName: "Stream",
-							name:             "Close",
-							description:      "Close closes the stream",
-							returnTypeNames:  []string{"error"},
+							receiverName:    "Stream",
+							name:            "Close",
+							description:     "Close closes the stream",
+							returnTypeNames: []types.TypeName{types.TypeName("error")},
 						},
 					},
 				},
@@ -340,7 +340,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "FetchData",
 							description:        "FetchData retrieves data from a source",
-							returnTypeNames:    []string{"Response", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Response"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
@@ -348,10 +348,10 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Response",
+							receiverName:       "Response",
 							name:               "GetContent",
 							description:        "GetContent returns the response content",
-							returnTypeNames:    []string{"Content"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Content")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -382,7 +382,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "FetchData",
 							description:        "FetchData retrieves data from a source",
-							returnTypeNames:    []string{"Response", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Response"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
@@ -390,24 +390,24 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Response",
+							receiverName:       "Response",
 							name:               "GetContent",
 							description:        "GetContent returns the response content",
-							returnTypeNames:    []string{"Content"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Content")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
-							receiverName:   "Content",
+							receiverName:       "Content",
 							name:               "Read",
 							description:        "Read reads data from the content",
-							returnTypeNames:    []string{"int", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("int"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"", ""},
 						},
 						{
-							receiverName:   "Content",
+							receiverName:       "Content",
 							name:               "Type",
 							description:        "Type returns the content type",
-							returnTypeNames:    []string{"string"},
+							returnTypeNames:    []types.TypeName{types.TypeName("string")},
 							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
@@ -448,7 +448,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "NewReader",
 							description:        "NewReader creates a new reader",
-							returnTypeNames:    []string{"Reader", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Reader"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
@@ -456,17 +456,17 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "MyReader",
+							receiverName:       "MyReader",
 							name:               "Read",
 							description:        "Read reads data from the reader",
-							returnTypeNames:    []string{"int", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("int"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"", ""},
 						},
 						{
-							receiverName:   "MyReader",
+							receiverName:       "MyReader",
 							name:               "Close",
 							description:        "Close closes the reader",
-							returnTypeNames:    []string{"error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
@@ -511,7 +511,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "CreateClient",
 							description:        "CreateClient creates a new client",
-							returnTypeNames:    []string{"Client", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Client"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
@@ -519,10 +519,10 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Client",
+							receiverName:       "Client",
 							name:               "GetResource",
 							description:        "GetResource returns a resource interface",
-							returnTypeNames:    []string{"Resource"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Resource")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -614,7 +614,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "NewClient",
 							description:        "Create new client",
-							returnTypeNames:    []string{"Client"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Client")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -622,10 +622,10 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Client",
+							receiverName:       "Client",
 							name:               "Do",
 							description:        "Do something",
-							returnTypeNames:    []string{"Result"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Result")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -650,7 +650,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "NewClient",
 							description:        "Create new client",
-							returnTypeNames:    []string{"Client", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Client"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 					},
@@ -658,10 +658,10 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Client",
+							receiverName:       "Client",
 							name:               "Do",
 							description:        "Do something",
-							returnTypeNames:    []string{"Result"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Result")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -680,7 +680,7 @@ func TestCompleter_Complete(t *testing.T) {
 						{
 							name:               "NewReader",
 							description:        "Create new reader",
-							returnTypeNames:    []string{"Reader"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Reader")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 					},
@@ -717,17 +717,17 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Client",
+							receiverName:       "Client",
 							name:               "GetResource",
 							description:        "Get resource",
-							returnTypeNames:    []string{"Resource"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Resource")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
-							receiverName:   "Resource",
+							receiverName:       "Resource",
 							name:               "Open",
 							description:        "Open resource",
-							returnTypeNames:    []string{"error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
@@ -754,17 +754,17 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Client",
+							receiverName:       "Client",
 							name:               "GetResource",
 							description:        "Get resource",
-							returnTypeNames:    []string{"Resource", "error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Resource"), types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{"myapp", ""},
 						},
 						{
-							receiverName:   "Resource",
+							receiverName:       "Resource",
 							name:               "Open",
 							description:        "Open resource",
-							returnTypeNames:    []string{"error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
@@ -785,17 +785,17 @@ func TestCompleter_Complete(t *testing.T) {
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
-							receiverName:   "Reader",
+							receiverName:       "Reader",
 							name:               "Read",
 							description:        "Read reads data from the reader",
-							returnTypeNames:    []string{"Reader"},
+							returnTypeNames:    []types.TypeName{types.TypeName("Reader")},
 							returnTypePkgNames: []types.PkgName{"myapp"},
 						},
 						{
-							receiverName:   "Reader",
+							receiverName:       "Reader",
 							name:               "Close",
 							description:        "Close closes the reader",
-							returnTypeNames:    []string{"error"},
+							returnTypeNames:    []types.TypeName{types.TypeName("error")},
 							returnTypePkgNames: []types.PkgName{""},
 						},
 					},
