@@ -20,9 +20,9 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/simple",
 			want: &candidates{
 				pkgs:       []types.PkgName{"simple"},
-				funcs:      map[types.PkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeNames: []types.TypeName{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
-				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverName: "SimpleType", returnTypeNames: []types.TypeName{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
-				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: types.TypeName("string"), typePkgName: ""}}},
+				funcs:      map[types.PkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returns: []returnSet{{typeName: "string", pkgName: "simple"}}}}},
+				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType", returns: []returnSet{{typeName: "string", pkgName: "simple"}}}}},
+				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: types.TypeName("string"), pkgName: ""}}},
 				consts:     map[types.PkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
 				structs:    map[types.PkgName][]structSet{"simple": {{name: "SimpleType", fields: []types.StructFieldName{"SimpleField"}, description: "SimpleType is a simple type"}}},
 				interfaces: map[types.PkgName][]interfaceSet{"simple": {{name: "SimpleInterface", methods: []types.DeclName{"SimpleMethod"}, descriptions: []string{"SimpleMethod is a method of SimpleInterface"}}}},
@@ -33,24 +33,36 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			path: "./testdata/complex/",
 			want: &candidates{
 				// パッケージ名の順序を実際の結果に合わせる
-				pkgs:  []types.PkgName{"complex", "subcomplex"},
-				funcs: map[types.PkgName][]funcSet{},
+				pkgs: []types.PkgName{"complex", "subcomplex"},
+				funcs: map[types.PkgName][]funcSet{
+					"complex": {
+						{
+							name: "ReturnOtherPackageType",
+							returns: []returnSet{
+								{
+									typeName: "SubComplexType",
+									pkgName:  "subcomplex",
+								},
+							},
+						},
+					},
+				},
 				methods: map[types.PkgName][]methodSet{
 					"complex": {
-						{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverName: "ComplexType"},
+						{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverTypeName: "ComplexType"},
 					},
 					"subcomplex": {
-						{name: "SubComplexMethod", receiverName: "SubComplexType"},
+						{name: "SubComplexMethod", receiverTypeName: "SubComplexType"},
 					},
 				},
 				vars: map[types.PkgName][]varSet{
 					"complex": {
-						{name: "ComplexC", description: "Complex variable", typeName: types.TypeName("string"), typePkgName: ""},
-						{name: "ComplexD", description: "Complex variable", typeName: types.TypeName("string"), typePkgName: ""},
+						{name: "ComplexC", description: "Complex variable", typeName: types.TypeName("string"), pkgName: ""},
+						{name: "ComplexD", description: "Complex variable", typeName: types.TypeName("string"), pkgName: ""},
 					},
 					"subcomplex": {
-						{name: "SubComplexA", description: "", typeName: types.TypeName("string"), typePkgName: ""},
-						{name: "SubComplexB", description: "", typeName: types.TypeName("string"), typePkgName: ""},
+						{name: "SubComplexA", description: "", typeName: types.TypeName("string"), pkgName: ""},
+						{name: "SubComplexB", description: "", typeName: types.TypeName("string"), pkgName: ""},
 					},
 				},
 				consts: map[types.PkgName][]constSet{
@@ -76,7 +88,7 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 				t.Fatalf("NewCandidates() error = %v", err)
 			}
 			opts := []cmp.Option{
-				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}),
+				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}, returnSet{}),
 				// pkgsの順序を無視
 				cmpopts.SortSlices(func(a, b types.PkgName) bool { return a < b }),
 			}

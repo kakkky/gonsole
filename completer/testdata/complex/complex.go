@@ -1,5 +1,7 @@
 package complex
 
+import subcomplex "github.com/kakkky/gonsole/completer/testdata/complex/sub_complex"
+
 // ComplexConst is a constant
 const (
 	// ComplexA is a complex constant A
@@ -16,3 +18,7 @@ type ComplexType struct{}
 
 // ComplexMethod is a method for ComplexType
 func (c ComplexType) ComplexMethod() {}
+
+func ReturnOtherPackageType() subcomplex.SubComplexType {
+	return subcomplex.SubComplexType{}
+}

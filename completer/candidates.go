@@ -21,23 +21,21 @@ type candidates struct {
 
 type (
 	funcSet struct {
-		name               types.DeclName
-		description        string
-		returnTypeNames    []types.TypeName
-		returnTypePkgNames []types.PkgName
+		name        types.DeclName
+		description string
+		returns     []returnSet
 	}
 	methodSet struct {
-		name               types.DeclName
-		description        string
-		receiverName       types.DeclName
-		returnTypeNames    []types.TypeName
-		returnTypePkgNames []types.PkgName
+		name             types.DeclName
+		description      string
+		receiverTypeName types.ReceiverTypeName
+		returns          []returnSet
 	}
 	varSet struct {
 		name        types.DeclName
 		description string
 		typeName    types.TypeName
-		typePkgName types.PkgName
+		pkgName     types.PkgName
 	}
 	constSet struct {
 		name        types.DeclName
@@ -56,6 +54,11 @@ type (
 		descriptions []string
 	}
 )
+
+type returnSet struct {
+	typeName types.TypeName
+	pkgName  types.PkgName
+}
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func NewCandidates(nodes types.GoAstNodes) (*candidates, error) {
@@ -96,10 +99,6 @@ func (c *candidates) processFileAst(pkgName types.PkgName, fileAst *ast.File) {
 				continue
 			}
 			c.processFuncDecl(pkgName, d)
-		}
-	}
-	for _, decl := range fileAst.Decls {
-		switch d := decl.(type) {
 		case *ast.GenDecl:
 			c.processGenDecl(pkgName, d)
 		}
@@ -110,75 +109,87 @@ func isMethod(funcDecl *ast.FuncDecl) bool {
 	return funcDecl.Recv != nil && len(funcDecl.Recv.List) > 0
 }
 
+// TODO: paramsも見て、補完候補のdescription部分に追加したさはある
 func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
 	var description string
-	var returnTypeName []types.TypeName
-	var returnTypePkgName []types.PkgName
+	var returns []returnSet
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
-	if funcDecl.Type.Results != nil {
-		for _, result := range funcDecl.Type.Results.List {
-			var typeName types.TypeName
-			var typePkgName types.PkgName
-			switch resultType := result.Type.(type) {
+	funcDeclReturns := funcDecl.Type.Results
+	if funcDeclReturns != nil {
+		for _, returnElm := range funcDeclReturns.List {
+			var typeNameOfReturnV types.TypeName
+			var pkgNameOfReturnV types.PkgName
+			switch returnV := returnElm.Type.(type) {
 			case *ast.Ident:
-				typeName = types.TypeName(resultType.Name)
-				typePkgName = pkgName
+				typeNameOfReturnV = types.TypeName(returnV.Name)
+				pkgNameOfReturnV = pkgName
 			case *ast.SelectorExpr:
-				typeName = types.TypeName(resultType.Sel.Name)
-				typePkgName = types.PkgName(resultType.X.(*ast.Ident).Name)
+				typeNameOfReturnV = types.TypeName(returnV.Sel.Name)
+				pkgNameOfReturnV = types.PkgName(returnV.X.(*ast.Ident).Name)
 			case *ast.StarExpr:
-				typePkgName = pkgName
-				if ident, ok := resultType.X.(*ast.Ident); ok {
-					typeName = types.TypeName(ident.Name)
+				switch returnV := returnV.X.(type) {
+				case *ast.Ident:
+					typeNameOfReturnV = types.TypeName(returnV.Name)
+					pkgNameOfReturnV = pkgName
+				case *ast.SelectorExpr:
+					typeNameOfReturnV = types.TypeName(returnV.Sel.Name)
+					pkgNameOfReturnV = types.PkgName(returnV.X.(*ast.Ident).Name)
 				}
 			}
-			returnTypeName = append(returnTypeName, typeName)
-			returnTypePkgName = append(returnTypePkgName, typePkgName)
+
+			returns = append(returns, returnSet{
+				typeName: typeNameOfReturnV,
+				pkgName:  pkgNameOfReturnV,
+			})
 		}
 	}
-	c.funcs[pkgName] = append(c.funcs[pkgName], funcSet{name: types.DeclName(funcDecl.Name.Name), description: description, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
+	c.funcs[pkgName] = append(c.funcs[pkgName], funcSet{name: types.DeclName(funcDecl.Name.Name), description: description, returns: returns})
 }
 
 func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
-	var receiverName types.DeclName
-	var returnTypeName []types.TypeName
-	var returnTypePkgName []types.PkgName
-	switch receiverType := funcDecl.Recv.List[0].Type.(type) {
+	var receiverTypeName types.ReceiverTypeName
+	var returns []returnSet
+	funcDeclRecvType := funcDecl.Recv.List[0].Type
+	switch funcDeclRecvTypeV := funcDeclRecvType.(type) {
 	case *ast.Ident:
-		receiverName = types.DeclName(receiverType.Name)
+		receiverTypeName = types.ReceiverTypeName(funcDeclRecvTypeV.Name)
 	case *ast.StarExpr:
-		if ident, ok := receiverType.X.(*ast.Ident); ok {
-			receiverName = types.DeclName(ident.Name)
-		}
+		receiverTypeName = types.ReceiverTypeName(funcDeclRecvTypeV.X.(*ast.Ident).Name)
 	}
 	var description string
 	if funcDecl.Doc != nil {
 		description = strings.ReplaceAll(funcDecl.Doc.Text(), "\n", "")
 	}
 	if funcDecl.Type.Results != nil {
-		for _, result := range funcDecl.Type.Results.List {
-			var typeName types.TypeName
-			var typePkgName types.PkgName
-			switch resultType := result.Type.(type) {
+		for _, returnElm := range funcDecl.Type.Results.List {
+			var typeNameOfReturnV types.TypeName
+			var pkgNameOfReturnV types.PkgName
+			switch returnV := returnElm.Type.(type) {
 			case *ast.Ident:
-				typeName = types.TypeName(resultType.Name)
-				typePkgName = pkgName
+				typeNameOfReturnV = types.TypeName(returnV.Name)
+				pkgNameOfReturnV = pkgName
 			case *ast.SelectorExpr:
-				typeName = types.TypeName(resultType.Sel.Name)
-				typePkgName = types.PkgName(resultType.X.(*ast.Ident).Name)
+				typeNameOfReturnV = types.TypeName(returnV.Sel.Name)
+				pkgNameOfReturnV = types.PkgName(returnV.X.(*ast.Ident).Name)
 			case *ast.StarExpr:
-				typePkgName = pkgName
-				if ident, ok := resultType.X.(*ast.Ident); ok {
-					typeName = types.TypeName(ident.Name)
+				switch returnV := returnV.X.(type) {
+				case *ast.Ident:
+					typeNameOfReturnV = types.TypeName(returnV.Name)
+					pkgNameOfReturnV = pkgName
+				case *ast.SelectorExpr:
+					typeNameOfReturnV = types.TypeName(returnV.Sel.Name)
+					pkgNameOfReturnV = types.PkgName(returnV.X.(*ast.Ident).Name)
 				}
 			}
-			returnTypeName = append(returnTypeName, typeName)
-			returnTypePkgName = append(returnTypePkgName, typePkgName)
+			returns = append(returns, returnSet{
+				typeName: typeNameOfReturnV,
+				pkgName:  pkgNameOfReturnV,
+			})
 		}
 	}
-	c.methods[pkgName] = append(c.methods[pkgName], methodSet{name: types.DeclName(funcDecl.Name.Name), description: description, receiverName: receiverName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
+	c.methods[pkgName] = append(c.methods[pkgName], methodSet{name: types.DeclName(funcDecl.Name.Name), description: description, receiverTypeName: receiverTypeName, returns: returns})
 }
 
 func (c *candidates) processGenDecl(pkgName types.PkgName, genDecl *ast.GenDecl) {
@@ -206,45 +217,45 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 
 		for i, val := range varspec.Values {
 			name := varspec.Names[i].Name
-			switch rhs := val.(type) {
+			switch rhsV := val.(type) {
 			case *ast.CompositeLit:
 				// 構造体リテラルの型を適切に処理
-				var typeName types.TypeName
-				var typePkgName types.PkgName
-				switch typeExpr := rhs.Type.(type) {
+				var typeNameOfRhsV types.TypeName
+				var pkgNameOfRhsV types.PkgName
+				switch typeExpr := rhsV.Type.(type) {
 				case *ast.SelectorExpr:
 					// パッケージ名付きの型 (pkg.Type{})
-					typeName = types.TypeName(typeExpr.Sel.Name)
-					typePkgName = types.PkgName(typeExpr.X.(*ast.Ident).Name)
+					typeNameOfRhsV = types.TypeName(typeExpr.Sel.Name)
+					pkgNameOfRhsV = types.PkgName(typeExpr.X.(*ast.Ident).Name)
 				case *ast.Ident:
 					// 単純な型名 (Type{})
-					typeName = types.TypeName(typeExpr.Name)
-					typePkgName = pkgName // 現在のパッケージ名
+					typeNameOfRhsV = types.TypeName(typeExpr.Name)
+					pkgNameOfRhsV = pkgName // 現在のパッケージ名
 				}
-				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
+				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeNameOfRhsV, pkgName: pkgNameOfRhsV})
 			case *ast.UnaryExpr:
-				if rhs.Op == token.AND {
+				if rhsV.Op == token.AND {
 					// & 演算子の場合
-					if compLit, ok := rhs.X.(*ast.CompositeLit); ok {
+					if compLit, ok := rhsV.X.(*ast.CompositeLit); ok {
 						// 構造体リテラルの型を適切に処理
-						var typeName types.TypeName
-						var typePkgName types.PkgName
+						var typeNameOfRhsV types.TypeName
+						var pkgNameOfRhsV types.PkgName
 						switch typeExpr := compLit.Type.(type) {
 						case *ast.SelectorExpr:
 							// パッケージ名付きの型 (pkg.Type{})
-							typeName = types.TypeName(typeExpr.Sel.Name)
-							typePkgName = types.PkgName(typeExpr.X.(*ast.Ident).Name)
+							typeNameOfRhsV = types.TypeName(typeExpr.Sel.Name)
+							pkgNameOfRhsV = types.PkgName(typeExpr.X.(*ast.Ident).Name)
 						case *ast.Ident:
 							// 単純な型名 (Type{})
-							typeName = types.TypeName(typeExpr.Name)
-							typePkgName = pkgName // 現在のパッケージ名
+							typeNameOfRhsV = types.TypeName(typeExpr.Name)
+							pkgNameOfRhsV = pkgName // 現在のパッケージ名
 						}
-						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
+						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeNameOfRhsV, pkgName: pkgNameOfRhsV})
 					}
 				}
 			case *ast.CallExpr:
 				// funcSetから関数の戻り値を取得
-				switch funExpr := rhs.Fun.(type) {
+				switch funExpr := rhsV.Fun.(type) {
 				case *ast.SelectorExpr:
 					// パッケージ名付きの関数呼び出し (pkg.Func())
 					if pkgIdent, ok := funExpr.X.(*ast.Ident); ok {
@@ -253,9 +264,9 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 						if funcSets, ok := c.funcs[funcPkgName]; ok {
 							for _, funcSet := range funcSets {
 								if funcSet.name == types.DeclName(funcName) {
-									typeName := funcSet.returnTypeNames[i]
-									typePkgName := funcSet.returnTypePkgNames[i]
-									c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
+									typeName := funcSet.returns[i].typeName
+									pkgName := funcSet.returns[i].pkgName
+									c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, pkgName: pkgName})
 								}
 							}
 						}
@@ -267,40 +278,40 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 					if funcSets, ok := c.funcs[pkgName]; ok {
 						for _, funcSet := range funcSets {
 							if funcSet.name == types.DeclName(funcName) {
-								typeName := funcSet.returnTypeNames[i]
-								typePkgName := funcSet.returnTypePkgNames[i]
-								c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, typePkgName: typePkgName})
+								typeName := funcSet.returns[i].typeName
+								pkgName := funcSet.returns[i].pkgName
+								c.vars[pkgName] = append(c.vars[pkgName], varSet{name: types.DeclName(name), description: genDeclDescription + specDescription, typeName: typeName, pkgName: pkgName})
 							}
 						}
 					}
 				}
 			case *ast.BasicLit:
 				// 基本リテラル (文字列、数値など)
-				var typeName types.TypeName
-				var typePkgName types.PkgName
+				var typeNameOfRhsV types.TypeName
+				var typePkgNameOfRhsV types.PkgName
 
 				// リテラルの種類に基づいて型を推測
-				switch rhs.Kind {
+				switch rhsV.Kind {
 				case token.INT:
-					typeName = "int"
+					typeNameOfRhsV = "int"
 				case token.FLOAT:
-					typeName = "float64"
+					typeNameOfRhsV = "float64"
 				case token.IMAG:
-					typeName = "complex128"
+					typeNameOfRhsV = "complex128"
 				case token.CHAR:
-					typeName = "rune"
+					typeNameOfRhsV = "rune"
 				case token.STRING:
-					typeName = "string"
+					typeNameOfRhsV = "string"
 				default:
-					typeName = "unknown"
+					typeNameOfRhsV = "unknown"
 				}
 
-				typePkgName = "" // 組み込み型なのでパッケージ名はなし
+				typePkgNameOfRhsV = "" // 組み込み型なのでパッケージ名はなし
 				c.vars[pkgName] = append(c.vars[pkgName], varSet{
 					name:        types.DeclName(name),
 					description: genDeclDescription + specDescription,
-					typeName:    typeName,
-					typePkgName: typePkgName,
+					typeName:    typeNameOfRhsV,
+					pkgName:     typePkgNameOfRhsV,
 				})
 			}
 		}

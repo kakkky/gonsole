@@ -162,7 +162,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsStructLit(
 	inputStr string,
 	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
-	if decl.Rhs().Struct().Name() == methodSet.receiverName {
+	if decl.Rhs().Struct().Name() == types.DeclName(methodSet.receiverTypeName) {
 		// memo: 現在はexecutorがprivateに対応していないため
 		if isPrivate(methodSet.name) {
 			return suggestions
@@ -208,9 +208,9 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 
 	// 変数の補完候補を回す
 	for _, rhsVarSet := range rhsVarSets {
-		if decl.PkgName() == rhsVarSet.typePkgName && // パッケージ名が一致
+		if decl.PkgName() == rhsVarSet.pkgName && // パッケージ名が一致
 			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
-			(rhsVarSet.typeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
+			(rhsVarSet.typeName == types.TypeName(methodSet.receiverTypeName)) { // 型名が一致
 
 			// memo: 現在はexecutorがprivateに対応していないため
 			if isPrivate(methodSet.name) {
@@ -260,9 +260,9 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 		// 関数名が一致
 		if types.DeclName(declRhsFuncName) == rhsFuncSet.name {
 			// 関数の戻り値（複数）の型情報を確認
-			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
+			for i, returnElm := range rhsFuncSet.returns {
 				if (i == declRhsFuncReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
+					(returnElm.typeName == types.TypeName(methodSet.receiverTypeName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -294,12 +294,12 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	for _, rhsFuncSet := range rhsFuncSets {
 		// 関数名が一致
 		if types.DeclName(declRhsFuncName) == rhsFuncSet.name {
-			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
+			for i, returnElm := range rhsFuncSet.returns {
 				if i != declRhsFuncReturnVarOrder {
 					continue // 何個目の戻り値かが一致しない場合はスキップ
 				}
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
-					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
+					if returnElm.typeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
 							if isPrivate(method) {
@@ -354,9 +354,9 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 		// メソッド名が一致
 		if types.DeclName(declRhsMethodName) == rhsMethodSet.name {
 			// メソッドの戻り値（複数）の型情報を確認
-			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
+			for i, returnElm := range rhsMethodSet.returns {
 				if (i == declRhsMethodReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == types.TypeName(methodSet.receiverName)) { // 型名が一致
+					(returnElm.typeName == types.TypeName(methodSet.receiverTypeName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -389,12 +389,12 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 		// メソッド名が一致
 		if types.DeclName(declRhsMethodName) == rhsMethodSet.name {
 			// メソッドの戻り値（複数）の型情報を確認
-			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
+			for i, returnElm := range rhsMethodSet.returns {
 				if i != declRhsMethodReturnVarOrder {
 					continue // 何個目の戻り値かが一致しない場合はスキップ
 				}
 				for _, rhsInterfaceSet := range rhsInterfaceSets {
-					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
+					if returnElm.typeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
 							if isPrivate(method) {
@@ -437,16 +437,16 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		seen[s.Text] = struct{}{}
 	}
 
-	if funcSetPtr != nil && len(funcSetPtr.returnTypeNames) == 1 {
-		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, funcSetPtr.returnTypeNames[0], methodSets, interfaceSets) {
+	if funcSetPtr != nil && len(funcSetPtr.returns) == 1 {
+		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, funcSetPtr.returns[0].typeName, methodSets, interfaceSets) {
 			if _, ok := seen[s.Text]; !ok {
 				suggestions = append(suggestions, s)
 				seen[s.Text] = struct{}{}
 			}
 		}
 	}
-	if methodSetPtr != nil && len(methodSetPtr.returnTypeNames) == 1 {
-		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, methodSetPtr.returnTypeNames[0], methodSets, interfaceSets) {
+	if methodSetPtr != nil && len(methodSetPtr.returns) == 1 {
+		for _, s := range c.findMethodSuggestionsFromTypeOrInterface(inputStr, methodSetPtr.returns[0].typeName, methodSets, interfaceSets) {
 			if _, ok := seen[s.Text]; !ok {
 				suggestions = append(suggestions, s)
 				seen[s.Text] = struct{}{}
@@ -519,7 +519,7 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr string, ty
 	}
 
 	for _, method := range methodSets {
-		if types.TypeName(method.receiverName) == typeName && !isPrivate(method.name) {
+		if types.TypeName(method.receiverTypeName) == typeName && !isPrivate(method.name) {
 			if strings.HasPrefix(string(method.name), inputingMethodName) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        inputStr + string(method.name) + "()",
