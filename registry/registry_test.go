@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/kakkky/gonsole/types"
 )
 
 func TestRegistry_Register(t *testing.T) {
@@ -260,11 +261,11 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Registryの準備
 			de := &Registry{
-				decls: &tt.existingDecls,
+				decls: tt.existingDecls,
 			}
 
 			// テスト対象メソッドの実行
-			result := de.IsRegisteredDecl(tt.checkName)
+			result := de.IsRegisteredDecl(types.DeclName(tt.checkName))
 
 			// 結果の検証
 			if result != tt.expectedFound {

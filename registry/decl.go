@@ -3,12 +3,12 @@ package registry
 import "github.com/kakkky/gonsole/types"
 
 type Decl struct {
-	name    string
+	name    types.DeclName
 	pkgName types.PkgName
 	rhs     declRhs
 }
 
-func (d Decl) Name() string {
+func (d Decl) Name() types.DeclName {
 	return d.name
 }
 

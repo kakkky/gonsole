@@ -56,8 +56,10 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					if e.registry.IsRegisteredDecl(selectorBase) {
-						pkgNameToImport = e.registry.ReceiverTypePkgName(selectorBase)
+					maybeRegisteredDecl := types.DeclName(selectorBase)
+					if e.registry.IsRegisteredDecl(maybeRegisteredDecl) {
+						registeredDecl := maybeRegisteredDecl
+						pkgNameToImport = e.registry.ReceiverTypePkgName(registeredDecl)
 					} else {
 						pkgNameToImport = types.PkgName(selectorBase)
 						// パッケージのインポート文を追加
@@ -88,7 +90,8 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					if !e.registry.IsRegisteredDecl(selectorBase) {
+					maybeRegisteredDecl := types.DeclName(selectorBase)
+					if !e.registry.IsRegisteredDecl(maybeRegisteredDecl) {
 						pkgNameToImport = types.PkgName(selectorBase)
 						// パッケージのインポート文を追加
 						if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
@@ -117,7 +120,8 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					if !found {
 						return errs.NewInternalError("failed to extract package name from expression")
 					}
-					if !e.registry.IsRegisteredDecl(selectorBase) {
+					maybeRegisteredDecl := types.DeclName(selectorBase)
+					if !e.registry.IsRegisteredDecl(maybeRegisteredDecl) {
 						pkgNameToImport = types.PkgName(selectorBase)
 						if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {
 							return err
@@ -145,7 +149,8 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 								if !found {
 									return errs.NewInternalError("failed to extract package name from expression")
 								}
-								if !e.registry.IsRegisteredDecl(selectorBase) {
+								maybeRegisteredDecl := types.DeclName(selectorBase)
+								if !e.registry.IsRegisteredDecl(maybeRegisteredDecl) {
 									pkgNameToImport = types.PkgName(selectorBase)
 									// パッケージのインポート文を追加
 									if err := e.addImportDecl(tmpFileAst, pkgNameToImport); err != nil {

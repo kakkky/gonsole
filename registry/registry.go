@@ -10,12 +10,12 @@ import (
 )
 
 type Registry struct {
-	decls *[]Decl
+	decls []Decl
 }
 
 func NewRegistry() *Registry {
 	return &Registry{
-		decls: &[]Decl{},
+		decls: []Decl{},
 	}
 }
 
@@ -44,7 +44,7 @@ func (de *Registry) Register(input string) error {
 				declVar := &declVar{
 					name: exprV.Sel.Name,
 				}
-				de.register(pkgSelName, name, *declVar)
+				de.register(pkgSelName, types.DeclName(name), *declVar)
 			// 右辺が複合リテラルの場合
 			case *ast.CompositeLit:
 				switch innerExprV := exprV.Type.(type) {
@@ -58,7 +58,7 @@ func (de *Registry) Register(input string) error {
 					}
 					name := stmt.Lhs[i].(*ast.Ident).Name
 
-					de.register(pkgName, name, *declStruct)
+					de.register(pkgName, types.DeclName(name), *declStruct)
 				}
 			// 右辺が演算子つきの場合
 			case *ast.UnaryExpr:
@@ -76,7 +76,7 @@ func (de *Registry) Register(input string) error {
 								typeName: typeExpr.Sel.Name,
 							}
 							name := stmt.Lhs[i].(*ast.Ident).Name
-							de.register(pkgName, name, *declStruct)
+							de.register(pkgName, types.DeclName(name), *declStruct)
 						}
 					}
 				}
@@ -95,16 +95,16 @@ func (de *Registry) Register(input string) error {
 						return nil
 					}
 					// 定義ずみの変数だったら、それはメソッド呼び出し
-					if de.IsRegisteredDecl(xName) {
+					if de.IsRegisteredDecl(types.DeclName(xName)) {
 						declReceiver := xName
-						pkgName := de.ReceiverTypePkgName(declReceiver)
+						pkgName := de.ReceiverTypePkgName(types.DeclName(declReceiver))
 						for j, lhsExpr := range stmt.Lhs {
 							methodDecl := &declMethod{
 								name:  funExprV.Sel.Name,
 								order: j,
 							}
 							name := lhsExpr.(*ast.Ident).Name
-							de.register(pkgName, name, *methodDecl)
+								de.register(pkgName, types.DeclName(name), *methodDecl)
 						}
 					}
 					// パッケージ名付きの関数呼び出し (pkg.Func())
@@ -115,7 +115,7 @@ func (de *Registry) Register(input string) error {
 							order: j,
 						}
 						name := lhsExpr.(*ast.Ident).Name
-						de.register(pkgName, name, *funcDecl)
+						de.register(pkgName, types.DeclName(name), *funcDecl)
 					}
 					return nil
 
@@ -140,7 +140,7 @@ func (de *Registry) Register(input string) error {
 								name: valExprV.Sel.Name,
 							}
 							name := specV.Names[i].Name
-							de.register(pkgName, name, *declVar)
+							de.register(pkgName, types.DeclName(name), *declVar)
 						// 複合リテラルの場合
 						case *ast.CompositeLit:
 							switch valTypeExprV := valExprV.Type.(type) {
@@ -151,7 +151,7 @@ func (de *Registry) Register(input string) error {
 									typeName: valTypeExprV.Sel.Name,
 								}
 								name := specV.Names[i].Name
-								de.register(pkgName, name, *declStruct)
+								de.register(pkgName, types.DeclName(name), *declStruct)
 							}
 						// 演算子つきの場合
 						case *ast.UnaryExpr:
@@ -168,7 +168,7 @@ func (de *Registry) Register(input string) error {
 											typeName: compositeLitTypeV.Sel.Name,
 										}
 										name := specV.Names[i].Name
-										de.register(pkgName, name, *declStruct)
+										de.register(pkgName, types.DeclName(name), *declStruct)
 									}
 								}
 							}
@@ -184,7 +184,7 @@ func (de *Registry) Register(input string) error {
 										name:  funcName,
 										order: j,
 									}
-									de.register(pkgName, nameIdent.Name, *funcDecl)
+									de.register(pkgName, types.DeclName(nameIdent.Name), *funcDecl)
 								}
 							}
 						}
@@ -196,8 +196,8 @@ func (de *Registry) Register(input string) error {
 	return nil
 }
 
-func (de *Registry) ReceiverTypePkgName(receiverName string) types.PkgName {
-	for _, decl := range *de.decls {
+func (de *Registry) ReceiverTypePkgName(receiverName types.DeclName) types.PkgName {
+	for _, decl := range de.decls {
 		if decl.Name() == receiverName {
 			return decl.PkgName()
 		}
@@ -206,11 +206,11 @@ func (de *Registry) ReceiverTypePkgName(receiverName string) types.PkgName {
 }
 
 func (de *Registry) Decls() []Decl {
-	return *de.decls
+	return de.decls
 }
 
-func (de *Registry) IsRegisteredDecl(name string) bool {
-	for _, decl := range *de.decls {
+func (de *Registry) IsRegisteredDecl(name types.DeclName) bool {
+	for _, decl := range de.decls {
 		if decl.Name() == name {
 			return true
 		}
@@ -218,28 +218,28 @@ func (de *Registry) IsRegisteredDecl(name string) bool {
 	return false
 }
 
-func (de *Registry) register(pkg types.PkgName, name string, rhs any) {
+func (de *Registry) register(pkg types.PkgName, name types.DeclName, rhs any) {
 	switch v := rhs.(type) {
 	case declVar:
-		*de.decls = append(*de.decls, Decl{
+		de.decls = append(de.decls, Decl{
 			pkgName: pkg,
 			name:    name,
 			rhs:     declRhs{declVar: v},
 		})
 	case declFunc:
-		*de.decls = append(*de.decls, Decl{
+		de.decls = append(de.decls, Decl{
 			pkgName: pkg,
 			name:    name,
 			rhs:     declRhs{declFunc: v},
 		})
 	case declMethod:
-		*de.decls = append(*de.decls, Decl{
+		de.decls = append(de.decls, Decl{
 			pkgName: pkg,
 			name:    name,
 			rhs:     declRhs{declMethod: v},
 		})
 	case declStruct:
-		*de.decls = append(*de.decls, Decl{
+		de.decls = append(de.decls, Decl{
 			pkgName: pkg,
 			name:    name,
 			rhs:     declRhs{declStruct: v},

@@ -3,7 +3,6 @@ package executor
 import (
 	"bytes"
 	"fmt"
-	"go/ast"
 	"go/token"
 
 	"os/exec"
@@ -25,12 +24,12 @@ type Executor struct {
 
 type astCache struct {
 	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-	nodes map[types.PkgName][]*ast.Package
+	nodes types.GoAstNodes
 	fset  *token.FileSet
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewExecutor(registry *registry.Registry, nodes map[types.PkgName][]*ast.Package, fset *token.FileSet) (*Executor, error) {
+func NewExecutor(registry *registry.Registry, nodes types.GoAstNodes, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
 		return nil, err
