@@ -302,20 +302,20 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
-							if isPrivate(types.DeclName(method)) {
+							if isPrivate(method) {
 								continue
 							}
 
 							// 重複チェック
-							methodKey := inputStr + method
+							methodKey := inputStr + string(method)
 							if seenMethods[methodKey] {
 								continue
 							}
 							seenMethods[methodKey] = true
 
 							suggestions = append(suggestions, prompt.Suggest{
-								Text:        inputStr + method + "()",
-								DisplayText: method + "()",
+								Text:        inputStr + string(method) + "()",
+								DisplayText: string(method) + "()",
 								Description: "Method: " + rhsInterfaceSet.descriptions[mi],
 							})
 						}
@@ -397,20 +397,20 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 					if returnTypeName == types.TypeName(rhsInterfaceSet.name) {
 						for mi, method := range rhsInterfaceSet.methods {
 							// memo: 現在はexecutorがprivateに対応していないため
-							if isPrivate(types.DeclName(method)) {
+							if isPrivate(method) {
 								continue
 							}
 
 							// 重複チェック
-							methodKey := inputStr + method
+							methodKey := inputStr + string(method)
 							if seenMethods[methodKey] {
 								continue
 							}
 							seenMethods[methodKey] = true
 
 							suggestions = append(suggestions, prompt.Suggest{
-								Text:        inputStr + method + "()",
-								DisplayText: method + "()",
+								Text:        inputStr + string(method) + "()",
+								DisplayText: string(method) + "()",
 								Description: "Method: " + rhsInterfaceSet.descriptions[mi],
 							})
 						}
@@ -532,17 +532,17 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr string, ty
 	for _, interfaceSet := range interfaceSets {
 		if types.TypeName(interfaceSet.name) == typeName {
 			for mi, method := range interfaceSet.methods {
-				if isPrivate(types.DeclName(method)) {
+				if isPrivate(method) {
 					continue
 				}
-				if strings.HasPrefix(method, inputingMethodName) {
+				if strings.HasPrefix(string(method), inputingMethodName) {
 					desc := ""
 					if mi < len(interfaceSet.descriptions) {
 						desc = interfaceSet.descriptions[mi]
 					}
 					suggestions = append(suggestions, prompt.Suggest{
-						Text:        inputStr + method + "()",
-						DisplayText: method + "()",
+						Text:        inputStr + string(method) + "()",
+						DisplayText: string(method) + "()",
 						Description: "Method: " + desc,
 					})
 				}
@@ -601,7 +601,7 @@ func (c *Completer) findStructSuggestions(pai pkgNameAndInput) []prompt.Suggest 
 			if len(structSet.fields) > 0 {
 				field += "{"
 				for _, name := range structSet.fields {
-					field += name + ": ,"
+					field += string(name) + ": ,"
 				}
 				field = strings.TrimSuffix(field, ",") + "}"
 			}

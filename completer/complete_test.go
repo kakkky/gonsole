@@ -170,8 +170,8 @@ func TestCompleter_Complete(t *testing.T) {
 				pkgs: []types.PkgName{"myapp"},
 				structs: map[types.PkgName][]structSet{
 					"myapp": {
-						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
-						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
+						{name: "Client", description: "A client for API calls", fields: []types.StructFieldName{"Timeout", "BaseURL"}},
+						{name: "Config", description: "A configuration structure", fields: []types.StructFieldName{"Name", "Value"}},
 					},
 				},
 			},
@@ -196,8 +196,8 @@ func TestCompleter_Complete(t *testing.T) {
 				pkgs: []types.PkgName{"myapp"},
 				structs: map[types.PkgName][]structSet{
 					"myapp": {
-						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
-						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
+						{name: "Client", description: "A client for API calls", fields: []types.StructFieldName{"Timeout", "BaseURL"}},
+						{name: "Config", description: "A configuration structure", fields: []types.StructFieldName{"Name", "Value"}},
 					},
 				},
 			},
@@ -222,8 +222,8 @@ func TestCompleter_Complete(t *testing.T) {
 				pkgs: []types.PkgName{"myapp"},
 				structs: map[types.PkgName][]structSet{
 					"myapp": {
-						{name: "Client", description: "A client for API calls", fields: []string{"Timeout", "BaseURL"}},
-						{name: "Config", description: "A configuration structure", fields: []string{"Name", "Value"}},
+						{name: "Client", description: "A client for API calls", fields: []types.StructFieldName{"Timeout", "BaseURL"}},
+						{name: "Config", description: "A configuration structure", fields: []types.StructFieldName{"Name", "Value"}},
 					},
 				},
 			},
@@ -475,7 +475,7 @@ func TestCompleter_Complete(t *testing.T) {
 					"myapp": {
 						{
 							name:         "Reader",
-							methods:      []string{"Read", "Close"},
+							methods:      []types.DeclName{"Read", "Close"},
 							descriptions: []string{"Read reads data from the reader", "Close closes the reader"},
 						},
 					},
@@ -531,7 +531,7 @@ func TestCompleter_Complete(t *testing.T) {
 					"myapp": {
 						{
 							name:    "Resource",
-							methods: []string{"Open", "Save", "Delete"},
+							methods: []types.DeclName{"Open", "Save", "Delete"},
 							descriptions: []string{
 								"Open opens the resource",
 								"Save saves the resource",
@@ -689,7 +689,7 @@ func TestCompleter_Complete(t *testing.T) {
 					"myapp": {
 						{
 							name:         "Reader",
-							methods:      []string{"Read", "Close"},
+							methods:      []types.DeclName{"Read", "Close"},
 							descriptions: []string{"Read reads data", "Close closes reader"},
 						},
 					},
@@ -804,7 +804,7 @@ func TestCompleter_Complete(t *testing.T) {
 					"myapp": {
 						{
 							name:         "Reader",
-							methods:      []string{"Read", "Close"},
+							methods:      []types.DeclName{"Read", "Close"},
 							descriptions: []string{"Read reads data from the reader", "Close closes the reader"},
 						},
 					},

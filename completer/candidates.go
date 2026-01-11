@@ -45,14 +45,14 @@ type (
 	}
 	structSet struct {
 		name        types.DeclName
-		fields      []string
+		fields      []types.StructFieldName
 		description string
 	}
 	// interfaceの候補を返すわけではなく、関数がinterfaceを返す場合に、
 	// そのinterfaceのメソッドを候補として返すためのもの
 	interfaceSet struct {
 		name         types.DeclName
-		methods      []string
+		methods      []types.DeclName
 		descriptions []string
 	}
 )
@@ -332,15 +332,15 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 		typespec := spec.(*ast.TypeSpec)
 		switch typespecV := typespec.Type.(type) {
 		case *ast.StructType:
-			var fields []string
+			var fields []types.StructFieldName
 			for _, field := range typespecV.Fields.List {
 				if len(field.Names) > 0 {
-					fields = append(fields, field.Names[0].Name)
+					fields = append(fields, types.StructFieldName(field.Names[0].Name))
 				} else {
 					// 埋め込み型（匿名フィールド）
 					switch t := field.Type.(type) {
 					case *ast.Ident:
-						fields = append(fields, t.Name)
+						fields = append(fields, types.StructFieldName(t.Name))
 					}
 				}
 			}
@@ -350,11 +350,11 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 			}
 			c.structs[pkgName] = append(c.structs[pkgName], structSet{name: types.DeclName(typespec.Name.Name), fields: fields, description: genDeclDescription + specDescription})
 		case *ast.InterfaceType:
-			var methods []string
+			var methods []types.DeclName
 			var descriptions []string
 			for _, method := range typespecV.Methods.List {
 				if len(method.Names) > 0 {
-					methods = append(methods, method.Names[0].Name)
+					methods = append(methods, types.DeclName(method.Names[0].Name))
 				}
 				commentBuilder := strings.Builder{}
 				if method.Doc != nil {

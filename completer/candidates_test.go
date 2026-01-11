@@ -24,8 +24,8 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverName: "SimpleType", returnTypeNames: []types.TypeName{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
 				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: types.TypeName("string"), typePkgName: ""}}},
 				consts:     map[types.PkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
-				structs:    map[types.PkgName][]structSet{"simple": {{name: "SimpleType", fields: []string{"SimpleField"}, description: "SimpleType is a simple type"}}},
-				interfaces: map[types.PkgName][]interfaceSet{"simple": {{name: "SimpleInterface", methods: []string{"SimpleMethod"}, descriptions: []string{"SimpleMethod is a method of SimpleInterface"}}}},
+				structs:    map[types.PkgName][]structSet{"simple": {{name: "SimpleType", fields: []types.StructFieldName{"SimpleField"}, description: "SimpleType is a simple type"}}},
+				interfaces: map[types.PkgName][]interfaceSet{"simple": {{name: "SimpleInterface", methods: []types.DeclName{"SimpleMethod"}, descriptions: []string{"SimpleMethod is a method of SimpleInterface"}}}},
 			},
 		},
 		{
@@ -59,7 +59,7 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 				},
 				structs: map[types.PkgName][]structSet{
 					"complex":    {{name: "ComplexType", description: "ComplexType is a complex type"}},
-					"subcomplex": {{name: "SubComplexType", fields: []string{"FieldA", "FieldB"}, description: ""}},
+					"subcomplex": {{name: "SubComplexType", fields: []types.StructFieldName{"FieldA", "FieldB"}, description: ""}},
 				},
 				interfaces: map[types.PkgName][]interfaceSet{}, // 空のマップを期待値に追加
 			},
