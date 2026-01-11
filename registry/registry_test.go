@@ -36,7 +36,7 @@ func TestRegistry_Register(t *testing.T) {
 					pkgName: "pkg",
 					name:    "s",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -50,7 +50,7 @@ func TestRegistry_Register(t *testing.T) {
 					pkgName: "pkg",
 					name:    "p",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -113,7 +113,7 @@ func TestRegistry_Register(t *testing.T) {
 					pkgName: "pkg",
 					name:    "s",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -127,7 +127,7 @@ func TestRegistry_Register(t *testing.T) {
 					pkgName: "pkg",
 					name:    "p",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -200,7 +200,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 					pkgName: "pkg2",
 					name:    "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -221,7 +221,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 					pkgName: "pkg2",
 					name:    "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},
@@ -242,7 +242,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 					pkgName: "pkg2",
 					name:    "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{typeName: "Struct"},
+						declStruct: declStruct{name: types.DeclName("Struct")},
 					},
 				},
 			},

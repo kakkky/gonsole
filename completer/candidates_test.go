@@ -21,7 +21,7 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 			want: &candidates{
 				pkgs:       []types.PkgName{"simple"},
 				funcs:      map[types.PkgName][]funcSet{"simple": {{name: "SimpleFunc", description: "SimpleFunc is a simple function", returnTypeNames: []string{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
-				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverTypeName: "SimpleType", returnTypeNames: []string{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
+				methods:    map[types.PkgName][]methodSet{"simple": {{name: "SimpleMethod", description: "SimpleMethod is a method for SimpleType", receiverName: "SimpleType", returnTypeNames: []string{"string"}, returnTypePkgNames: []types.PkgName{"simple"}}}},
 				vars:       map[types.PkgName][]varSet{"simple": {{name: "SimpleVar", description: "SimpleVar is a variable", typeName: "string", typePkgName: ""}}},
 				consts:     map[types.PkgName][]constSet{"simple": {{name: "SimpleConst", description: "SimpleConst is a constant"}}},
 				structs:    map[types.PkgName][]structSet{"simple": {{name: "SimpleType", fields: []string{"SimpleField"}, description: "SimpleType is a simple type"}}},
@@ -37,10 +37,10 @@ func TestConvertFromNodeToCandidates(t *testing.T) {
 				funcs: map[types.PkgName][]funcSet{},
 				methods: map[types.PkgName][]methodSet{
 					"complex": {
-						{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverTypeName: "ComplexType"},
+						{name: "ComplexMethod", description: "ComplexMethod is a method for ComplexType", receiverName: "ComplexType"},
 					},
 					"subcomplex": {
-						{name: "SubComplexMethod", receiverTypeName: "SubComplexType"},
+						{name: "SubComplexMethod", receiverName: "SubComplexType"},
 					},
 				},
 				vars: map[types.PkgName][]varSet{

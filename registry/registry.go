@@ -42,7 +42,7 @@ func (de *Registry) Register(input string) error {
 				pkgSelName := types.PkgName(exprV.X.(*ast.Ident).Name)
 				name := stmt.Lhs[i].(*ast.Ident).Name
 				declVar := &declVar{
-					name: exprV.Sel.Name,
+					name: types.DeclName(exprV.Sel.Name),
 				}
 				de.register(pkgSelName, types.DeclName(name), *declVar)
 			// 右辺が複合リテラルの場合
@@ -54,7 +54,7 @@ func (de *Registry) Register(input string) error {
 					pkgName := types.PkgName(innerExprV.X.(*ast.Ident).Name)
 					declStruct := &declStruct{
 						// 型名を取得
-						typeName: innerExprV.Sel.Name,
+						name: types.DeclName(innerExprV.Sel.Name),
 					}
 					name := stmt.Lhs[i].(*ast.Ident).Name
 
@@ -73,7 +73,7 @@ func (de *Registry) Register(input string) error {
 						case *ast.SelectorExpr:
 							pkgName := types.PkgName(typeExpr.X.(*ast.Ident).Name)
 							declStruct := &declStruct{
-								typeName: typeExpr.Sel.Name,
+								name: types.DeclName(typeExpr.Sel.Name),
 							}
 							name := stmt.Lhs[i].(*ast.Ident).Name
 							de.register(pkgName, types.DeclName(name), *declStruct)
@@ -100,18 +100,18 @@ func (de *Registry) Register(input string) error {
 						pkgName := de.ReceiverTypePkgName(types.DeclName(declReceiver))
 						for j, lhsExpr := range stmt.Lhs {
 							methodDecl := &declMethod{
-								name:  funExprV.Sel.Name,
+								name:  types.DeclName(funExprV.Sel.Name),
 								order: j,
 							}
 							name := lhsExpr.(*ast.Ident).Name
-								de.register(pkgName, types.DeclName(name), *methodDecl)
+							de.register(pkgName, types.DeclName(name), *methodDecl)
 						}
 					}
 					// パッケージ名付きの関数呼び出し (pkg.Func())
 					pkgName := types.PkgName(xName)
 					for j, lhsExpr := range stmt.Lhs {
 						funcDecl := &declFunc{
-							name:  funExprV.Sel.Name,
+							name:  types.DeclName(funExprV.Sel.Name),
 							order: j,
 						}
 						name := lhsExpr.(*ast.Ident).Name
@@ -137,7 +137,7 @@ func (de *Registry) Register(input string) error {
 						case *ast.SelectorExpr:
 							pkgName := types.PkgName(valExprV.X.(*ast.Ident).Name)
 							declVar := &declVar{
-								name: valExprV.Sel.Name,
+								name: types.DeclName(valExprV.Sel.Name),
 							}
 							name := specV.Names[i].Name
 							de.register(pkgName, types.DeclName(name), *declVar)
@@ -148,7 +148,7 @@ func (de *Registry) Register(input string) error {
 							case *ast.SelectorExpr:
 								pkgName := types.PkgName(valTypeExprV.X.(*ast.Ident).Name)
 								declStruct := &declStruct{
-									typeName: valTypeExprV.Sel.Name,
+									name: types.DeclName(valTypeExprV.Sel.Name),
 								}
 								name := specV.Names[i].Name
 								de.register(pkgName, types.DeclName(name), *declStruct)
@@ -165,7 +165,7 @@ func (de *Registry) Register(input string) error {
 									case *ast.SelectorExpr:
 										pkgName := types.PkgName(compositeLitTypeV.X.(*ast.Ident).Name)
 										declStruct := &declStruct{
-											typeName: compositeLitTypeV.Sel.Name,
+											name: types.DeclName(compositeLitTypeV.Sel.Name),
 										}
 										name := specV.Names[i].Name
 										de.register(pkgName, types.DeclName(name), *declStruct)
@@ -181,7 +181,7 @@ func (de *Registry) Register(input string) error {
 								funcName := funExprV.Sel.Name
 								for j, nameIdent := range specV.Names {
 									funcDecl := &declFunc{
-										name:  funcName,
+										name:  types.DeclName(funcName),
 										order: j,
 									}
 									de.register(pkgName, types.DeclName(nameIdent.Name), *funcDecl)

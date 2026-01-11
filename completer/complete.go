@@ -162,7 +162,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsStructLit(
 	inputStr string,
 	decl registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
-	if decl.Rhs().Struct().Type() == methodSet.receiverTypeName {
+	if decl.Rhs().Struct().Name() == methodSet.receiverName {
 		// memo: 現在はexecutorがprivateに対応していないため
 		if isPrivate(methodSet.name) {
 			return suggestions
@@ -208,9 +208,9 @@ func (c *Completer) findMethodSuggestionsFromVarRhsDeclVar(
 
 	// 変数の補完候補を回す
 	for _, rhsVarSet := range rhsVarSets {
-		if (types.PkgName(decl.PkgName()) == rhsVarSet.typePkgName) && // パッケージ名が一致
-			(declRhsVarName == string(rhsVarSet.name)) && // 変数名が一致
-			(rhsVarSet.typeName == methodSet.receiverTypeName) { // 型名が一致
+		if decl.PkgName() == rhsVarSet.typePkgName && // パッケージ名が一致
+			(declRhsVarName == rhsVarSet.name) && // 変数名が一致
+			(rhsVarSet.typeName == string(methodSet.receiverName)) { // 型名が一致
 
 			// memo: 現在はexecutorがprivateに対応していないため
 			if isPrivate(methodSet.name) {
@@ -258,11 +258,11 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	// 関数の補完候補を回す
 	for _, rhsFuncSet := range rhsFuncSets {
 		// 関数名が一致
-		if declRhsFuncName == string(rhsFuncSet.name) {
+		if types.DeclName(declRhsFuncName) == rhsFuncSet.name {
 			// 関数の戻り値（複数）の型情報を確認
 			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
 				if (i == declRhsFuncReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
+					(returnTypeName == string(methodSet.receiverName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -293,7 +293,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsFuncReturnValues(
 	}
 	for _, rhsFuncSet := range rhsFuncSets {
 		// 関数名が一致
-		if declRhsFuncName == string(rhsFuncSet.name) {
+		if types.DeclName(declRhsFuncName) == rhsFuncSet.name {
 			for i, returnTypeName := range rhsFuncSet.returnTypeNames {
 				if i != declRhsFuncReturnVarOrder {
 					continue // 何個目の戻り値かが一致しない場合はスキップ
@@ -352,11 +352,11 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 	// メソッドの補完候補を回す
 	for _, rhsMethodSet := range rhsMethodSets {
 		// メソッド名が一致
-		if declRhsMethodName == string(rhsMethodSet.name) {
+		if types.DeclName(declRhsMethodName) == rhsMethodSet.name {
 			// メソッドの戻り値（複数）の型情報を確認
 			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
 				if (i == declRhsMethodReturnVarOrder) && // 何個目の戻り値かが一致
-					(returnTypeName == methodSet.receiverTypeName) { // 型名が一致
+					(returnTypeName == string(methodSet.receiverName)) { // 型名が一致
 
 					// memo: 現在はexecutorがprivateに対応していないため
 					if isPrivate(methodSet.name) {
@@ -387,7 +387,7 @@ func (c *Completer) findMethodSuggestionsFromVarRhsMethodReturnValues(
 	}
 	for _, rhsMethodSet := range rhsMethodSets {
 		// メソッド名が一致
-		if declRhsMethodName == string(rhsMethodSet.name) {
+		if types.DeclName(declRhsMethodName) == rhsMethodSet.name {
 			// メソッドの戻り値（複数）の型情報を確認
 			for i, returnTypeName := range rhsMethodSet.returnTypeNames {
 				if i != declRhsMethodReturnVarOrder {
@@ -519,7 +519,7 @@ func (c *Completer) findMethodSuggestionsFromTypeOrInterface(inputStr, typeName 
 	}
 
 	for _, method := range methodSets {
-		if method.receiverTypeName == typeName && !isPrivate(method.name) {
+		if string(method.receiverName) == typeName && !isPrivate(method.name) {
 			if strings.HasPrefix(string(method.name), inputingMethodName) {
 				suggestions = append(suggestions, prompt.Suggest{
 					Text:        inputStr + string(method.name) + "()",

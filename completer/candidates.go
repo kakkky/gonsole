@@ -29,7 +29,7 @@ type (
 	methodSet struct {
 		name               types.DeclName
 		description        string
-		receiverTypeName   string
+		receiverName       types.DeclName
 		returnTypeNames    []string
 		returnTypePkgNames []types.PkgName
 	}
@@ -142,15 +142,15 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 }
 
 func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
-	var receiverTypeName string
+	var receiverName types.DeclName
 	var returnTypeName []string
 	var returnTypePkgName []types.PkgName
 	switch receiverType := funcDecl.Recv.List[0].Type.(type) {
 	case *ast.Ident:
-		receiverTypeName = receiverType.Name
+		receiverName = types.DeclName(receiverType.Name)
 	case *ast.StarExpr:
 		if ident, ok := receiverType.X.(*ast.Ident); ok {
-			receiverTypeName = ident.Name
+			receiverName = types.DeclName(ident.Name)
 		}
 	}
 	var description string
@@ -178,7 +178,7 @@ func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.Func
 			returnTypePkgName = append(returnTypePkgName, typePkgName)
 		}
 	}
-	c.methods[pkgName] = append(c.methods[pkgName], methodSet{name: types.DeclName(funcDecl.Name.Name), description: description, receiverTypeName: receiverTypeName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
+	c.methods[pkgName] = append(c.methods[pkgName], methodSet{name: types.DeclName(funcDecl.Name.Name), description: description, receiverName: receiverName, returnTypeNames: returnTypeName, returnTypePkgNames: returnTypePkgName})
 }
 
 func (c *candidates) processGenDecl(pkgName types.PkgName, genDecl *ast.GenDecl) {
