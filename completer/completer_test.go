@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/go-prompt"
-	"github.com/kakkky/gonsole/registry"
+	"github.com/kakkky/gonsole/decl_registry"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -15,7 +15,7 @@ func TestCompleter_Complete(t *testing.T) {
 		name            string
 		inputText       string
 		setupCandidates *candidates
-		setupRegistry   *registry.Registry
+		setupRegistry   *decl_registry.DeclRegistry
 		expected        []prompt.Suggest
 	}{
 		{
@@ -24,12 +24,12 @@ func TestCompleter_Complete(t *testing.T) {
 			setupCandidates: &candidates{
 				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp",
 					DisplayText: "myapp",
-					Description: "Package",
+					Description: "Package: ",
 				},
 			},
 		},
@@ -39,22 +39,22 @@ func TestCompleter_Complete(t *testing.T) {
 			setupCandidates: &candidates{
 				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp",
 					DisplayText: "myapp",
-					Description: "Package",
+					Description: "Package: ",
 				},
 				{
 					Text:        "mylib",
 					DisplayText: "mylib",
-					Description: "Package",
+					Description: "Package: ",
 				},
 				{
 					Text:        "myutil",
 					DisplayText: "myutil",
-					Description: "Package",
+					Description: "Package: ",
 				},
 			},
 		},
@@ -64,12 +64,12 @@ func TestCompleter_Complete(t *testing.T) {
 			setupCandidates: &candidates{
 				pkgs: []types.PkgName{"myapp", "mylib", "myutil"},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "&myapp",
 					DisplayText: "myapp",
-					Description: "Package",
+					Description: "Package: ",
 				},
 			},
 		},
@@ -86,21 +86,21 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.Print()",
-					DisplayText: "Print()",
+					DisplayText: "Print",
 					Description: "Function: Print outputs a message",
 				},
 				{
 					Text:        "myapp.Printf()",
-					DisplayText: "Printf()",
+					DisplayText: "Printf",
 					Description: "Function: Printf formats a message",
 				},
 				{
 					Text:        "myapp.Println()",
-					DisplayText: "Println()",
+					DisplayText: "Println",
 					Description: "Function: Println outputs a message with newline",
 				},
 			},
@@ -118,7 +118,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.StdIn",
@@ -149,7 +149,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "mylib.MaxRetries",
@@ -175,7 +175,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.Client{Timeout: ,BaseURL: }",
@@ -201,7 +201,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "&myapp.Client{Timeout: ,BaseURL: }",
@@ -227,7 +227,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.Client{Timeout: ,BaseURL: }",
@@ -269,8 +269,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				if err := registry.Register("client := myapp.Client{}"); err != nil {
 					t.Fatalf("failed to register client variable: %v", err)
 				}
@@ -279,12 +279,12 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "client.Do()",
-					DisplayText: "Do()",
+					DisplayText: "Do",
 					Description: "Method: Do executes a request",
 				},
 				{
 					Text:        "client.Get()",
-					DisplayText: "Get()",
+					DisplayText: "Get",
 					Description: "Method: Get sends a GET request",
 				},
 			},
@@ -321,8 +321,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				if err := registry.Register("stream := myapp.StdOut"); err != nil {
 					t.Fatalf("failed to register stream variable: %v", err)
 				}
@@ -331,12 +331,12 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "stream.Write()",
-					DisplayText: "Write()",
+					DisplayText: "Write",
 					Description: "Method: Write writes data to the stream",
 				},
 				{
 					Text:        "stream.Close()",
-					DisplayText: "Close()",
+					DisplayText: "Close",
 					Description: "Method: Close closes the stream",
 				},
 			},
@@ -371,8 +371,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				if err := registry.Register("response, _ := myapp.FetchData()"); err != nil {
 					t.Fatalf("failed to register response variable: %v", err)
 				}
@@ -381,7 +381,7 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "response.GetContent()",
-					DisplayText: "GetContent()",
+					DisplayText: "GetContent",
 					Description: "Method: GetContent returns the response content",
 				},
 			},
@@ -433,8 +433,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				// まず response 変数を作成
 				if err := registry.Register("response, _ := myapp.FetchData()"); err != nil {
 					t.Fatalf("failed to register response variable: %v", err)
@@ -448,12 +448,12 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "content.Read()",
-					DisplayText: "Read()",
+					DisplayText: "Read",
 					Description: "Method: Read reads data from the content",
 				},
 				{
 					Text:        "content.Type()",
-					DisplayText: "Type()",
+					DisplayText: "Type",
 					Description: "Method: Type returns the content type",
 				},
 			},
@@ -506,8 +506,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				if err := registry.Register("reader, _ := myapp.NewReader()"); err != nil {
 					t.Fatalf("failed to register reader variable: %v", err)
 				}
@@ -516,12 +516,12 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "reader.Read()",
-					DisplayText: "Read()",
+					DisplayText: "Read",
 					Description: "Method: Read reads data from the reader",
 				},
 				{
 					Text:        "reader.Close()",
-					DisplayText: "Close()",
+					DisplayText: "Close",
 					Description: "Method: Close closes the reader",
 				},
 			},
@@ -569,8 +569,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				// まずクライアント変数を作成
 				if err := registry.Register("client, _ := myapp.CreateClient()"); err != nil {
 					t.Fatalf("failed to register client variable: %v", err)
@@ -584,17 +584,17 @@ func TestCompleter_Complete(t *testing.T) {
 			expected: []prompt.Suggest{
 				{
 					Text:        "resource.Open()",
-					DisplayText: "Open()",
+					DisplayText: "Open",
 					Description: "Method: Open opens the resource",
 				},
 				{
 					Text:        "resource.Save()",
-					DisplayText: "Save()",
+					DisplayText: "Save",
 					Description: "Method: Save saves the resource",
 				},
 				{
 					Text:        "resource.Delete()",
-					DisplayText: "Delete()",
+					DisplayText: "Delete",
 					Description: "Method: Delete deletes the resource",
 				},
 			},
@@ -612,22 +612,22 @@ func TestCompleter_Complete(t *testing.T) {
 				},
 				vars: map[types.PkgName][]varSet{
 					"myapp": {
-						{name: "Version", description: "Package version"},
+						{name: "Version", description: "Package:  version"},
 						{name: "privateVar", description: "Internal variable"},
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.Print()",
-					DisplayText: "Print()",
+					DisplayText: "Print",
 					Description: "Function: Print outputs a message",
 				},
 				{
 					Text:        "myapp.Version",
 					DisplayText: "Version",
-					Description: "Variable: Package version",
+					Description: "Variable: Package:  version",
 				},
 			},
 		},
@@ -661,11 +661,11 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.NewClient().Do()",
-					DisplayText: "Do()",
+					DisplayText: "Do",
 					Description: "Method: Do something",
 				},
 			},
@@ -700,7 +700,7 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected:      nil,
 		},
 		{
@@ -729,16 +729,16 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: registry.NewRegistry(),
+			setupRegistry: decl_registry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "myapp.NewReader().Read()",
-					DisplayText: "Read()",
+					DisplayText: "Read",
 					Description: "Method: Read reads data",
 				},
 				{
 					Text:        "myapp.NewReader().Close()",
-					DisplayText: "Close()",
+					DisplayText: "Close",
 					Description: "Method: Close closes reader",
 				},
 			},
@@ -769,15 +769,15 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				_ = registry.Register("client := myapp.Client{}")
 				return registry
 			}(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "client.GetResource().Open()",
-					DisplayText: "Open()",
+					DisplayText: "Open",
 					Description: "Method: Open resource",
 				},
 			},
@@ -809,8 +809,8 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				_ = registry.Register("client := myapp.Client{}")
 				return registry
 			}(),
@@ -821,6 +821,17 @@ func TestCompleter_Complete(t *testing.T) {
 			inputText: "reader.Read().",
 			setupCandidates: &candidates{
 				pkgs: []types.PkgName{"myapp"},
+				funcs: map[types.PkgName][]funcSet{
+					"myapp": {
+						{
+							name:        "NewReader",
+							description: "NewReader creates a new reader",
+							returns: []returnSet{
+								{typeName: types.TypeName("Reader"), pkgName: types.PkgName("myapp")},
+							},
+						},
+					},
+				},
 				methods: map[types.PkgName][]methodSet{
 					"myapp": {
 						{
@@ -851,20 +862,20 @@ func TestCompleter_Complete(t *testing.T) {
 					},
 				},
 			},
-			setupRegistry: func() *registry.Registry {
-				registry := registry.NewRegistry()
+			setupRegistry: func() *decl_registry.DeclRegistry {
+				registry := decl_registry.NewRegistry()
 				_ = registry.Register("reader := myapp.NewReader()")
 				return registry
 			}(),
 			expected: []prompt.Suggest{
 				{
 					Text:        "reader.Read().Read()",
-					DisplayText: "Read()",
+					DisplayText: "Read",
 					Description: "Method: Read reads data from the reader",
 				},
 				{
 					Text:        "reader.Read().Close()",
-					DisplayText: "Close()",
+					DisplayText: "Close",
 					Description: "Method: Close closes the reader",
 				},
 			},
