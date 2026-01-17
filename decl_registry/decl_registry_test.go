@@ -1,4 +1,4 @@
-package registry
+package decl_registry
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
-func TestRegistry_Register(t *testing.T) {
+func TestDeclRegistry_Register(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -19,10 +19,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "a := pkg.Var",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "a",
+					name: "a",
 					rhs: declRhs{
-						declVar: declVar{name: "Var"},
+						name:    "Var",
+						kind:    DeclRhsKindVar,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -33,10 +34,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "s := pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "s",
+					name: "s",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -47,10 +49,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "p := &pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "p",
+					name: "p",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -61,10 +64,13 @@ func TestRegistry_Register(t *testing.T) {
 			input: "f := pkg.Func()",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "f",
+					name:        "f",
+					isReturnVal: true,
+					returnedIdx: 0,
 					rhs: declRhs{
-						declFunc: declFunc{name: "Func", order: 0},
+						name:    "Func",
+						kind:    DeclRhsKindFunc,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -75,17 +81,23 @@ func TestRegistry_Register(t *testing.T) {
 			input: "a, b := pkg.Func()",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "a",
+					name:        "a",
+					isReturnVal: true,
+					returnedIdx: 0,
 					rhs: declRhs{
-						declFunc: declFunc{name: "Func", order: 0},
+						name:    "Func",
+						kind:    DeclRhsKindFunc,
+						pkgName: "pkg",
 					},
 				},
 				{
-					pkgName: "pkg",
-					name:    "b",
+					name:        "b",
+					isReturnVal: true,
+					returnedIdx: 1,
 					rhs: declRhs{
-						declFunc: declFunc{name: "Func", order: 1},
+						name:    "Func",
+						kind:    DeclRhsKindFunc,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -96,10 +108,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "var v = pkg.Var",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "v",
+					name: "v",
 					rhs: declRhs{
-						declVar: declVar{name: "Var"},
+						name:    "Var",
+						kind:    DeclRhsKindVar,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -110,10 +123,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "var s = pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "s",
+					name: "s",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -124,10 +138,11 @@ func TestRegistry_Register(t *testing.T) {
 			input: "var p = &pkg.Struct{}",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "p",
+					name: "p",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -138,10 +153,13 @@ func TestRegistry_Register(t *testing.T) {
 			input: "var f = pkg.Func()",
 			expected: []Decl{
 				{
-					pkgName: "pkg",
-					name:    "f",
+					name:        "f",
+					isReturnVal: true,
+					returnedIdx: 0,
 					rhs: declRhs{
-						declFunc: declFunc{name: "Func", order: 0},
+						name:    "Func",
+						kind:    DeclRhsKindFunc,
+						pkgName: "pkg",
 					},
 				},
 			},
@@ -172,7 +190,7 @@ func TestRegistry_Register(t *testing.T) {
 			}
 
 			// cmp.Diffを使って結果を比較
-			if diff := cmp.Diff(tt.expected, sut.Decls(), cmp.AllowUnexported(Decl{}, declVar{}, declFunc{}, declMethod{}, declStruct{}, declRhs{})); diff != "" {
+			if diff := cmp.Diff(tt.expected, sut.Decls(), cmp.AllowUnexported(Decl{}, declRhs{})); diff != "" {
 				t.Errorf("Register() mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -190,17 +208,19 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			name: "found registered declaration",
 			existingDecls: []Decl{
 				{
-					pkgName: "pkg1",
-					name:    "var1",
+					name: "var1",
 					rhs: declRhs{
-						declVar: declVar{name: "Var"},
+						name:    "Var",
+						kind:    DeclRhsKindVar,
+						pkgName: "pkg1",
 					},
 				},
 				{
-					pkgName: "pkg2",
-					name:    "struct1",
+					name: "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg2",
 					},
 				},
 			},
@@ -211,17 +231,19 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			name: "found registered declaration (from multiple declarations)",
 			existingDecls: []Decl{
 				{
-					pkgName: "pkg1",
-					name:    "var1",
+					name: "var1",
 					rhs: declRhs{
-						declVar: declVar{name: "Var"},
+						name:    "Var",
+						kind:    DeclRhsKindVar,
+						pkgName: "pkg1",
 					},
 				},
 				{
-					pkgName: "pkg2",
-					name:    "struct1",
+					name: "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg2",
 					},
 				},
 			},
@@ -232,17 +254,19 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			name: "not found registered declaration",
 			existingDecls: []Decl{
 				{
-					pkgName: "pkg1",
-					name:    "var1",
+					name: "var1",
 					rhs: declRhs{
-						declVar: declVar{name: "Var"},
+						name:    "Var",
+						kind:    DeclRhsKindVar,
+						pkgName: "pkg1",
 					},
 				},
 				{
-					pkgName: "pkg2",
-					name:    "struct1",
+					name: "struct1",
 					rhs: declRhs{
-						declStruct: declStruct{name: types.DeclName("Struct")},
+						name:    "Struct",
+						kind:    DeclRhsKindStruct,
+						pkgName: "pkg2",
 					},
 				},
 			},
@@ -260,12 +284,12 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Registryの準備
-			de := &Registry{
+			dr := &DeclRegistry{
 				decls: tt.existingDecls,
 			}
 
 			// テスト対象メソッドの実行
-			result := de.IsRegisteredDecl(types.DeclName(tt.checkName))
+			result := dr.IsRegisteredDecl(types.DeclName(tt.checkName))
 
 			// 結果の検証
 			if result != tt.expectedFound {
