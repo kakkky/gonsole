@@ -59,7 +59,7 @@ func (e *Executor) addInputToTmpSrc(input string) error {
 					maybeRegisteredDecl := types.DeclName(selectorBase)
 					if e.registry.IsRegisteredDecl(maybeRegisteredDecl) {
 						registeredDecl := maybeRegisteredDecl
-						pkgNameToImport = e.registry.ReceiverTypePkgName(registeredDecl)
+						pkgNameToImport = e.registry.PkgNameOfReceiver(registeredDecl)
 					} else {
 						pkgNameToImport = types.PkgName(selectorBase)
 						// パッケージのインポート文を追加

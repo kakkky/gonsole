@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/kakkky/gonsole/decl_registry"
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/registry"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -18,7 +18,7 @@ type Executor struct {
 	modPath     string
 	tmpCleaner  func()
 	tmpFilePath string
-	registry    *registry.Registry
+	registry    *decl_registry.DeclRegistry
 	astCache    *astCache
 }
 
@@ -29,7 +29,7 @@ type astCache struct {
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewExecutor(registry *registry.Registry, nodes types.GoAstNodes, fset *token.FileSet) (*Executor, error) {
+func NewExecutor(registry *decl_registry.DeclRegistry, nodes types.GoAstNodes, fset *token.FileSet) (*Executor, error) {
 	tmpFilePath, cleaner, err := makeTmpMainFile()
 	if err != nil {
 		return nil, err
