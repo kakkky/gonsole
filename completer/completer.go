@@ -17,6 +17,7 @@ type Completer struct {
 }
 
 func NewCompleter(candidates *candidates, registry *decl_registry.DeclRegistry) *Completer {
+
 	return &Completer{
 		candidates: candidates,
 		registry:   registry,

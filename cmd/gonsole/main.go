@@ -6,20 +6,15 @@ import (
 	"github.com/kakkky/gonsole/errs"
 	"github.com/kakkky/gonsole/executor"
 	"github.com/kakkky/gonsole/repl"
-	"github.com/kakkky/gonsole/utils"
 )
 
 func main() {
-	nodes, fset, err := utils.AnalyzeGoAst(".")
-	if err != nil {
-		errs.HandleError(err)
-	}
-	candidates, err := completer.NewCandidates(nodes)
+	candidates, err := completer.NewCandidates(".")
 	if err != nil {
 		errs.HandleError(err)
 	}
 	registry := decl_registry.NewRegistry()
-	executor, err := executor.NewExecutor(registry, nodes, fset)
+	executor, err := executor.NewExecutor(registry)
 	if err != nil {
 		errs.HandleError(err)
 	}
