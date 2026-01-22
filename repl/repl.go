@@ -21,7 +21,6 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 		prompt.OptionAddKeyBind(prompt.KeyBind{
 			Key: prompt.ControlC,
 			Fn: func(buf *prompt.Buffer) {
-				executor.Close()
 				os.Exit(0)
 			},
 		}),

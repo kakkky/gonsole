@@ -37,8 +37,6 @@ func (dr *DeclRegistry) Register(input string) error {
 		dr.registerAssimentStmt(stmtV)
 	case *ast.DeclStmt:
 		dr.registerDeclStmt(stmtV)
-	default:
-		return errs.NewBadInputError("unsupported statement type")
 	}
 	return nil
 }

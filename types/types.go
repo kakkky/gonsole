@@ -22,3 +22,5 @@ type TypeName string
 
 // ReceiverName はメソッドのレシーバ型名を表す。
 type ReceiverTypeName TypeName
+
+type ImportPath string
