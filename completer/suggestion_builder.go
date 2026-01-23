@@ -123,10 +123,6 @@ func convertSuggestTypeToString(suggestType suggestType) string {
 	}
 }
 
-func (sb *suggestionBuilder) hasPrefixOperand() bool {
-	return sb.prefixOperand != token.ILLEGAL
-}
-
 func (sb *suggestionBuilder) isSelector() bool {
 	return strings.Contains(sb.input.text, ".")
 }
