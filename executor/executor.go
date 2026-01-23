@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"os"
 	"path"
-	"runtime/debug"
 	"slices"
 	"strconv"
 	"time"
@@ -42,7 +41,6 @@ func (e *Executor) Execute(input string) {
 	defer func() {
 		if r := recover(); r != nil {
 			panicMsg := fmt.Sprintf("%v", r)
-			fmt.Println(string(debug.Stack()))
 			errs.HandleError(
 				errs.NewInternalError(panicMsg),
 			)
