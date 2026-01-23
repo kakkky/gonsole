@@ -7,7 +7,7 @@ import (
 
 	"github.com/kakkky/go-prompt"
 
-	"github.com/kakkky/gonsole/decl_registry"
+	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -15,11 +15,11 @@ import (
 // go-promptのCompleterインターフェースを実装している
 type Completer struct {
 	candidates   *candidates
-	declRegistry *decl_registry.DeclRegistry
+	declRegistry *declregistry.DeclRegistry
 }
 
 // NewCompleter はCompleterのインスタンスを生成する
-func NewCompleter(declRegistry *decl_registry.DeclRegistry) (*Completer, error) {
+func NewCompleter(declRegistry *declregistry.DeclRegistry) (*Completer, error) {
 	candidates, err := newCandidates(".")
 	if err != nil {
 		return nil, err
@@ -90,15 +90,15 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				// メソッド名の前方一致フィルタと非公開フィルタ
 				if strings.HasPrefix(string(methodSet.name), sb.input.selectorPart) && !isPrivate(string(methodSet.name)) {
 					switch decl.RHS().Kind() {
-					case decl_registry.DeclRHSKindVar:
+					case declregistry.DeclRHSKindVar:
 						suggestions = c.findMethodSuggestionsFromDeclRHSVar(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRHSKindStruct:
+					case declregistry.DeclRHSKindStruct:
 						suggestions = c.findMethodSuggestionsFromDeclRHSStruct(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRHSKindFunc:
+					case declregistry.DeclRHSKindFunc:
 						suggestions = c.findMethodSuggestionsFromDeclRHSFuncReturnValues(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRHSKindMethod:
+					case declregistry.DeclRHSKindMethod:
 						suggestions = c.findMethodSuggestionsFromDeclRHSMethodReturnValues(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRHSKindUnknown:
+					case declregistry.DeclRHSKindUnknown:
 					}
 				}
 			}
@@ -108,9 +108,9 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 			for _, interfaceSet := range c.candidates.interfaces[decl.RHS().PkgName()] {
 				if !isPrivate(string(interfaceSet.name)) {
 					switch decl.RHS().Kind() {
-					case decl_registry.DeclRHSKindFunc:
+					case declregistry.DeclRHSKindFunc:
 						suggestions = c.findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggestions, sb, decl, interfaceSet)
-					case decl_registry.DeclRHSKindMethod:
+					case declregistry.DeclRHSKindMethod:
 						suggestions = c.findMethodSuggestionsFromDeclRHSMethodReturnInterface(suggestions, sb, decl, interfaceSet)
 					}
 				}
@@ -126,7 +126,7 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 func (c *Completer) findMethodSuggestionsFromDeclRHSStruct(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
-	decl decl_registry.Decl,
+	decl declregistry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 	if string(decl.RHS().Name()) == string(methodSet.receiverTypeName) {
 		suggestions = append(suggestions, sb.build(string(methodSet.name), suggestTypeMethod, methodSet.description, "()"))
@@ -140,7 +140,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRHSStruct(
 func (c *Completer) findMethodSuggestionsFromDeclRHSVar(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
-	decl decl_registry.Decl,
+	decl declregistry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	declRHSVarName := decl.RHS().Name()
@@ -167,7 +167,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRHSVar(
 func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnValues(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
-	decl decl_registry.Decl,
+	decl declregistry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	// 右辺の関数名と戻り値の順序を取得
@@ -212,7 +212,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnValues(
 func (c *Completer) findMethodSuggestionsFromDeclRHSMethodReturnValues(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
-	decl decl_registry.Decl,
+	decl declregistry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	declRHSMethodName := decl.RHS().Name()
@@ -257,7 +257,7 @@ func isMethodChain(selectorPart string) bool {
 	return strings.Contains(selectorPart, ").")
 }
 
-func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
+func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl declregistry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
 	// 右辺の関数名と戻り値の順序を取得
 	declRHSFuncName := decl.RHS().Name()
 	declRHSFuncPkgName := decl.RHS().PkgName()
@@ -296,7 +296,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggesti
 	return suggestions
 }
 
-func (c *Completer) findMethodSuggestionsFromDeclRHSMethodReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
+func (c *Completer) findMethodSuggestionsFromDeclRHSMethodReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl declregistry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
 	// 右辺のメソッド名と戻り値の順序を取得
 	declRHSMethodName := decl.RHS().Name()
 	declRHSMethodPkgName := decl.RHS().PkgName()
@@ -361,7 +361,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		for _, decl := range c.declRegistry.Decls() {
 			if decl.Name() == types.DeclName(sb.input.basePart) {
 				switch decl.RHS().Kind() {
-				case decl_registry.DeclRHSKindVar:
+				case declregistry.DeclRHSKindVar:
 					if varSets, ok := c.candidates.vars[decl.RHS().PkgName()]; ok {
 						for _, varSet := range varSets {
 							if varSet.name == decl.RHS().Name() {
@@ -371,10 +371,10 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 							}
 						}
 					}
-				case decl_registry.DeclRHSKindStruct:
+				case declregistry.DeclRHSKindStruct:
 					firstRecvTypeName = types.TypeName(decl.RHS().Name())
 					firstRecvPkgName = decl.RHS().PkgName()
-				case decl_registry.DeclRHSKindFunc:
+				case declregistry.DeclRHSKindFunc:
 					ok, _ := decl.IsReturnVal()
 					if !ok {
 						break
@@ -395,7 +395,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 					}
 					firstRecvTypeName = returnElm.typeName
 					firstRecvPkgName = returnElm.pkgName
-				case decl_registry.DeclRHSKindMethod:
+				case declregistry.DeclRHSKindMethod:
 					declRHSMethodName := decl.RHS().Name()
 					declRHSMethodPkgName := decl.RHS().PkgName()
 					ok, _ := decl.IsReturnVal()

@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/kakkky/gonsole/completer"
-	"github.com/kakkky/gonsole/decl_registry"
+	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
 	"github.com/kakkky/gonsole/executor"
 	"github.com/kakkky/gonsole/repl"
 )
 
 func main() {
-	registry := decl_registry.NewRegistry()
+	registry := declregistry.NewRegistry()
 	executor, err := executor.NewExecutor(registry)
 	if err != nil {
 		errs.HandleError(err)

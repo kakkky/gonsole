@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/kakkky/go-prompt"
-	"github.com/kakkky/gonsole/decl_registry"
+	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
 	"github.com/kakkky/gonsole/stdpkg"
 	"github.com/kakkky/gonsole/types"
@@ -26,12 +26,12 @@ import (
 // ExecutorはREPLセッション内でのコード実行を担う
 // go-promptのExecutorインターフェースを実装する
 type Executor struct {
-	declRegistry *decl_registry.DeclRegistry
+	declRegistry *declregistry.DeclRegistry
 	sessionSrc   *ast.File
 }
 
 // NewExecutor はExecutorのインスタンスを生成する
-func NewExecutor(declRegistry *decl_registry.DeclRegistry) (*Executor, error) {
+func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
 	return &Executor{
 		declRegistry: declRegistry,
 		sessionSrc:   initSessionSrc(),

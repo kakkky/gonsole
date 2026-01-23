@@ -1,4 +1,4 @@
-package decl_registry
+package declregistry
 
 import "github.com/kakkky/gonsole/types"
 

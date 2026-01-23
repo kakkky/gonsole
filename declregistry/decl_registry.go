@@ -1,4 +1,4 @@
-package decl_registry
+package declregistry
 
 import (
 	"go/ast"
