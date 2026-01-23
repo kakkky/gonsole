@@ -2,28 +2,22 @@ package main
 
 import (
 	"github.com/kakkky/gonsole/completer"
-	"github.com/kakkky/gonsole/decls"
+	"github.com/kakkky/gonsole/decl_registry"
 	"github.com/kakkky/gonsole/errs"
 	"github.com/kakkky/gonsole/executor"
 	"github.com/kakkky/gonsole/repl"
-	"github.com/kakkky/gonsole/utils"
 )
 
 func main() {
-	nodes, fset, err := utils.AnalyzeGoAst(".")
+	registry := decl_registry.NewRegistry()
+	executor, err := executor.NewExecutor(registry)
 	if err != nil {
 		errs.HandleError(err)
 	}
-	candidates, err := completer.NewCandidates(nodes)
+	completer, err := completer.NewCompleter(registry)
 	if err != nil {
 		errs.HandleError(err)
 	}
-	declEntry := decls.NewDeclEntry()
-	executor, err := executor.NewExecutor(declEntry, nodes, fset)
-	if err != nil {
-		errs.HandleError(err)
-	}
-	completer := completer.NewCompleter(candidates, declEntry)
 	repl := repl.NewRepl(completer, executor)
 	if err := repl.Run(); err != nil {
 		errs.HandleError(err)
