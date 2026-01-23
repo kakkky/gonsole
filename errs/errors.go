@@ -62,6 +62,11 @@ func (e *BadInputError) Error() string {
 
 // エラーを処理する関数
 func HandleError(err error) {
+	const (
+		redColor   = "\033[31m"
+		resetColor = "\033[0m"
+	)
+
 	var internalErr *InternalError
 	var badInputErr *BadInputError
 	var errType ErrType
@@ -73,5 +78,6 @@ func HandleError(err error) {
 	default:
 		errType = UNKNOWN_ERROR
 	}
-	fmt.Printf("\n\033[31m[%s]\n %s\033[0m\n\n", errType, err.Error())
+
+	fmt.Printf("\n%s[%s]\n %s%s\n\n", redColor, errType, err.Error(), resetColor)
 }
