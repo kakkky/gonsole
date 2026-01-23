@@ -3,6 +3,7 @@ package repl
 import (
 	"fmt"
 
+	// go:embedディレクティブ用
 	_ "embed"
 	"os"
 
@@ -38,7 +39,7 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 
 // Run はREPLセッションを開始する
 func (r *Repl) Run() error {
-	printGonsoleAsciiArt()
+	printGonsoleASCIIArt()
 	version.PrintVersion()
 	fmt.Print("\n\n Interactive Golang Execution Console\n\n")
 	ok, latestVersion, err := version.IsLatestVersion()
@@ -54,9 +55,9 @@ func (r *Repl) Run() error {
 }
 
 //go:embed gonsole_ascii.txt
-var gonsoleAsciiArt []byte
+var gonsoleASCIIArt []byte
 
-func printGonsoleAsciiArt() {
+func printGonsoleASCIIArt() {
 	// Print the ASCII art to the console
-	fmt.Print(string(gonsoleAsciiArt))
+	fmt.Print(string(gonsoleASCIIArt))
 }

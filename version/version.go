@@ -1,6 +1,7 @@
 package version
 
 import (
+	// go:embedディレクティブ用
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -51,8 +52,9 @@ func fetchLatestVersion() (string, error) {
 }
 
 //go:embed latest_ver_note_ascii.txt
-var latestVerNoteAscii []byte
+var latestVerNoteASCII []byte
 
+// PrintNoteLatestVersion は最新バージョンが存在する場合の通知を表示する
 func PrintNoteLatestVersion(latestVersion string) {
-	fmt.Printf(string(latestVerNoteAscii), latestVersion, VERSION)
+	fmt.Printf(string(latestVerNoteASCII), latestVersion, VERSION)
 }

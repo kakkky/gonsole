@@ -23,7 +23,7 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
-// ExecutorはREPLセッション内でのコード実行を担う
+// Executor はREPLセッション内でのコード実行を担う
 // go-promptのExecutorインターフェースを実装する
 type Executor struct {
 	declRegistry *declregistry.DeclRegistry
@@ -195,8 +195,8 @@ func (e *Executor) appendAssignStmtToMainFuncBody(assignStmt *ast.AssignStmt, ma
 		}
 
 	}
-	assignStmtLhs := assignStmt.Lhs[0].(*ast.Ident)
-	mainFunc.Body.List = append(mainFunc.Body.List, assignStmt, blankAssignStmt(types.DeclName(assignStmtLhs.Name)))
+	assignStmtLHS := assignStmt.Lhs[0].(*ast.Ident)
+	mainFunc.Body.List = append(mainFunc.Body.List, assignStmt, blankAssignStmt(types.DeclName(assignStmtLHS.Name)))
 	return nil
 }
 
@@ -213,8 +213,8 @@ func (e *Executor) appendDeclStmtToMainFuncBody(declStmt *ast.DeclStmt, mainFunc
 			}
 		}
 	}
-	assignStmtLhs := declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0]
-	mainFunc.Body.List = append(mainFunc.Body.List, declStmt, blankAssignStmt(types.DeclName(assignStmtLhs.Name)))
+	assignStmtLHS := declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0]
+	mainFunc.Body.List = append(mainFunc.Body.List, declStmt, blankAssignStmt(types.DeclName(assignStmtLHS.Name)))
 	return nil
 }
 

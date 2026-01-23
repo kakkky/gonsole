@@ -20,7 +20,8 @@ type StructFieldName string
 // TypeName は型名を表す。
 type TypeName string
 
-// ReceiverName はメソッドのレシーバ型名を表す。
+// ReceiverTypeName はメソッドのレシーバ型名を表す。
 type ReceiverTypeName TypeName
 
+// ImportPath はインポートパスを表す。
 type ImportPath string

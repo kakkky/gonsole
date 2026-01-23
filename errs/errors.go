@@ -5,15 +5,17 @@ import (
 	"fmt"
 )
 
+// ErrType はエラーの種類を表す
 type ErrType string
 
+// ErrType の種類
 const (
-	INTERNAL_ERROR  ErrType = "INTERNAL ERROR"
-	BAD_INPUT_ERROR ErrType = "BAD INPUT ERROR"
-	UNKNOWN_ERROR   ErrType = "UNKNOWN ERROR"
+	UnknownErrorType  ErrType = "UNKNOWN ERROR"   // 不明なエラー
+	InternalErrorType ErrType = "INTERNAL ERROR"  // 内部的なエラー
+	BadInputErrorType ErrType = "BAD INPUT ERROR" // ユーザーからの不正な入力に起因するエラー
 )
 
-// 内部的なエラー
+// InternalError は内部的なエラー
 type InternalError struct {
 	message string
 	wrapped error
@@ -27,7 +29,7 @@ func NewInternalError(message string) *InternalError {
 }
 
 // Wrap は元のエラーを内部エラーにラップする
-func (e *InternalError) Wrap(err error) error {
+func (e *InternalError) Wrap(err error) *InternalError {
 	e.wrapped = err
 	return e
 }
@@ -40,7 +42,7 @@ func (e *InternalError) Error() string {
 	return e.message + ": " + e.wrapped.Error()
 }
 
-// ユーザーからの不正な入力に起因するエラー
+// BadInputError は不正入力エラー
 type BadInputError struct {
 	message string
 	wrapped error
@@ -54,7 +56,7 @@ func NewBadInputError(message string) *BadInputError {
 }
 
 // Wrap は元のエラーを不正入力エラーにラップする
-func (e *BadInputError) Wrap(err error) error {
+func (e *BadInputError) Wrap(err error) *BadInputError {
 	e.wrapped = err
 	return e
 }
@@ -79,11 +81,11 @@ func HandleError(err error) {
 	var errType ErrType
 	switch {
 	case errors.As(err, &internalErr):
-		errType = INTERNAL_ERROR
+		errType = InternalErrorType
 	case errors.As(err, &badInputErr):
-		errType = BAD_INPUT_ERROR
+		errType = BadInputErrorType
 	default:
-		errType = UNKNOWN_ERROR
+		errType = UnknownErrorType
 	}
 
 	fmt.Printf("\n%s[%s]\n %s%s\n\n", redColor, errType, err.Error(), resetColor)
