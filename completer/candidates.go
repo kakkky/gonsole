@@ -260,22 +260,22 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 			switch rhsV := rhs.(type) {
 			case *ast.CompositeLit:
 				// 構造体リテラルの型を適切に処理
-				var typeNameOfRhsV types.TypeName
-				var pkgNameOfRhsV types.PkgName
+				var typeNameOfRHSV types.TypeName
+				var pkgNameOfRHSV types.PkgName
 				switch rhsTypeV := rhsV.Type.(type) {
 				case *ast.Ident:
 					// 単純な型名 (Type{})
-					typeNameOfRhsV = types.TypeName(rhsTypeV.Name)
-					pkgNameOfRhsV = pkgName // 現在のパッケージ名
+					typeNameOfRHSV = types.TypeName(rhsTypeV.Name)
+					pkgNameOfRHSV = pkgName // 現在のパッケージ名
 				case *ast.SelectorExpr:
 					// パッケージ名付きの型 (pkg.Type{})
-					typeNameOfRhsV = types.TypeName(rhsTypeV.Sel.Name)
-					pkgNameOfRhsV = types.PkgName(rhsTypeV.X.(*ast.Ident).Name)
+					typeNameOfRHSV = types.TypeName(rhsTypeV.Sel.Name)
+					pkgNameOfRHSV = types.PkgName(rhsTypeV.X.(*ast.Ident).Name)
 				}
-				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRhsV, pkgName: pkgNameOfRhsV})
+				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRHSV, pkgName: pkgNameOfRHSV})
 			case *ast.UnaryExpr:
-				var typeNameOfRhsV types.TypeName
-				var pkgNameOfRhsV types.PkgName
+				var typeNameOfRHSV types.TypeName
+				var pkgNameOfRHSV types.PkgName
 				switch rhsV.Op {
 				case token.AND:
 					switch rhsUnaryExprV := rhsV.X.(type) {
@@ -283,14 +283,14 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 						switch rhsCompositeLitTypeV := rhsUnaryExprV.Type.(type) {
 						case *ast.Ident:
 							// 単純な型名 (Type{})
-							typeNameOfRhsV = types.TypeName(rhsCompositeLitTypeV.Name)
-							pkgNameOfRhsV = pkgName // 現在のパッケージ名
+							typeNameOfRHSV = types.TypeName(rhsCompositeLitTypeV.Name)
+							pkgNameOfRHSV = pkgName // 現在のパッケージ名
 						case *ast.SelectorExpr:
 							// パッケージ名付きの型 (pkg.Type{})
-							typeNameOfRhsV = types.TypeName(rhsCompositeLitTypeV.Sel.Name)
-							pkgNameOfRhsV = types.PkgName(rhsCompositeLitTypeV.X.(*ast.Ident).Name)
+							typeNameOfRHSV = types.TypeName(rhsCompositeLitTypeV.Sel.Name)
+							pkgNameOfRHSV = types.PkgName(rhsCompositeLitTypeV.X.(*ast.Ident).Name)
 						}
-						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRhsV, pkgName: pkgNameOfRhsV})
+						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRHSV, pkgName: pkgNameOfRHSV})
 					}
 				case token.MUL:
 					// TODO: デリファレンスの場合の処理
@@ -358,28 +358,28 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 				}
 			case *ast.BasicLit:
 				// 基本リテラル (文字列、数値など)
-				var typeNameOfRhsV types.TypeName
+				var typeNameOfRHSV types.TypeName
 
 				// リテラルの種類に基づいて型を推測
 				switch rhsV.Kind {
 				case token.INT:
-					typeNameOfRhsV = "int"
+					typeNameOfRHSV = "int"
 				case token.FLOAT:
-					typeNameOfRhsV = "float64"
+					typeNameOfRHSV = "float64"
 				case token.IMAG:
-					typeNameOfRhsV = "complex128"
+					typeNameOfRHSV = "complex128"
 				case token.CHAR:
-					typeNameOfRhsV = "rune"
+					typeNameOfRHSV = "rune"
 				case token.STRING:
-					typeNameOfRhsV = "string"
+					typeNameOfRHSV = "string"
 				default:
-					typeNameOfRhsV = "unknown"
+					typeNameOfRHSV = "unknown"
 				}
 
 				c.vars[pkgName] = append(c.vars[pkgName], varSet{
 					name:        name,
 					description: genDeclDescription + specDescription,
-					typeName:    typeNameOfRhsV,
+					typeName:    typeNameOfRHSV,
 					pkgName:     "",
 				})
 			}

@@ -3,7 +3,7 @@ package decl_registry
 import "github.com/kakkky/gonsole/types"
 
 // いずれかのフィールドのみがセットされる
-type declRhs struct {
+type declRHS struct {
 	name    types.DeclName
 	kind    rhsKind
 	pkgName types.PkgName
@@ -12,21 +12,21 @@ type declRhs struct {
 type rhsKind int
 
 const (
-	DeclRhsKindUnknown rhsKind = iota
-	DeclRhsKindVar
-	DeclRhsKindStruct
-	DeclRhsKindFunc
-	DeclRhsKindMethod
+	DeclRHSKindUnknown rhsKind = iota
+	DeclRHSKindVar
+	DeclRHSKindStruct
+	DeclRHSKindFunc
+	DeclRHSKindMethod
 )
 
-func (rhs declRhs) Name() types.DeclName {
+func (rhs declRHS) Name() types.DeclName {
 	return rhs.name
 }
 
-func (rhs declRhs) Kind() rhsKind {
+func (rhs declRHS) Kind() rhsKind {
 	return rhs.kind
 }
 
-func (rhs declRhs) PkgName() types.PkgName {
+func (rhs declRHS) PkgName() types.PkgName {
 	return rhs.pkgName
 }

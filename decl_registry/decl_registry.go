@@ -42,31 +42,31 @@ func (dr *DeclRegistry) Register(input string) error {
 }
 
 func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
-	for i, stmtRhs := range assignmentStmt.Rhs {
-		switch stmtRhsV := stmtRhs.(type) {
+	for i, stmtRHS := range assignmentStmt.Rhs {
+		switch stmtRHSV := stmtRHS.(type) {
 		// 右辺がセレクタ式の場合
 		case *ast.SelectorExpr:
 			decl := Decl{
 				name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-				rhs: declRhs{
-					name:    types.DeclName(stmtRhsV.Sel.Name),
-					kind:    DeclRhsKindVar,
-					pkgName: types.PkgName(stmtRhsV.X.(*ast.Ident).Name),
+				rhs: declRHS{
+					name:    types.DeclName(stmtRHSV.Sel.Name),
+					kind:    DeclRHSKindVar,
+					pkgName: types.PkgName(stmtRHSV.X.(*ast.Ident).Name),
 				},
 			}
 			dr.register(decl)
 			continue
 		case *ast.CompositeLit:
-			switch stmtRhsTypeV := stmtRhsV.Type.(type) {
+			switch stmtRHSTypeV := stmtRHSV.Type.(type) {
 			// セレクタ式の場合
 			// 基本的にセレクタ式しか想定しない
 			case *ast.SelectorExpr:
 				decl := Decl{
 					name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-					rhs: declRhs{
-						name:    types.DeclName(stmtRhsTypeV.Sel.Name),
-						kind:    DeclRhsKindStruct,
-						pkgName: types.PkgName(stmtRhsTypeV.X.(*ast.Ident).Name),
+					rhs: declRHS{
+						name:    types.DeclName(stmtRHSTypeV.Sel.Name),
+						kind:    DeclRHSKindStruct,
+						pkgName: types.PkgName(stmtRHSTypeV.X.(*ast.Ident).Name),
 					},
 				}
 				dr.register(decl)
@@ -74,19 +74,19 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 			}
 		// 右辺が演算子つきの場合
 		case *ast.UnaryExpr:
-			switch stmtRhsV.Op {
+			switch stmtRHSV.Op {
 			// & 演算子の場合
 			// (構造体をポインタ型で表現している場合など）
 			case token.AND:
-				switch rhsExprV := stmtRhsV.X.(type) {
+				switch rhsExprV := stmtRHSV.X.(type) {
 				case *ast.CompositeLit:
 					switch rhsExprTypeV := rhsExprV.Type.(type) {
 					case *ast.SelectorExpr:
 						decl := Decl{
 							name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-							rhs: declRhs{
+							rhs: declRHS{
 								name:    types.DeclName(rhsExprTypeV.Sel.Name),
-								kind:    DeclRhsKindStruct,
+								kind:    DeclRHSKindStruct,
 								pkgName: types.PkgName(rhsExprTypeV.X.(*ast.Ident).Name),
 							},
 						}
@@ -97,7 +97,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 			}
 		// 右辺が関数呼び出しの場合
 		case *ast.CallExpr:
-			switch rhsFunV := stmtRhsV.Fun.(type) {
+			switch rhsFunV := stmtRHSV.Fun.(type) {
 			case *ast.SelectorExpr:
 				var selectorBase string
 				switch rhsFunExprV := rhsFunV.X.(type) {
@@ -113,9 +113,9 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 							name:        types.DeclName(lhsExpr.(*ast.Ident).Name),
 							isReturnVal: true,
 							returnedIdx: i,
-							rhs: declRhs{
+							rhs: declRHS{
 								name:    types.DeclName(rhsFunV.Sel.Name),
-								kind:    DeclRhsKindMethod,
+								kind:    DeclRHSKindMethod,
 								pkgName: dr.PkgNameOfReceiver(types.DeclName(selectorBase)),
 							},
 						}
@@ -128,9 +128,9 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 						name:        types.DeclName(lhsExpr.(*ast.Ident).Name),
 						isReturnVal: true,
 						returnedIdx: i,
-						rhs: declRhs{
+						rhs: declRHS{
 							name:    types.DeclName(rhsFunV.Sel.Name),
-							kind:    DeclRhsKindFunc,
+							kind:    DeclRHSKindFunc,
 							pkgName: types.PkgName(selectorBase),
 						},
 					}
@@ -152,9 +152,9 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 					case *ast.SelectorExpr:
 						decl := Decl{
 							name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-							rhs: declRhs{
+							rhs: declRHS{
 								name:    types.DeclName(valueV.Sel.Name),
-								kind:    DeclRhsKindVar,
+								kind:    DeclRHSKindVar,
 								pkgName: types.PkgName(valueV.X.(*ast.Ident).Name),
 							},
 						}
@@ -165,9 +165,9 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 						case *ast.SelectorExpr:
 							decl := Decl{
 								name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-								rhs: declRhs{
+								rhs: declRHS{
 									name:    types.DeclName(valueTypeV.Sel.Name),
-									kind:    DeclRhsKindStruct,
+									kind:    DeclRHSKindStruct,
 									pkgName: types.PkgName(valueTypeV.X.(*ast.Ident).Name),
 								},
 							}
@@ -185,9 +185,9 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 								case *ast.SelectorExpr:
 									decl := Decl{
 										name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-										rhs: declRhs{
+										rhs: declRHS{
 											name:    types.DeclName(valueExprTypeV.Sel.Name),
-											kind:    DeclRhsKindStruct,
+											kind:    DeclRHSKindStruct,
 											pkgName: types.PkgName(valueExprTypeV.X.(*ast.Ident).Name),
 										},
 									}
@@ -205,9 +205,9 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 									name:        types.DeclName(stmtDeclSpecName.Name),
 									isReturnVal: true,
 									returnedIdx: i,
-									rhs: declRhs{
+									rhs: declRHS{
 										name:    types.DeclName(valueFunV.Sel.Name),
-										kind:    DeclRhsKindFunc,
+										kind:    DeclRHSKindFunc,
 										pkgName: types.PkgName(valueFunV.X.(*ast.Ident).Name),
 									},
 								}

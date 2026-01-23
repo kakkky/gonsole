@@ -178,12 +178,12 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 }
 
 func (e *Executor) appendAssignStmtToMainFuncBody(assignStmt *ast.AssignStmt, mainFunc *ast.FuncDecl) error {
-	assignStmtRhs := assignStmt.Rhs[0]
-	switch assignStmtRhs.(type) {
+	assignStmtRHS := assignStmt.Rhs[0]
+	switch assignStmtRHS.(type) {
 	case *ast.BasicLit:
 		// 右辺が基本リテラルの場合は特に何もしない
 	default:
-		selectorBase := extractSelectorBaseFromExpr(assignStmtRhs)
+		selectorBase := extractSelectorBaseFromExpr(assignStmtRHS)
 		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 			if err := e.addImportPath(types.PkgName(selectorBase)); err != nil {
 				return err
@@ -197,12 +197,12 @@ func (e *Executor) appendAssignStmtToMainFuncBody(assignStmt *ast.AssignStmt, ma
 }
 
 func (e *Executor) appendDeclStmtToMainFuncBody(declStmt *ast.DeclStmt, mainFunc *ast.FuncDecl) error {
-	declStmtRhs := declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Values[0]
-	switch declStmtRhs.(type) {
+	declStmtRHS := declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Values[0]
+	switch declStmtRHS.(type) {
 	case *ast.BasicLit:
 		// 右辺が基本リテラルの場合は特に何もしない
 	default:
-		selectorBase := extractSelectorBaseFromExpr(declStmtRhs)
+		selectorBase := extractSelectorBaseFromExpr(declStmtRHS)
 		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 			if err := e.addImportPath(types.PkgName(selectorBase)); err != nil {
 				return err

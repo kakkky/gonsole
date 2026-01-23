@@ -82,32 +82,32 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 	// repl内で宣言された変数名エントリを回す
 	for _, decl := range c.declRegistry.Decls() {
 		if sb.input.basePart == string(decl.Name()) {
-			for _, methodSet := range c.candidates.methods[decl.Rhs().PkgName()] {
+			for _, methodSet := range c.candidates.methods[decl.RHS().PkgName()] {
 				// メソッド名の前方一致フィルタと非公開フィルタ
 				if strings.HasPrefix(string(methodSet.name), sb.input.selectorPart) && !isPrivate(string(methodSet.name)) {
-					switch decl.Rhs().Kind() {
-					case decl_registry.DeclRhsKindVar:
-						suggestions = c.findMethodSuggestionsFromDeclRhsVar(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRhsKindStruct:
-						suggestions = c.findMethodSuggestionsFromDeclRhsStruct(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRhsKindFunc:
-						suggestions = c.findMethodSuggestionsFromDeclRhsFuncReturnValues(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRhsKindMethod:
-						suggestions = c.findMethodSuggestionsFromDeclRhsMethodReturnValues(suggestions, sb, decl, methodSet)
-					case decl_registry.DeclRhsKindUnknown:
+					switch decl.RHS().Kind() {
+					case decl_registry.DeclRHSKindVar:
+						suggestions = c.findMethodSuggestionsFromDeclRHSVar(suggestions, sb, decl, methodSet)
+					case decl_registry.DeclRHSKindStruct:
+						suggestions = c.findMethodSuggestionsFromDeclRHSStruct(suggestions, sb, decl, methodSet)
+					case decl_registry.DeclRHSKindFunc:
+						suggestions = c.findMethodSuggestionsFromDeclRHSFuncReturnValues(suggestions, sb, decl, methodSet)
+					case decl_registry.DeclRHSKindMethod:
+						suggestions = c.findMethodSuggestionsFromDeclRHSMethodReturnValues(suggestions, sb, decl, methodSet)
+					case decl_registry.DeclRHSKindUnknown:
 					}
 				}
 			}
 			if len(suggestions) > 0 {
 				return suggestions
 			}
-			for _, interfaceSet := range c.candidates.interfaces[decl.Rhs().PkgName()] {
+			for _, interfaceSet := range c.candidates.interfaces[decl.RHS().PkgName()] {
 				if !isPrivate(string(interfaceSet.name)) {
-					switch decl.Rhs().Kind() {
-					case decl_registry.DeclRhsKindFunc:
-						suggestions = c.findMethodSuggestionsFromDeclRhsFuncReturnInterface(suggestions, sb, decl, interfaceSet)
-					case decl_registry.DeclRhsKindMethod:
-						suggestions = c.findMethodSuggestionsFromDeclRhsMethodReturnInterface(suggestions, sb, decl, interfaceSet)
+					switch decl.RHS().Kind() {
+					case decl_registry.DeclRHSKindFunc:
+						suggestions = c.findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggestions, sb, decl, interfaceSet)
+					case decl_registry.DeclRHSKindMethod:
+						suggestions = c.findMethodSuggestionsFromDeclRHSMethodReturnInterface(suggestions, sb, decl, interfaceSet)
 					}
 				}
 			}
@@ -119,12 +119,12 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 
 // 構造体リテラルから宣言された変数のメソッド候補を追加する
 // その変数が構造体リテラルで宣言されたものである場合、レシーバの型が一致する場合は、補完候補として追加する
-func (c *Completer) findMethodSuggestionsFromDeclRhsStruct(
+func (c *Completer) findMethodSuggestionsFromDeclRHSStruct(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
 	decl decl_registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
-	if string(decl.Rhs().Name()) == string(methodSet.receiverTypeName) {
+	if string(decl.RHS().Name()) == string(methodSet.receiverTypeName) {
 		suggestions = append(suggestions, sb.build(string(methodSet.name), suggestTypeMethod, methodSet.description, "()"))
 	}
 	return suggestions
@@ -133,23 +133,23 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsStruct(
 // 変数から宣言された変数のメソッド候補を追加する
 // その変数が、ソースコード内で宣言された変数である場合、ソースコード内から得られた変数の補完候補をたどってパッケージ名と型情報を確定させ、
 // その型に一致する場合は、補完候補として追加する
-func (c *Completer) findMethodSuggestionsFromDeclRhsVar(
+func (c *Completer) findMethodSuggestionsFromDeclRHSVar(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
 	decl decl_registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
-	declRhsVarName := decl.Rhs().Name()
-	declRhsVarPkgName := decl.Rhs().PkgName()
+	declRHSVarName := decl.RHS().Name()
+	declRHSVarPkgName := decl.RHS().PkgName()
 	// 変数の補完候補を取得
-	varSets, ok := c.candidates.vars[declRhsVarPkgName]
+	varSets, ok := c.candidates.vars[declRHSVarPkgName]
 	if !ok {
 		return suggestions
 	}
 
 	for _, varSet := range varSets {
-		if declRhsVarPkgName == varSet.pkgName && // パッケージ名が一致
-			declRhsVarName == varSet.name && // 変数名が一致
+		if declRHSVarPkgName == varSet.pkgName && // パッケージ名が一致
+			declRHSVarName == varSet.name && // 変数名が一致
 			varSet.typeName == types.TypeName(methodSet.receiverTypeName) { // 型名が一致
 			suggestions = append(suggestions, sb.build(string(methodSet.name), suggestTypeMethod, methodSet.description, "()"))
 		}
@@ -160,21 +160,21 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsVar(
 // 関数の戻り値から宣言された変数のメソッド候補を追加する
 // その変数が、関数の戻り値である場合、ソースコード内から得られた関数の補完候補をたどって、その関数のパッケージ名と型情報を確定させ、
 // その型に一致する場合は、補完候補として追加する
-func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnValues(
+func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnValues(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
 	decl decl_registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
 	// 右辺の関数名と戻り値の順序を取得
-	declRhsFuncName := decl.Rhs().Name()
-	declRhsFuncPkgName := decl.Rhs().PkgName()
+	declRHSFuncName := decl.RHS().Name()
+	declRHSFuncPkgName := decl.RHS().PkgName()
 	ok, returnedIdx := decl.IsReturnVal()
 	if !ok {
 		return suggestions
 	}
 
-	funcSets, ok := c.candidates.funcs[declRhsFuncPkgName]
+	funcSets, ok := c.candidates.funcs[declRHSFuncPkgName]
 	if !ok {
 		return suggestions
 	}
@@ -182,7 +182,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnValues(
 	var returnElm *returnSet
 	for _, funcSet := range funcSets {
 		// 関数名が一致
-		if declRhsFuncName == funcSet.name {
+		if declRHSFuncName == funcSet.name {
 			if returnedIdx >= len(funcSet.returns) {
 				continue // 戻り値の順序が範囲外の場合はスキップ
 			}
@@ -205,21 +205,21 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnValues(
 // メソッドの戻り値から宣言された変数のメソッド候補を追加する
 // その変数が、メソッドの戻り値である場合、ソースコード内から得られたメソッドの補完候補をたどって、そのメソッドのパッケージ名と型情報を確定させ、
 // その型に一致する場合は、補完候補として追加する
-func (c *Completer) findMethodSuggestionsFromDeclRhsMethodReturnValues(
+func (c *Completer) findMethodSuggestionsFromDeclRHSMethodReturnValues(
 	suggestions []prompt.Suggest,
 	sb *suggestionBuilder,
 	decl decl_registry.Decl,
 	methodSet methodSet) []prompt.Suggest {
 
-	declRhsMethodName := decl.Rhs().Name()
-	declRhsMethodPkgName := decl.Rhs().PkgName()
+	declRHSMethodName := decl.RHS().Name()
+	declRHSMethodPkgName := decl.RHS().PkgName()
 
 	ok, returnedIdx := decl.IsReturnVal()
 	if !ok {
 		return suggestions
 	}
 
-	methodSets, ok := c.candidates.methods[declRhsMethodPkgName]
+	methodSets, ok := c.candidates.methods[declRHSMethodPkgName]
 	if !ok {
 		return suggestions
 	}
@@ -227,7 +227,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsMethodReturnValues(
 	// 1. メソッドを探して戻り値の型を取得
 	var returnElm *returnSet
 	for _, candidateMethodSet := range methodSets {
-		if declRhsMethodName == candidateMethodSet.name {
+		if declRHSMethodName == candidateMethodSet.name {
 			if returnedIdx >= len(candidateMethodSet.returns) {
 				continue
 			}
@@ -253,16 +253,16 @@ func isMethodChain(selectorPart string) bool {
 	return strings.Contains(selectorPart, ").")
 }
 
-func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
+func (c *Completer) findMethodSuggestionsFromDeclRHSFuncReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
 	// 右辺の関数名と戻り値の順序を取得
-	declRhsFuncName := decl.Rhs().Name()
-	declRhsFuncPkgName := decl.Rhs().PkgName()
+	declRHSFuncName := decl.RHS().Name()
+	declRHSFuncPkgName := decl.RHS().PkgName()
 	ok, returnedIdx := decl.IsReturnVal()
 	if !ok {
 		return suggestions
 	}
 
-	funcSets, ok := c.candidates.funcs[declRhsFuncPkgName]
+	funcSets, ok := c.candidates.funcs[declRHSFuncPkgName]
 	if !ok {
 		return suggestions
 	}
@@ -270,7 +270,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnInterface(suggesti
 	var returnElm *returnSet
 	for _, funcSet := range funcSets {
 		// 関数名が一致
-		if declRhsFuncName == funcSet.name {
+		if declRHSFuncName == funcSet.name {
 			if returnedIdx >= len(funcSet.returns) {
 				continue // 戻り値の順序が範囲外の場合はスキップ
 			}
@@ -292,17 +292,17 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsFuncReturnInterface(suggesti
 	return suggestions
 }
 
-func (c *Completer) findMethodSuggestionsFromDeclRhsMethodReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
+func (c *Completer) findMethodSuggestionsFromDeclRHSMethodReturnInterface(suggestions []prompt.Suggest, sb *suggestionBuilder, decl decl_registry.Decl, interfaceSet interfaceSet) []prompt.Suggest {
 	// 右辺のメソッド名と戻り値の順序を取得
-	declRhsMethodName := decl.Rhs().Name()
-	declRhsMethodPkgName := decl.Rhs().PkgName()
+	declRHSMethodName := decl.RHS().Name()
+	declRHSMethodPkgName := decl.RHS().PkgName()
 
 	ok, returnedIdx := decl.IsReturnVal()
 	if !ok {
 		return suggestions
 	}
 
-	methodSets, ok := c.candidates.methods[declRhsMethodPkgName]
+	methodSets, ok := c.candidates.methods[declRHSMethodPkgName]
 	if !ok {
 		return suggestions
 	}
@@ -310,7 +310,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRhsMethodReturnInterface(sugges
 	// 1. メソッドを探して戻り値の型を取得
 	var returnElm *returnSet
 	for _, candidateMethodSet := range methodSets {
-		if declRhsMethodName == candidateMethodSet.name {
+		if declRHSMethodName == candidateMethodSet.name {
 			if returnedIdx >= len(candidateMethodSet.returns) {
 				continue
 			}
@@ -356,32 +356,32 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		var firstRecvPkgName types.PkgName
 		for _, decl := range c.declRegistry.Decls() {
 			if decl.Name() == types.DeclName(sb.input.basePart) {
-				switch decl.Rhs().Kind() {
-				case decl_registry.DeclRhsKindVar:
-					if varSets, ok := c.candidates.vars[decl.Rhs().PkgName()]; ok {
+				switch decl.RHS().Kind() {
+				case decl_registry.DeclRHSKindVar:
+					if varSets, ok := c.candidates.vars[decl.RHS().PkgName()]; ok {
 						for _, varSet := range varSets {
-							if varSet.name == decl.Rhs().Name() {
+							if varSet.name == decl.RHS().Name() {
 								firstRecvTypeName = varSet.typeName
 								firstRecvPkgName = varSet.pkgName
 								break
 							}
 						}
 					}
-				case decl_registry.DeclRhsKindStruct:
-					firstRecvTypeName = types.TypeName(decl.Rhs().Name())
-					firstRecvPkgName = decl.Rhs().PkgName()
-				case decl_registry.DeclRhsKindFunc:
+				case decl_registry.DeclRHSKindStruct:
+					firstRecvTypeName = types.TypeName(decl.RHS().Name())
+					firstRecvPkgName = decl.RHS().PkgName()
+				case decl_registry.DeclRHSKindFunc:
 					ok, _ := decl.IsReturnVal()
 					if !ok {
 						break
 					}
-					funcSets, ok := c.candidates.funcs[decl.Rhs().PkgName()]
+					funcSets, ok := c.candidates.funcs[decl.RHS().PkgName()]
 					if !ok {
 						break
 					}
 					var returnElm *returnSet
 					for _, funcSet := range funcSets {
-						if funcSet.name == decl.Rhs().Name() {
+						if funcSet.name == decl.RHS().Name() {
 							returnElm = &funcSet.returns[0]
 							break
 						}
@@ -391,21 +391,21 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 					}
 					firstRecvTypeName = returnElm.typeName
 					firstRecvPkgName = returnElm.pkgName
-				case decl_registry.DeclRhsKindMethod:
-					declRhsMethodName := decl.Rhs().Name()
-					declRhsMethodPkgName := decl.Rhs().PkgName()
+				case decl_registry.DeclRHSKindMethod:
+					declRHSMethodName := decl.RHS().Name()
+					declRHSMethodPkgName := decl.RHS().PkgName()
 					ok, _ := decl.IsReturnVal()
 					if !ok {
 						break
 					}
-					methodSets, ok := c.candidates.methods[declRhsMethodPkgName]
+					methodSets, ok := c.candidates.methods[declRHSMethodPkgName]
 					if !ok {
 						break
 					}
 
 					var returnElm *returnSet
 					for _, methodSet := range methodSets {
-						if declRhsMethodName == methodSet.name && len(methodSet.returns) == 1 {
+						if declRHSMethodName == methodSet.name && len(methodSet.returns) == 1 {
 							returnElm = &methodSet.returns[0]
 							break
 						}
