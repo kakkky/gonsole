@@ -85,7 +85,9 @@ func (e *Executor) Execute(input string) {
 		if err := e.cleanErrLineFromSessionSrc(cmdErrMsg, fset); err != nil {
 			errs.HandleError(err)
 		}
-		e.flushSessionSrc(tmpFile, fset)
+		if err := e.flushSessionSrc(tmpFile, fset); err != nil {
+			errs.HandleError(err)
+		}
 	}
 
 	// 実行結果を表示する
@@ -98,7 +100,9 @@ func (e *Executor) Execute(input string) {
 
 	// 最後の式呼び出しを削除してflushする
 	e.cleanCallExprFromSessionSrc()
-	e.flushSessionSrc(tmpFile, fset)
+	if err := e.flushSessionSrc(tmpFile, fset); err != nil {
+		errs.HandleError(err)
+	}
 }
 
 func (e *Executor) writeInSessionSrc(input string) error {
