@@ -9,10 +9,6 @@ import (
 )
 
 func main() {
-	// candidates, err := completer.NewCandidates(".")
-	// if err != nil {
-	// 	errs.HandleError(err)
-	// }
 	registry := decl_registry.NewRegistry()
 	executor, err := executor.NewExecutor(registry)
 	if err != nil {
