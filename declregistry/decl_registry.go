@@ -51,7 +51,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 		case *ast.SelectorExpr:
 			decl := Decl{
 				name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-				rhs: declRHS{
+				rhs: DeclRHS{
 					name:    types.DeclName(stmtRHSV.Sel.Name),
 					kind:    DeclRHSKindVar,
 					pkgName: types.PkgName(stmtRHSV.X.(*ast.Ident).Name),
@@ -66,7 +66,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 			case *ast.SelectorExpr:
 				decl := Decl{
 					name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    types.DeclName(stmtRHSTypeV.Sel.Name),
 						kind:    DeclRHSKindStruct,
 						pkgName: types.PkgName(stmtRHSTypeV.X.(*ast.Ident).Name),
@@ -87,7 +87,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 					case *ast.SelectorExpr:
 						decl := Decl{
 							name: types.DeclName(assignmentStmt.Lhs[i].(*ast.Ident).Name),
-							rhs: declRHS{
+							rhs: DeclRHS{
 								name:    types.DeclName(rhsExprTypeV.Sel.Name),
 								kind:    DeclRHSKindStruct,
 								pkgName: types.PkgName(rhsExprTypeV.X.(*ast.Ident).Name),
@@ -116,7 +116,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 							name:        types.DeclName(lhsExpr.(*ast.Ident).Name),
 							isReturnVal: true,
 							returnedIdx: i,
-							rhs: declRHS{
+							rhs: DeclRHS{
 								name:    types.DeclName(rhsFunV.Sel.Name),
 								kind:    DeclRHSKindMethod,
 								pkgName: dr.PkgNameOfReceiver(types.DeclName(selectorBase)),
@@ -131,7 +131,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 						name:        types.DeclName(lhsExpr.(*ast.Ident).Name),
 						isReturnVal: true,
 						returnedIdx: i,
-						rhs: declRHS{
+						rhs: DeclRHS{
 							name:    types.DeclName(rhsFunV.Sel.Name),
 							kind:    DeclRHSKindFunc,
 							pkgName: types.PkgName(selectorBase),
@@ -155,7 +155,7 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 					case *ast.SelectorExpr:
 						decl := Decl{
 							name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-							rhs: declRHS{
+							rhs: DeclRHS{
 								name:    types.DeclName(valueV.Sel.Name),
 								kind:    DeclRHSKindVar,
 								pkgName: types.PkgName(valueV.X.(*ast.Ident).Name),
@@ -168,7 +168,7 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 						case *ast.SelectorExpr:
 							decl := Decl{
 								name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-								rhs: declRHS{
+								rhs: DeclRHS{
 									name:    types.DeclName(valueTypeV.Sel.Name),
 									kind:    DeclRHSKindStruct,
 									pkgName: types.PkgName(valueTypeV.X.(*ast.Ident).Name),
@@ -188,7 +188,7 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 								case *ast.SelectorExpr:
 									decl := Decl{
 										name: types.DeclName(stmtDeclSpecV.Names[i].Name),
-										rhs: declRHS{
+										rhs: DeclRHS{
 											name:    types.DeclName(valueExprTypeV.Sel.Name),
 											kind:    DeclRHSKindStruct,
 											pkgName: types.PkgName(valueExprTypeV.X.(*ast.Ident).Name),
@@ -208,7 +208,7 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 									name:        types.DeclName(stmtDeclSpecName.Name),
 									isReturnVal: true,
 									returnedIdx: i,
-									rhs: declRHS{
+									rhs: DeclRHS{
 										name:    types.DeclName(valueFunV.Sel.Name),
 										kind:    DeclRHSKindFunc,
 										pkgName: types.PkgName(valueFunV.X.(*ast.Ident).Name),

@@ -2,18 +2,20 @@ package declregistry
 
 import "github.com/kakkky/gonsole/types"
 
+// DeclRHS は宣言の右辺を表す
 // いずれかのフィールドのみがセットされる
-type declRHS struct {
+type DeclRHS struct {
 	name    types.DeclName
-	kind    rhsKind
+	kind    RHSKind
 	pkgName types.PkgName
 }
 
-type rhsKind int
+// RHSKind は右辺の種類を表す
+type RHSKind int
 
-// rhsKind の種類
+// RHSKind の種類
 const (
-	DeclRHSKindUnknown rhsKind = iota // 右辺の種類が不明な場合
+	DeclRHSKindUnknown RHSKind = iota // 右辺の種類が不明な場合
 	DeclRHSKindVar                    // 右辺が変数の場合
 	DeclRHSKindStruct                 // 右辺が構造体の場合
 	DeclRHSKindFunc                   // 右辺が関数の場合
@@ -21,16 +23,16 @@ const (
 )
 
 // Name は右辺の名前を返す
-func (rhs declRHS) Name() types.DeclName {
+func (rhs DeclRHS) Name() types.DeclName {
 	return rhs.name
 }
 
 // Kind は右辺の種類を返す
-func (rhs declRHS) Kind() rhsKind {
+func (rhs DeclRHS) Kind() RHSKind {
 	return rhs.kind
 }
 
 // PkgName は右辺の属するパッケージ名を返す
-func (rhs declRHS) PkgName() types.PkgName {
+func (rhs DeclRHS) PkgName() types.PkgName {
 	return rhs.pkgName
 }

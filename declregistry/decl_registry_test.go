@@ -20,7 +20,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "a",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Var",
 						kind:    DeclRHSKindVar,
 						pkgName: "pkg",
@@ -35,7 +35,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "s",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg",
@@ -50,7 +50,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "p",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg",
@@ -67,7 +67,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 					name:        "f",
 					isReturnVal: true,
 					returnedIdx: 0,
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Func",
 						kind:    DeclRHSKindFunc,
 						pkgName: "pkg",
@@ -84,7 +84,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 					name:        "a",
 					isReturnVal: true,
 					returnedIdx: 0,
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Func",
 						kind:    DeclRHSKindFunc,
 						pkgName: "pkg",
@@ -94,7 +94,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 					name:        "b",
 					isReturnVal: true,
 					returnedIdx: 1,
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Func",
 						kind:    DeclRHSKindFunc,
 						pkgName: "pkg",
@@ -109,7 +109,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "v",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Var",
 						kind:    DeclRHSKindVar,
 						pkgName: "pkg",
@@ -124,7 +124,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "s",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg",
@@ -139,7 +139,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{
 				{
 					name: "p",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg",
@@ -156,7 +156,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 					name:        "f",
 					isReturnVal: true,
 					returnedIdx: 0,
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Func",
 						kind:    DeclRHSKindFunc,
 						pkgName: "pkg",
@@ -190,7 +190,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 			}
 
 			// cmp.Diffを使って結果を比較
-			if diff := cmp.Diff(tt.expected, sut.Decls(), cmp.AllowUnexported(Decl{}, declRHS{})); diff != "" {
+			if diff := cmp.Diff(tt.expected, sut.Decls(), cmp.AllowUnexported(Decl{}, DeclRHS{})); diff != "" {
 				t.Errorf("Register() mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -209,7 +209,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			existingDecls: []Decl{
 				{
 					name: "var1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Var",
 						kind:    DeclRHSKindVar,
 						pkgName: "pkg1",
@@ -217,7 +217,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 				},
 				{
 					name: "struct1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg2",
@@ -232,7 +232,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			existingDecls: []Decl{
 				{
 					name: "var1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Var",
 						kind:    DeclRHSKindVar,
 						pkgName: "pkg1",
@@ -240,7 +240,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 				},
 				{
 					name: "struct1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg2",
@@ -255,7 +255,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			existingDecls: []Decl{
 				{
 					name: "var1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Var",
 						kind:    DeclRHSKindVar,
 						pkgName: "pkg1",
@@ -263,7 +263,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 				},
 				{
 					name: "struct1",
-					rhs: declRHS{
+					rhs: DeclRHS{
 						name:    "Struct",
 						kind:    DeclRHSKindStruct,
 						pkgName: "pkg2",

@@ -7,7 +7,7 @@ type Decl struct {
 	name        types.DeclName
 	isReturnVal bool    // 関数やメソッドの戻り値かどうか
 	returnedIdx int     // 関数やメソッドの戻り値の場合、その戻り値の順番
-	rhs         declRHS // 宣言の右辺
+	rhs         DeclRHS // 宣言の右辺
 }
 
 // Name は宣言された変数の名前を返す
@@ -16,8 +16,9 @@ func (d Decl) Name() types.DeclName {
 }
 
 // RHS は宣言の右辺の情報を返す
-func (d Decl) RHS() declRHS {
+func (d Decl) RHS() DeclRHS {
 	return d.rhs
+
 }
 
 // IsReturnVal はその宣言が関数やメソッドの戻り値かどうかを返す
