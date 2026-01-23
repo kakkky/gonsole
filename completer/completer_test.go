@@ -884,7 +884,10 @@ func TestCompleter_Complete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			completer := NewCompleter(tt.setupCandidates, tt.setupRegistry)
+			completer := Completer{
+				candidates:   tt.setupCandidates,
+				declRegistry: tt.setupRegistry,
+			}
 			doc := prompt.Document{
 				Text: tt.inputText,
 			}

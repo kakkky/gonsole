@@ -2,11 +2,14 @@ package repl
 
 import (
 	"fmt"
+
+	_ "embed"
 	"os"
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/completer"
 	"github.com/kakkky/gonsole/executor"
+	"github.com/kakkky/gonsole/version"
 )
 
 type Repl struct {
@@ -17,7 +20,7 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 	pt := prompt.New(
 		executor.Execute,
 		completer.Complete,
-		prompt.OptionTitle("Gonsole"),
+		prompt.OptionTitle("gonsole"),
 		prompt.OptionAddKeyBind(prompt.KeyBind{
 			Key: prompt.ControlC,
 			Fn: func(buf *prompt.Buffer) {
@@ -31,16 +34,25 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 }
 
 func (r *Repl) Run() error {
-	printAscii()
-	fmt.Println("   " + VERSION)
+	printGonsoleAsciiArt()
+	version.PrintVersion()
 	fmt.Print("\n\n Interactive Golang Execution Console\n\n")
-	ok, latestVersion, err := isLatestVersion()
+	ok, latestVersion, err := version.IsLatestVersion()
 	if err != nil {
 		return err
 	}
 	if !ok {
-		printNoteLatestVersion(latestVersion)
+		version.PrintNoteLatestVersion(latestVersion)
 	}
+
 	r.pt.Run()
 	return nil
+}
+
+//go:embed gonsole_ascii.txt
+var gonsoleAsciiArt []byte
+
+func printGonsoleAsciiArt() {
+	// Print the ASCII art to the console
+	fmt.Print(string(gonsoleAsciiArt))
 }

@@ -257,9 +257,9 @@ func TestCandidates(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCandidates(tt.path)
+			got, err := newCandidates(tt.path)
 			if err != nil {
-				t.Fatalf("NewCandidates() error = %v", err)
+				t.Fatalf("newCandidates() error = %v", err)
 			}
 
 			opts := []cmp.Option{

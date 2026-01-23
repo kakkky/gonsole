@@ -9,16 +9,19 @@ import (
 )
 
 func main() {
-	candidates, err := completer.NewCandidates(".")
-	if err != nil {
-		errs.HandleError(err)
-	}
+	// candidates, err := completer.NewCandidates(".")
+	// if err != nil {
+	// 	errs.HandleError(err)
+	// }
 	registry := decl_registry.NewRegistry()
 	executor, err := executor.NewExecutor(registry)
 	if err != nil {
 		errs.HandleError(err)
 	}
-	completer := completer.NewCompleter(candidates, registry)
+	completer, err := completer.NewCompleter(registry)
+	if err != nil {
+		errs.HandleError(err)
+	}
 	repl := repl.NewRepl(completer, executor)
 	if err := repl.Run(); err != nil {
 		errs.HandleError(err)

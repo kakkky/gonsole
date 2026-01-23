@@ -12,16 +12,19 @@ import (
 )
 
 type Completer struct {
-	candidates *candidates
-	registry   *decl_registry.DeclRegistry
+	candidates   *candidates
+	declRegistry *decl_registry.DeclRegistry
 }
 
-func NewCompleter(candidates *candidates, registry *decl_registry.DeclRegistry) *Completer {
-
-	return &Completer{
-		candidates: candidates,
-		registry:   registry,
+func NewCompleter(declRegistry *decl_registry.DeclRegistry) (*Completer, error) {
+	candidates, err := newCandidates(".")
+	if err != nil {
+		return nil, err
 	}
+	return &Completer{
+		candidates:   candidates,
+		declRegistry: declRegistry,
+	}, nil
 }
 
 func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
@@ -77,7 +80,7 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 	}
 
 	// repl内で宣言された変数名エントリを回す
-	for _, decl := range c.registry.Decls() {
+	for _, decl := range c.declRegistry.Decls() {
 		if sb.input.basePart == string(decl.Name()) {
 			for _, methodSet := range c.candidates.methods[decl.Rhs().PkgName()] {
 				// メソッド名の前方一致フィルタと非公開フィルタ
@@ -347,11 +350,11 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 	lastSelectorPart := selectorParts[len(selectorParts)-1]
 	var lastReturElm returnSet
 
-	if c.registry.IsRegisteredDecl(types.DeclName(sb.input.basePart)) {
+	if c.declRegistry.IsRegisteredDecl(types.DeclName(sb.input.basePart)) {
 		// 最初の呼び出し要素がメソッド
 		var firstRecvTypeName types.TypeName
 		var firstRecvPkgName types.PkgName
-		for _, decl := range c.registry.Decls() {
+		for _, decl := range c.declRegistry.Decls() {
 			if decl.Name() == types.DeclName(sb.input.basePart) {
 				switch decl.Rhs().Kind() {
 				case decl_registry.DeclRhsKindVar:

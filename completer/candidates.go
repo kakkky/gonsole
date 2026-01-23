@@ -65,7 +65,7 @@ type returnSet struct {
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewCandidates(projectRootPath string) (*candidates, error) {
+func newCandidates(projectRootPath string) (*candidates, error) {
 	nodes, err := parseProject(projectRootPath)
 	if err != nil {
 		return nil, err
