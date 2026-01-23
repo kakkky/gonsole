@@ -12,10 +12,13 @@ import (
 	"github.com/kakkky/gonsole/version"
 )
 
+// Repl は対話型コンソールの実現を担う
+// 実際は go-prompt をラップしているだけ
 type Repl struct {
 	pt *prompt.Prompt
 }
 
+// NewRepl はReplのインスタンスを生成する
 func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl {
 	pt := prompt.New(
 		executor.Execute,
@@ -33,6 +36,7 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 	}
 }
 
+// Run はREPLセッションを開始する
 func (r *Repl) Run() error {
 	printGonsoleAsciiArt()
 	version.PrintVersion()

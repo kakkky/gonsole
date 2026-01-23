@@ -9,16 +9,19 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
+// DeclRegistry はReplセッション中に宣言された変数の情報を管理する
 type DeclRegistry struct {
 	decls []Decl
 }
 
+// NewRegistry はDeclRegistryのインスタンスを生成する
 func NewRegistry() *DeclRegistry {
 	return &DeclRegistry{
 		decls: []Decl{},
 	}
 }
 
+// Register は入力されたコードを解析し、宣言された変数情報を登録する
 func (dr *DeclRegistry) Register(input string) error {
 	fset := token.NewFileSet()
 	wrappedSrc := "package main\nfunc main() {\n" + input + "\n}"
@@ -226,6 +229,7 @@ func (dr *DeclRegistry) register(decl Decl) {
 	dr.decls = append(dr.decls, decl)
 }
 
+// PkgNameOfReceiver はレシーバー変数の属するパッケージ名を返す
 func (dr *DeclRegistry) PkgNameOfReceiver(receiverName types.DeclName) types.PkgName {
 	for _, decl := range dr.decls {
 		if decl.Name() == receiverName {
@@ -235,10 +239,12 @@ func (dr *DeclRegistry) PkgNameOfReceiver(receiverName types.DeclName) types.Pkg
 	return ""
 }
 
+// Decls は登録されているすべての宣言情報を返す
 func (dr *DeclRegistry) Decls() []Decl {
 	return dr.decls
 }
 
+// IsRegisteredDecl は指定された名前の宣言が登録されているかを返す
 func (dr *DeclRegistry) IsRegisteredDecl(name types.DeclName) bool {
 	for _, decl := range dr.decls {
 		if decl.Name() == name {

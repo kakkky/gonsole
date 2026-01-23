@@ -2,8 +2,8 @@ package stdpkg
 
 import "github.com/kakkky/gonsole/types"
 
-// IsStandardPackage は指定されたパッケージ名が標準パッケージかどうかを判定し、
-// 適切なインポートパスを返す
+// IsStandardPackage は与えられたパッケージ名が標準パッケージかどうかを判定し、
+// 標準パッケージであればそのインポートパスを返す
 func IsStandardPackage(pkgName types.PkgName) (types.ImportPath, bool) {
 	// 各カテゴリの標準パッケージをチェック
 	if importPath, found := getCorePackages()[pkgName]; found {

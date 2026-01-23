@@ -11,11 +11,14 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
+// Completer は補完エンジンを担う
+// go-promptのCompleterインターフェースを実装している
 type Completer struct {
 	candidates   *candidates
 	declRegistry *decl_registry.DeclRegistry
 }
 
+// NewCompleter はCompleterのインスタンスを生成する
 func NewCompleter(declRegistry *decl_registry.DeclRegistry) (*Completer, error) {
 	candidates, err := newCandidates(".")
 	if err != nil {
@@ -27,6 +30,7 @@ func NewCompleter(declRegistry *decl_registry.DeclRegistry) (*Completer, error) 
 	}, nil
 }
 
+// Complete はgo-promptのCompleterインターフェースを実装するメソッドで、補完候補を返す
 func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 	sb := newSuggestionBuilder(input.Text)
 

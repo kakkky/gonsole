@@ -10,8 +10,10 @@ import (
 	"github.com/kakkky/gonsole/errs"
 )
 
+// VERSION は現在のgonsoleのバージョンを表す
 const VERSION = "v1.3"
 
+// PrintVersion は現在のgonsoleのバージョンを表示する
 func PrintVersion() {
 	fmt.Println("   " + VERSION)
 }
@@ -20,6 +22,7 @@ type relesasesInfoResponse struct {
 	LatestVersion string `json:"tag_name"`
 }
 
+// IsLatestVersion は現在のgonsoleのバージョンが最新かどうかを判定する
 func IsLatestVersion() (bool, string, error) {
 	latestVersion, err := fetchLatestVersion()
 	if err != nil {

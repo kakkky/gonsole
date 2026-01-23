@@ -19,16 +19,20 @@ type InternalError struct {
 	wrapped error
 }
 
+// NewInternalError は新しい内部エラーを作成する
 func NewInternalError(message string) *InternalError {
 	return &InternalError{
 		message: message,
 	}
 }
+
+// Wrap は元のエラーを内部エラーにラップする
 func (e *InternalError) Wrap(err error) error {
 	e.wrapped = err
 	return e
 }
 
+// Error はエラーメッセージを返す
 func (e *InternalError) Error() string {
 	if e.wrapped == nil {
 		return e.message
@@ -36,23 +40,26 @@ func (e *InternalError) Error() string {
 	return e.message + ": " + e.wrapped.Error()
 }
 
-// ユーザー起因の無効な構文エラー
+// ユーザーからの不正な入力に起因するエラー
 type BadInputError struct {
 	message string
 	wrapped error
 }
 
+// NewBadInputError は新しい不正入力エラーを作成する
 func NewBadInputError(message string) *BadInputError {
 	return &BadInputError{
 		message: message,
 	}
 }
 
+// Wrap は元のエラーを不正入力エラーにラップする
 func (e *BadInputError) Wrap(err error) error {
 	e.wrapped = err
 	return e
 }
 
+// Error はエラーメッセージを返す
 func (e *BadInputError) Error() string {
 	if e.wrapped == nil {
 		return e.message
@@ -60,7 +67,7 @@ func (e *BadInputError) Error() string {
 	return e.message + ": " + e.wrapped.Error()
 }
 
-// エラーを処理する関数
+// HandleError はエラーを受け取り、適切な形式で表示する
 func HandleError(err error) {
 	const (
 		redColor   = "\033[31m"

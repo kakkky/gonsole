@@ -23,11 +23,14 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
+// ExecutorはREPLセッション内でのコード実行を担う
+// go-promptのExecutorインターフェースを実装する
 type Executor struct {
 	declRegistry *decl_registry.DeclRegistry
 	sessionSrc   *ast.File
 }
 
+// NewExecutor はExecutorのインスタンスを生成する
 func NewExecutor(declRegistry *decl_registry.DeclRegistry) (*Executor, error) {
 	return &Executor{
 		declRegistry: declRegistry,
@@ -37,6 +40,7 @@ func NewExecutor(declRegistry *decl_registry.DeclRegistry) (*Executor, error) {
 
 // ====================以下にメソッドを定義する======================
 
+// Execute は入力されたコードを実行する
 func (e *Executor) Execute(input string) {
 	defer func() {
 		if r := recover(); r != nil {
