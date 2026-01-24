@@ -3,23 +3,18 @@ package executor
 import (
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
-	"os"
-	"path"
+	"runtime/debug"
 	"slices"
 	"strconv"
-	"time"
 
 	"os/exec"
 	"regexp"
 	"strings"
 
-	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/stdpkg"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -28,13 +23,20 @@ import (
 type Executor struct {
 	declRegistry *declregistry.DeclRegistry
 	sessionSrc   *ast.File
+	filer
+	commander
+	importPathResolver
 }
 
 // NewExecutor はExecutorのインスタンスを生成する
 func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
+	commander := newDefaultCommander()
 	return &Executor{
-		declRegistry: declRegistry,
-		sessionSrc:   initSessionSrc(),
+		declRegistry:       declRegistry,
+		sessionSrc:         initSessionSrc(),
+		filer:              newDefaultFiler(),
+		commander:          commander,
+		importPathResolver: newDefaultImportPathResolver(commander),
 	}, nil
 }
 
@@ -48,6 +50,7 @@ func (e *Executor) Execute(input string) {
 			errs.HandleError(
 				errs.NewInternalError(panicMsg),
 			)
+			fmt.Println(string(debug.Stack()))
 		}
 	}()
 
@@ -61,7 +64,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// 一時ファイルを作成
-	tmpFile, tmpFileName, cleanup, err := makeTmpFile()
+	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
 	if err != nil {
 		errs.HandleError(err)
 	}
@@ -71,13 +74,12 @@ func (e *Executor) Execute(input string) {
 	fset := token.NewFileSet()
 
 	// 一時ファイルにflushする
-	if err := e.flushSessionSrc(tmpFile, fset); err != nil {
+	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
 	}
 
 	// 一時ファイルを実行する
-	cmd := exec.Command("go", "run", tmpFileName)
-	cmdOut, cmdErr := cmd.Output()
+	cmdOut, cmdErr := e.execGoRun(tmpFileName)
 	if cmdErr != nil {
 		// 実行時のエラー出力を整形して表示する
 		cmdErrMsg := string(cmdErr.(*exec.ExitError).Stderr)
@@ -89,22 +91,26 @@ func (e *Executor) Execute(input string) {
 		if err := e.cleanErrLineFromSessionSrc(cmdErrMsg, fset); err != nil {
 			errs.HandleError(err)
 		}
-		if err := e.flushSessionSrc(tmpFile, fset); err != nil {
+		if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 			errs.HandleError(err)
 		}
 	}
 
 	// 実行結果を表示する
-	printCmdOutput(cmdOut)
+	if len(cmdOut) > 0 {
+		printCmdOutput(cmdOut)
+	}
 
 	// 変数エントリに登録する
 	if err := e.declRegistry.Register(input); err != nil {
 		errs.HandleError(err)
 	}
 
-	// 最後の式呼び出しを削除してflushする
-	e.cleanCallExprFromSessionSrc()
-	if err := e.flushSessionSrc(tmpFile, fset); err != nil {
+	// 式呼び出しをセッションソースから削除した場合はflushする
+	if cleaned := e.cleanCallExprFromSessionSrc(); !cleaned {
+		return
+	}
+	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
 	}
 }
@@ -146,6 +152,7 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		}
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
+				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
 				Fun:  ast.NewIdent("fmt.Println"),
 				Args: []ast.Expr{exprStmtV},
 			},
@@ -153,6 +160,7 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 	case *ast.Ident:
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
+				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
 				Fun:  ast.NewIdent("fmt.Println"),
 				Args: []ast.Expr{exprStmtV},
 			},
@@ -167,6 +175,7 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		}
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
+				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
 				Fun:  ast.NewIdent("fmt.Println"),
 				Args: []ast.Expr{exprStmtV},
 			},
@@ -195,8 +204,11 @@ func (e *Executor) appendAssignStmtToMainFuncBody(assignStmt *ast.AssignStmt, ma
 		}
 
 	}
-	assignStmtLHS := assignStmt.Lhs[0].(*ast.Ident)
-	mainFunc.Body.List = append(mainFunc.Body.List, assignStmt, blankAssignStmt(types.DeclName(assignStmtLHS.Name)))
+	mainFunc.Body.List = append(mainFunc.Body.List, assignStmt)
+	for _, lhsExpr := range assignStmt.Lhs {
+		declName := types.DeclName(lhsExpr.(*ast.Ident).Name)
+		mainFunc.Body.List = append(mainFunc.Body.List, blankAssignStmt(declName))
+	}
 	return nil
 }
 
@@ -213,8 +225,11 @@ func (e *Executor) appendDeclStmtToMainFuncBody(declStmt *ast.DeclStmt, mainFunc
 			}
 		}
 	}
-	assignStmtLHS := declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0]
-	mainFunc.Body.List = append(mainFunc.Body.List, declStmt, blankAssignStmt(types.DeclName(assignStmtLHS.Name)))
+	mainFunc.Body.List = append(mainFunc.Body.List, declStmt)
+	for _, name := range declStmt.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names {
+		declName := types.DeclName(name.Name)
+		mainFunc.Body.List = append(mainFunc.Body.List, blankAssignStmt(declName))
+	}
 	return nil
 }
 
@@ -223,22 +238,22 @@ func (e *Executor) appendDeclStmtToMainFuncBody(declStmt *ast.DeclStmt, mainFunc
 var importPathAddedInSession types.ImportPath
 
 func (e *Executor) addImportPath(pkgName types.PkgName) error {
-	importPath, err := resolveImportPath(pkgName)
+	importPath, err := e.resolve(pkgName)
 	if err != nil {
 		return err
 	}
 
 	for _, importSpec := range e.sessionSrc.Imports {
-		if importSpec.Path.Value == string(*importPath) {
+		if importSpec.Path.Value == string(importPath) {
 			return nil
 		}
 	}
-	importPathAddedInSession = *importPath
+	importPathAddedInSession = importPath
 
 	newImportSpec := &ast.ImportSpec{
 		Path: &ast.BasicLit{
 			Kind:  token.STRING,
-			Value: string(*importPath),
+			Value: string(importPath),
 		},
 	}
 	e.sessionSrc.Imports = append(e.sessionSrc.Imports, newImportSpec)
@@ -285,19 +300,6 @@ func extractSelectorBaseFromExpr(expr ast.Expr) string {
 	return ""
 }
 
-func (e *Executor) flushSessionSrc(file *os.File, fset *token.FileSet) error {
-	if _, err := file.Seek(0, 0); err != nil {
-		return errs.NewInternalError("failed to seek file").Wrap(err)
-	}
-	if err := file.Truncate(0); err != nil {
-		return errs.NewInternalError("failed to truncate file").Wrap(err)
-	}
-	if err := format.Node(file, fset, e.sessionSrc); err != nil {
-		return errs.NewInternalError("failed to format AST node").Wrap(err)
-	}
-	return nil
-}
-
 func formatCmdErrMsg(cmdErrMsg string) string {
 	cmdErrLines := strings.Split(cmdErrMsg, "\n")
 	var formattedCmdErrLines []string
@@ -325,15 +327,38 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	return fmt.Sprintf("\n%d errors found\n\n%s\n\n", cmdErrCount, formattedCmdErrLine)
 }
 
-func (e *Executor) cleanCallExprFromSessionSrc() {
+func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	mainFunc := getMainFunc(e.sessionSrc)
 	body := mainFunc.Body.List
 	lastExprStmt, ok := body[len(body)-1].(*ast.ExprStmt)
 	if !ok {
-		return
+		return false
 	}
 	if _, ok := lastExprStmt.X.(*ast.CallExpr); ok {
 		mainFunc.Body.List = body[:len(body)-1]
+
+		// 該当packageを利用している宣言がなければpackage importを削除する
+		selectorBase := extractSelectorBaseFromExpr(lastExprStmt.X)
+		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+			for _, decl := range e.declRegistry.Decls() {
+				if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+					e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+						return importSpec.Path.Value == string(importPathAddedInSession)
+					})
+					importPathAddedInSession = ""
+
+					for _, decl := range e.sessionSrc.Decls {
+						if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+							genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+								importSpec := spec.(*ast.ImportSpec)
+								return importSpec.Path.Value == string(importPathAddedInSession)
+							})
+							break
+						}
+					}
+				}
+			}
+		}
 
 		// fmt importを削除する
 		e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
@@ -348,7 +373,9 @@ func (e *Executor) cleanCallExprFromSessionSrc() {
 				break
 			}
 		}
+		return true
 	}
+	return false
 }
 
 func (e *Executor) cleanErrLineFromSessionSrc(errMsg string, fset *token.FileSet) error {
@@ -458,95 +485,12 @@ func blankAssignStmt(name types.DeclName) *ast.AssignStmt {
 	return &blankAssign
 }
 
-func makeTmpFile() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
-	prefix := time.Now().Unix()
-	tmpFileName = fmt.Sprintf("%d_gonsole_tmp.go", prefix)
-
-	file, err := os.Create(tmpFileName)
-	if err != nil {
-		return nil, "", nil, errs.NewInternalError("failed to create temporary file").Wrap(err)
-	}
-
-	cleanup = func() { os.Remove(tmpFileName) }
-
-	return file, tmpFileName, cleanup, nil
-}
-
 func printCmdOutput(cmdOut []byte) {
 	cmdOutText := string(cmdOut)
 
 	const greenColor = "\033[32m"
 	const colorReset = "\033[0m"
 	fmt.Printf("\n%s%s%s\n", greenColor, cmdOutText, colorReset)
-}
-
-func resolveImportPath(pkgName types.PkgName) (*types.ImportPath, error) {
-	var importPathCandidates []types.ImportPath
-
-	if stdpkgImportPath, found := stdpkg.IsStandardPackage(pkgName); found {
-		return &stdpkgImportPath, nil
-	}
-
-	cmd := exec.Command("go", "list", "./...")
-	cmdOut, err := cmd.Output()
-	if err != nil {
-		return nil, errs.NewInternalError("failed to resolve import path").Wrap(err)
-	}
-
-	allImportPaths := strings.Split(string(cmdOut), "\n")
-	for _, importPath := range allImportPaths {
-		if importPath == "" {
-			continue
-		}
-		if types.PkgName(path.Base(importPath)) == pkgName {
-			quoted := fmt.Sprintf(`"%s"`, importPath)
-			importPathCandidates = append(importPathCandidates, types.ImportPath(quoted))
-		}
-	}
-
-	if len(importPathCandidates) == 1 {
-		return &importPathCandidates[0], nil
-	}
-
-	// 複数候補がある場合はユーザーに選択させる
-	selectedImportPath, err := selectImportPathRepl(importPathCandidates)
-	if err != nil {
-		return nil, err
-	}
-	return selectedImportPath, nil
-}
-
-func selectImportPathRepl(importPathCandidates []types.ImportPath) (*types.ImportPath, error) {
-	toBlue := func(s string) string {
-		colorBlue := "\033[94m"
-		colorReset := "\033[0m"
-		return fmt.Sprintf("%s%s%s", colorBlue, s, colorReset)
-	}
-	completer := func(d prompt.Document) []prompt.Suggest {
-		suggests := make([]prompt.Suggest, len(importPathCandidates))
-		for i, importPath := range importPathCandidates {
-			suggests[i] = prompt.Suggest{Text: string(importPath)}
-		}
-		return suggests
-	}
-
-	fmt.Println(toBlue("\nMultiple import candidates found.\n\nUse Tab key to select import path.\n\n"))
-	fmt.Print(toBlue("\n>>> "))
-	selectedImportPath := prompt.Input(
-		"",
-		completer, prompt.OptionShowCompletionAtStart(),
-		prompt.OptionPreviewSuggestionTextColor(prompt.Turquoise),
-		prompt.OptionInputTextColor(prompt.Turquoise),
-	)
-	if selectedImportPath == "" {
-		return nil, errs.NewBadInputError("no import path selected")
-	}
-	if !slices.Contains(importPathCandidates, types.ImportPath(selectedImportPath)) {
-		return nil, errs.NewBadInputError("invalid import path selected")
-	}
-
-	sip := types.ImportPath(selectedImportPath)
-	return &sip, nil
 }
 
 func getMainFunc(file *ast.File) *ast.FuncDecl {
