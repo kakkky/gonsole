@@ -9,10 +9,11 @@ import (
 
 func TestDeclRegistry_Register(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected []Decl
-		wantErr  bool
+		name          string
+		input         string
+		expected      []Decl
+		existingDecls []Decl
+		wantErr       bool
 	}{
 		{
 			name:  "selector expression assignment",
@@ -171,11 +172,94 @@ func TestDeclRegistry_Register(t *testing.T) {
 			expected: []Decl{},
 			wantErr:  true,
 		},
+		{
+			name:  "method chain assignment",
+			input: "b := a.Method1().Method2()",
+			existingDecls: []Decl{
+				{
+					name: "a",
+					rhs: DeclRHS{
+						name:    "New",
+						kind:    DeclRHSKindFunc,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+			},
+			expected: []Decl{
+				{
+					name: "a",
+					rhs: DeclRHS{
+						name:    "New",
+						kind:    DeclRHSKindFunc,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+				{
+					name: "b",
+					rhs: DeclRHS{
+						name:    "Method2",
+						kind:    DeclRHSKindMethod,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:  "var declaration with method chain",
+			input: "var b = a.Method1().Method2()",
+			existingDecls: []Decl{
+				{
+					name: "a",
+					rhs: DeclRHS{
+						name:    "New",
+						kind:    DeclRHSKindFunc,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+			},
+			expected: []Decl{
+				{
+					name: "a",
+					rhs: DeclRHS{
+						name:    "New",
+						kind:    DeclRHSKindFunc,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+				{
+					name: "b",
+					rhs: DeclRHS{
+						name:    "Method2",
+						kind:    DeclRHSKindMethod,
+						pkgName: "pkg",
+					},
+					isReturnVal: true,
+					returnedIdx: 0,
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sut := NewRegistry()
+			if len(tt.existingDecls) > 0 {
+				for _, decl := range tt.existingDecls {
+					sut.decls = append(sut.decls, decl)
+				}
+			}
 			err := sut.Register(tt.input)
 
 			// エラーステータスの確認

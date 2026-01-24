@@ -102,14 +102,7 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 		case *ast.CallExpr:
 			switch rhsFunV := stmtRHSV.Fun.(type) {
 			case *ast.SelectorExpr:
-				var selectorBase string
-				switch rhsFunExprV := rhsFunV.X.(type) {
-				case *ast.Ident:
-					selectorBase = rhsFunExprV.Name
-				default:
-					// TODO: メソッドチェーンなど複雑な場合の対応(ast.SelectorExprが続き得る）
-					continue
-				}
+				selectorBase := extractSelectorBaseFromCallExpr(rhsFunV.X)
 				if dr.IsRegisteredDecl(types.DeclName(selectorBase)) {
 					for i, lhsExpr := range assignmentStmt.Lhs {
 						decl := Decl{
@@ -203,6 +196,23 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 					case *ast.CallExpr:
 						switch valueFunV := valueV.Fun.(type) {
 						case *ast.SelectorExpr:
+							selectorBase := extractSelectorBaseFromCallExpr(valueFunV.X)
+							if dr.IsRegisteredDecl(types.DeclName(selectorBase)) {
+								for i, stmtDeclSpecName := range stmtDeclSpecV.Names {
+									decl := Decl{
+										name:        types.DeclName(stmtDeclSpecName.Name),
+										isReturnVal: true,
+										returnedIdx: i,
+										rhs: DeclRHS{
+											name:    types.DeclName(valueFunV.Sel.Name),
+											kind:    DeclRHSKindMethod,
+											pkgName: dr.PkgNameOfReceiver(types.DeclName(selectorBase)),
+										},
+									}
+									dr.register(decl)
+								}
+								continue
+							}
 							for i, stmtDeclSpecName := range stmtDeclSpecV.Names {
 								decl := Decl{
 									name:        types.DeclName(stmtDeclSpecName.Name),
@@ -211,7 +221,7 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 									rhs: DeclRHS{
 										name:    types.DeclName(valueFunV.Sel.Name),
 										kind:    DeclRHSKindFunc,
-										pkgName: types.PkgName(valueFunV.X.(*ast.Ident).Name),
+										pkgName: types.PkgName(selectorBase),
 									},
 								}
 								dr.register(decl)
@@ -223,6 +233,18 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 			}
 		}
 	}
+}
+
+func extractSelectorBaseFromCallExpr(expr ast.Expr) string {
+	switch exprV := expr.(type) {
+	case *ast.SelectorExpr:
+		return extractSelectorBaseFromCallExpr(exprV.X)
+	case *ast.CallExpr:
+		return extractSelectorBaseFromCallExpr(exprV.Fun)
+	case *ast.Ident:
+		return exprV.Name
+	}
+	return ""
 }
 
 func (dr *DeclRegistry) register(decl Decl) {
