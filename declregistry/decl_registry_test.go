@@ -256,9 +256,7 @@ func TestDeclRegistry_Register(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sut := NewRegistry()
 			if len(tt.existingDecls) > 0 {
-				for _, decl := range tt.existingDecls {
-					sut.decls = append(sut.decls, decl)
-				}
+				sut.decls = append(sut.decls, tt.existingDecls...)
 			}
 			err := sut.Register(tt.input)
 

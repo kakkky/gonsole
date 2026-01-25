@@ -71,7 +71,11 @@ func (e *Executor) Execute(input string) {
 	if err != nil {
 		errs.HandleError(err)
 	}
-	defer tmpFile.Close()
+	defer func() {
+		if err := tmpFile.Close(); err != nil {
+			errs.HandleError(err)
+		}
+	}()
 	defer cleanup()
 
 	fset := e.fset()

@@ -32,7 +32,11 @@ func (df *defaultFiler) createTmpFile() (tmpFile *os.File, tmpFileName string, c
 		return nil, "", nil, errs.NewInternalError("failed to create temporary file").Wrap(err)
 	}
 
-	cleanup = func() { os.Remove(tmpFileName) }
+	cleanup = func() {
+		if err := os.Remove(tmpFileName); err != nil {
+			errs.HandleError(err)
+		}
+	}
 
 	return file, tmpFileName, cleanup, nil
 }

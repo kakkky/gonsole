@@ -61,7 +61,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Fatalf("failed to close pipe reader: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -121,7 +125,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Fatalf("failed to close pipe reader: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -203,7 +211,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Fatalf("failed to close pipe reader: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -288,7 +300,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -373,13 +389,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return value",
 			input: "var x = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
+				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にobjを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -434,13 +456,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return multiple values",
 			input: "var x, y = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
+				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にobjを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -503,13 +531,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method chain's return value",
 			input: "var x = obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
+				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にobjを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -577,7 +611,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -665,7 +703,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -756,7 +798,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -830,7 +876,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -882,7 +932,11 @@ func TestExecutor_Execute(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 
 				gomock.InOrder(
@@ -1016,13 +1070,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call function of the package when package is used by other declaration",
 			input: "pkg.Function()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var x = pkg.Variable") // 事前にpkgを使用する宣言を登録しておく。右辺は適当
+				if err := declRegistry.Register("var x = pkg.Variable"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にpkgを使用する宣言を登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
@@ -1156,13 +1216,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method",
 			input: "obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
+				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にobjを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
@@ -1269,13 +1335,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method chain",
 			input: "obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
+				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にobjを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
@@ -1388,13 +1460,19 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "defined variable",
 			input: "x",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				declRegistry.Register("var x = 10") // 事前にxを登録しておく。右辺は適当
+				if err := declRegistry.Register("var x = 10"); err != nil {
+					t.Fatalf("failed to register declaration: %v", err)
+				} // 事前にxを登録しておく。右辺は適当
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "test.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
@@ -1578,7 +1656,11 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "1769312920_gonsole_tmp.go", func() { r.Close() }, nil
+					return w, "1769312920_gonsole_tmp.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -1616,7 +1698,11 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "1769312920_gonsole_tmp.go", func() { r.Close() }, nil
+					return w, "1769312920_gonsole_tmp.go", func() {
+						if err := r.Close(); err != nil {
+							t.Errorf("failed to close pipe: %v", err)
+						}
+					}, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
@@ -1728,7 +1814,9 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			sut.Execute(tt.input)
 
 			// パイプを閉じて出力を読み取る
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close pipe writer: %v", err)
+			}
 			var buf bytes.Buffer
 			if _, err := buf.ReadFrom(r); err != nil {
 				t.Fatalf("failed to read from pipe: %v", err)

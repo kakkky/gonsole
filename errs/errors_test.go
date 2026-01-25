@@ -52,7 +52,9 @@ func TestHandleError(t *testing.T) {
 			HandleError(tt.err)
 
 			// パイプを閉じて出力を読み取る
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close pipe writer: %v", err)
+			}
 			var buf bytes.Buffer
 			if _, err := buf.ReadFrom(r); err != nil {
 				t.Fatalf("failed to read from pipe: %v", err)

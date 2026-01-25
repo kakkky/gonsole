@@ -37,7 +37,11 @@ func fetchLatestVersion() (string, error) {
 	if err != nil {
 		return "", errs.NewInternalError("failed to fetch latest release").Wrap(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			errs.HandleError(err)
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
