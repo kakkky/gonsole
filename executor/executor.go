@@ -61,6 +61,7 @@ func (e *Executor) Execute(input string) {
 	// 入力文をセッションに書き込む
 	if err := e.writeInSessionSrc(input); err != nil {
 		errs.HandleError(err)
+		return
 	}
 
 	// 一時ファイルを作成
@@ -76,6 +77,7 @@ func (e *Executor) Execute(input string) {
 	// 一時ファイルにflushする
 	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
+		return
 	}
 
 	// 一時ファイルを実行する
@@ -83,6 +85,7 @@ func (e *Executor) Execute(input string) {
 	if cmdErr != nil {
 		// 実行時のエラー出力を整形して表示する
 		cmdErrMsg := string(cmdErr.(*exec.ExitError).Stderr)
+		fmt.Println(cmdErrMsg)
 
 		formatted := formatCmdErrMsg(cmdErrMsg)
 		errs.HandleError(errs.NewBadInputError(formatted))
@@ -104,6 +107,7 @@ func (e *Executor) Execute(input string) {
 	// 変数エントリに登録する
 	if err := e.declRegistry.Register(input); err != nil {
 		errs.HandleError(err)
+		return
 	}
 
 	// 式呼び出しをセッションソースから削除した場合はflushする
@@ -112,6 +116,7 @@ func (e *Executor) Execute(input string) {
 	}
 	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
+		return
 	}
 }
 
@@ -205,9 +210,11 @@ func (e *Executor) appendAssignStmtToMainFuncBody(assignStmt *ast.AssignStmt, ma
 
 	}
 	mainFunc.Body.List = append(mainFunc.Body.List, assignStmt)
-	for _, lhsExpr := range assignStmt.Lhs {
-		declName := types.DeclName(lhsExpr.(*ast.Ident).Name)
-		mainFunc.Body.List = append(mainFunc.Body.List, blankAssignStmt(declName))
+	if assignStmt.Tok == token.DEFINE {
+		for _, lhsExpr := range assignStmt.Lhs {
+			declName := types.DeclName(lhsExpr.(*ast.Ident).Name)
+			mainFunc.Body.List = append(mainFunc.Body.List, blankAssignStmt(declName))
+		}
 	}
 	return nil
 }
@@ -305,7 +312,7 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	var formattedCmdErrLines []string
 
 	cmdVirtualPkgPattern := regexp.MustCompile(`^# command-line-arguments$`)
-	tmpFilePathPattern := regexp.MustCompile(`\d+_gonsole_tmp\.go:\d+:\d+:\s*`)
+	tmpFilePathPattern := regexp.MustCompile(`\./?\d+_gonsole_tmp\.go:\d+:\d+:\s*`)
 	var cmdErrCount int
 	for _, cmdErrLine := range cmdErrLines {
 		// 仮想パッケージに関するエラー行はスキップ
@@ -380,7 +387,7 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 
 func (e *Executor) cleanErrLineFromSessionSrc(errMsg string, fset *token.FileSet) error {
 	// エラーメッセージからエラー行番号を抽出する
-	tmpFilePattern := regexp.MustCompile(`\.\d+_gonsole_tmp\.go:(\d+):(\d+)`)
+	tmpFilePattern := regexp.MustCompile(`\d+_gonsole_tmp\.go:(\d+):(\d+)`)
 	matches := tmpFilePattern.FindStringSubmatch(errMsg)
 	errLine, err := strconv.Atoi(matches[1])
 	if err != nil {
@@ -408,10 +415,25 @@ func (e *Executor) cleanErrLineFromSessionSrc(errMsg string, fset *token.FileSet
 				selectorBase = extractSelectorBaseFromExpr(errStmtV.X)
 			}
 
+			// 該当packageを利用している宣言がなければpackage importを削除する
 			if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
-				e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
-					return importSpec.Path.Value == string(importPathAddedInSession)
-				})
+				for _, decl := range e.declRegistry.Decls() {
+					if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+						e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+							return importSpec.Path.Value == string(importPathAddedInSession)
+						})
+
+						for _, decl := range e.sessionSrc.Decls {
+							if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+								genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+									importSpec := spec.(*ast.ImportSpec)
+									return importSpec.Path.Value == string(importPathAddedInSession)
+								})
+								break
+							}
+						}
+					}
+				}
 				importPathAddedInSession = ""
 			}
 
@@ -464,7 +486,7 @@ func parseInput(input string) (ast.Stmt, error) {
 	wrappedInput := "package main\nfunc main() {\n" + input + "\n}"
 	wrappedInputAst, err := parser.ParseFile(fset, "", wrappedInput, parser.AllErrors)
 	if err != nil {
-		return nil, errs.NewInternalError("failed to parse input source").Wrap(err)
+		return nil, errs.NewBadInputError("invalid input syntax")
 	}
 
 	var inputStmtAst ast.Stmt
