@@ -26,6 +26,7 @@ type Executor struct {
 	filer
 	commander
 	importPathResolver
+	fsetProvider
 }
 
 // NewExecutor はExecutorのインスタンスを生成する
@@ -37,6 +38,7 @@ func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
 		filer:              newDefaultFiler(),
 		commander:          commander,
 		importPathResolver: newDefaultImportPathResolver(commander),
+		fsetProvider:       newDefaultFsetProvider(),
 	}, nil
 }
 
@@ -72,7 +74,7 @@ func (e *Executor) Execute(input string) {
 	defer tmpFile.Close()
 	defer cleanup()
 
-	fset := token.NewFileSet()
+	fset := e.fset()
 
 	// 一時ファイルにflushする
 	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
@@ -85,7 +87,6 @@ func (e *Executor) Execute(input string) {
 	if cmdErr != nil {
 		// 実行時のエラー出力を整形して表示する
 		cmdErrMsg := string(cmdErr.(*exec.ExitError).Stderr)
-		fmt.Println(cmdErrMsg)
 
 		formatted := formatCmdErrMsg(cmdErrMsg)
 		errs.HandleError(errs.NewBadInputError(formatted))
@@ -94,9 +95,12 @@ func (e *Executor) Execute(input string) {
 		if err := e.cleanErrLineFromSessionSrc(cmdErrMsg, fset); err != nil {
 			errs.HandleError(err)
 		}
+
 		if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 			errs.HandleError(err)
 		}
+
+		return
 	}
 
 	// 実行結果を表示する
@@ -387,7 +391,7 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 
 func (e *Executor) cleanErrLineFromSessionSrc(errMsg string, fset *token.FileSet) error {
 	// エラーメッセージからエラー行番号を抽出する
-	tmpFilePattern := regexp.MustCompile(`\d+_gonsole_tmp\.go:(\d+):(\d+)`)
+	tmpFilePattern := regexp.MustCompile(`\./?\d+_gonsole_tmp\.go:(\d+):(\d+)`)
 	matches := tmpFilePattern.FindStringSubmatch(errMsg)
 	errLine, err := strconv.Atoi(matches[1])
 	if err != nil {
