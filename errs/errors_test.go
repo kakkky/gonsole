@@ -17,22 +17,22 @@ func TestHandleError(t *testing.T) {
 		{
 			name:            "InternalError",
 			err:             NewInternalError("internal error occurred"),
-			expectedErrType: INTERNAL_ERROR,
+			expectedErrType: InternalErrorType,
 		},
 		{
 			name:            "BadInputError",
 			err:             NewBadInputError("bad input"),
-			expectedErrType: BAD_INPUT_ERROR,
+			expectedErrType: BadInputErrorType,
 		},
 		{
 			name:            "UnknownError",
 			err:             errors.New("unknown error"),
-			expectedErrType: UNKNOWN_ERROR,
+			expectedErrType: UnknownErrorType,
 		},
 		{
 			name:            "WrappedInternalError",
 			err:             NewInternalError("wrapped error").Wrap(errors.New("original error")),
-			expectedErrType: INTERNAL_ERROR,
+			expectedErrType: InternalErrorType,
 		},
 	}
 
@@ -52,7 +52,9 @@ func TestHandleError(t *testing.T) {
 			HandleError(tt.err)
 
 			// パイプを閉じて出力を読み取る
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("failed to close pipe writer: %v", err)
+			}
 			var buf bytes.Buffer
 			if _, err := buf.ReadFrom(r); err != nil {
 				t.Fatalf("failed to read from pipe: %v", err)
