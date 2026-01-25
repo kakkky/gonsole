@@ -1,9 +1,11 @@
 package executor
 
 import (
+	"bytes"
 	"go/ast"
 	"go/token"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -1482,5 +1484,191 @@ func TestExecutor_Execute(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestExecutor_Execute_Error(t *testing.T) {
+	tests := []struct {
+		name               string
+		input              string
+		setupDeclRegistry  func(*declregistry.DeclRegistry)
+		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		expectedSessionSrc *ast.File
+		expectedErrMsg     string
+	}{
+		{
+			name:              "input invalid syntax",
+			input:             "x := ",
+			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			},
+			expectedSessionSrc: &ast.File{
+				Name: &ast.Ident{Name: "main"},
+				Decls: []ast.Decl{
+					&ast.FuncDecl{
+						Name: &ast.Ident{Name: "main"},
+						Type: &ast.FuncType{
+							Params:  &ast.FieldList{List: nil},
+							Results: nil,
+						},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{},
+						},
+					},
+				},
+			},
+			expectedErrMsg: "",
+		},
+		{
+			name:  "clean err element of sessionSrc when commander returns error",
+			input: `x = "y"`, // y is undefined
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+				// filer
+				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+					r, w, _ := os.Pipe()
+					return w, "test.go", func() { r.Close() }, nil
+				}).Times(1)
+				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+
+				// commander
+				mockCommander.EXPECT().execGoRun("test.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := `# command-line-arguments
+							   ./test.go:4:2: undefined: x`
+					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
+				}).Times(1)
+
+				// importPathResolver
+				mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1)
+			},
+			expectedSessionSrc: &ast.File{
+				Name: &ast.Ident{Name: "main"},
+				Decls: []ast.Decl{
+					&ast.FuncDecl{
+						Name: &ast.Ident{Name: "main"},
+						Type: &ast.FuncType{
+							Params:  &ast.FieldList{List: nil},
+							Results: nil,
+						},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{},
+						},
+					},
+				},
+			},
+			expectedErrMsg: "",
+		},
+		{
+			name:  "when commander returns error, clean err element of sessionSrc but import remains if other declarations use it",
+			input: "x := pkg.Variable", // x is already defined
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+				// filer
+				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+					r, w, _ := os.Pipe()
+					return w, "test.go", func() { r.Close() }, nil
+				}).Times(1)
+				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+
+				// commander
+				mockCommander.EXPECT().execGoRun("test.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := `# command-line-arguments
+							   ./test.go:8:4: no new variables on left side of :=`
+					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
+				}).Times(1)
+			},
+			expectedSessionSrc: &ast.File{
+				Name: &ast.Ident{Name: "main"},
+				Decls: []ast.Decl{
+					&ast.GenDecl{
+						Tok: token.IMPORT,
+						Specs: []ast.Spec{
+							&ast.ImportSpec{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/test/pkg"`,
+								},
+							},
+						},
+					},
+					&ast.FuncDecl{
+						Name: &ast.Ident{Name: "main"},
+						Type: &ast.FuncType{
+							Params:  &ast.FieldList{List: nil},
+							Results: nil,
+						},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{},
+						},
+					},
+				},
+				Imports: []*ast.ImportSpec{
+					{
+						Path: &ast.BasicLit{
+							Kind:  token.STRING,
+							Value: `"github.com/test/pkg"`,
+						},
+					},
+				},
+			},
+			expectedErrMsg: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			declregistry := declregistry.NewRegistry()
+
+			sut, err := NewExecutor(declregistry)
+			if err != nil {
+				t.Fatalf("failed to create Executor: %v", err)
+			}
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockFiler := NewMockfiler(ctrl)
+			mockCommander := NewMockcommander(ctrl)
+			mockImportPathResolver := NewMockimportPathResolver(ctrl)
+			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver)
+
+			sut.filer = mockFiler
+			sut.commander = mockCommander
+			sut.importPathResolver = mockImportPathResolver
+
+			// 標準出力を一時的に差し替え
+			oldStdout := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			// テスト終了時に元に戻す
+			defer func() {
+				os.Stdout = oldStdout
+			}()
+
+			sut.Execute(tt.input)
+
+			// パイプを閉じて出力を読み取る
+			w.Close()
+			var buf bytes.Buffer
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Fatalf("failed to read from pipe: %v", err)
+			}
+			// output := buf.String()
+
+			// 位置情報等はここでは無視する
+			cmpOpts := []cmp.Option{
+				cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+				cmpopts.IgnoreFields(ast.GenDecl{}, "TokPos", "Lparen", "Rparen"),
+				cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+				cmpopts.IgnoreFields(ast.BasicLit{}, "ValuePos"),
+				cmpopts.IgnoreFields(ast.UnaryExpr{}, "OpPos"),
+				cmpopts.IgnoreFields(ast.CompositeLit{}, "Lbrace", "Rbrace"),
+				cmpopts.IgnoreFields(ast.KeyValueExpr{}, "Colon"),
+				cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+				cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+			}
+
+			if diff := cmp.Diff(tt.expectedSessionSrc, sut.sessionSrc, cmpOpts...); diff != "" {
+				t.Errorf("mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
