@@ -3,6 +3,8 @@ package executor
 import (
 	"bytes"
 	"go/ast"
+	"go/format"
+	"go/parser"
 	"go/token"
 	"os"
 	"os/exec"
@@ -21,7 +23,7 @@ func TestExecutor_Execute(t *testing.T) {
 		name               string
 		input              string
 		setupDeclRegistry  func(*declregistry.DeclRegistry) // 必要に応じてDeclRegistryの初期状態をセットアップする
-		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver, *MockfsetProvider)
 		expectedSessionSrc *ast.File
 	}{
 		{
@@ -30,7 +32,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// 何も呼ばれないことを期待
 			},
 			expectedSessionSrc: &ast.File{
@@ -55,7 +57,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -65,6 +67,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -112,7 +117,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -125,6 +130,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -191,7 +199,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -204,6 +212,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -273,7 +284,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -286,6 +297,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -361,7 +375,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -371,6 +385,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -419,7 +436,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -429,6 +446,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -485,7 +505,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -495,6 +515,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -550,7 +573,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -560,8 +583,12 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -634,7 +661,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -647,6 +674,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -722,7 +752,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -736,6 +766,8 @@ func TestExecutor_Execute(t *testing.T) {
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
 
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -794,7 +826,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -804,6 +836,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -843,7 +878,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -938,6 +973,9 @@ func TestExecutor_Execute(t *testing.T) {
 					mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1),
 					mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1),
 				)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -980,7 +1018,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var x = pkg.Variable") // 事前にpkgを使用する宣言を登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -1074,6 +1112,9 @@ func TestExecutor_Execute(t *testing.T) {
 					mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1),
 					mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1),
 				)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			// 実際は"var x = pkg.Variable"のASTも含まれるが、ここでは省略
 			expectedSessionSrc: &ast.File{
@@ -1117,7 +1158,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -1198,6 +1239,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			// 実際は"var obj = pkg.NewObject()"に関連するASTも含まれるが、ここでは省略
 			expectedSessionSrc: &ast.File{
@@ -1227,7 +1271,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var obj = pkg.NewObject()") // 事前にobjを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -1314,6 +1358,9 @@ func TestExecutor_Execute(t *testing.T) {
 
 				// importPathResolver
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			// 実際は"var obj = pkg.NewObject()"に関連するASTも含まれるが、ここでは省略
 			expectedSessionSrc: &ast.File{
@@ -1343,7 +1390,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				declRegistry.Register("var x = 10") // 事前にxを登録しておく。右辺は適当
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver, mockFsetProvider *MockfsetProvider) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
@@ -1417,6 +1464,9 @@ func TestExecutor_Execute(t *testing.T) {
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
 				mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1)
+
+				// fsetProvider
+				mockFsetProvider.EXPECT().fset().Return(token.NewFileSet()).Times(1)
 			},
 			// 実際は"var x = 10"のASTも含まれるが、ここでは省略
 			expectedSessionSrc: &ast.File{
@@ -1458,12 +1508,13 @@ func TestExecutor_Execute(t *testing.T) {
 			mockFiler := NewMockfiler(ctrl)
 			mockCommander := NewMockcommander(ctrl)
 			mockImportPathResolver := NewMockimportPathResolver(ctrl)
-			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver)
+			mockFsetProvider := NewMockfsetProvider(ctrl)
+			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver, mockFsetProvider)
 
 			sut.filer = mockFiler
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
-
+			sut.fsetProvider = mockFsetProvider
 			sut.Execute(tt.input)
 
 			// 位置情報等はここでは無視する
@@ -1488,12 +1539,13 @@ func TestExecutor_Execute(t *testing.T) {
 
 func TestExecutor_Execute_Error(t *testing.T) {
 	tests := []struct {
-		name               string
-		input              string
-		setupDeclRegistry  func(*declregistry.DeclRegistry)
-		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
-		expectedSessionSrc *ast.File
-		expectedErrMsg     string
+		name                   string
+		input                  string
+		setupDeclRegistry      func(*declregistry.DeclRegistry)
+		setupMocks             func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		setupFsetProviderMocks func(*MockfsetProvider, *token.FileSet)
+		expectedSessionSrc     *ast.File
+		expectedErrMsg         string
 	}{
 		{
 			name:              "input invalid syntax",
@@ -1501,6 +1553,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 			},
+			setupFsetProviderMocks: func(mockFsetProvider *MockfsetProvider, fset *token.FileSet) {},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
 				Decls: []ast.Decl{
@@ -1511,12 +1564,12 @@ func TestExecutor_Execute_Error(t *testing.T) {
 							Results: nil,
 						},
 						Body: &ast.BlockStmt{
-							List: []ast.Stmt{},
+							List: nil, // 初期化時は空スライスだがテスト内のreparse時にnilになる。このケースではそもそもsessionSrcに追加されないのでnilのままになる。
 						},
 					},
 				},
 			},
-			expectedErrMsg: "",
+			expectedErrMsg: "\n\x1b[31m[BAD INPUT ERROR]\n invalid input syntax\x1b[0m\n\n",
 		},
 		{
 			name:  "clean err element of sessionSrc when commander returns error",
@@ -1525,19 +1578,19 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "1769312920_gonsole_tmp.go", func() { r.Close() }, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
-				mockCommander.EXPECT().execGoRun("test.go").DoAndReturn(func(filename string) ([]byte, error) {
-					errMsg := `# command-line-arguments
-							   ./test.go:4:2: undefined: x`
+				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := "# command-line-arguments\n./1769312920_gonsole_tmp.go:3:2: undefined: x"
 					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
 				}).Times(1)
-
-				// importPathResolver
-				mockImportPathResolver.EXPECT().resolve(types.PkgName("fmt")).Return(types.ImportPath(`"fmt"`), nil).Times(1)
+			},
+			setupFsetProviderMocks: func(mockFsetProvider *MockfsetProvider, fset *token.FileSet) {
+				// テスト内でparseに利用したfsetを返すようにする
+				mockFsetProvider.EXPECT().fset().Return(fset).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -1554,7 +1607,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 					},
 				},
 			},
-			expectedErrMsg: "",
+			expectedErrMsg: "\n\x1b[31m[BAD INPUT ERROR]\n \n1 errors found\n\nundefined: x\n\n\x1b[0m\n\n",
 		},
 		{
 			name:  "when commander returns error, clean err element of sessionSrc but import remains if other declarations use it",
@@ -1563,16 +1616,22 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				// filer
 				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "test.go", func() { r.Close() }, nil
+					return w, "1769312920_gonsole_tmp.go", func() { r.Close() }, nil
 				}).Times(1)
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
-				mockCommander.EXPECT().execGoRun("test.go").DoAndReturn(func(filename string) ([]byte, error) {
-					errMsg := `# command-line-arguments
-							   ./test.go:8:4: no new variables on left side of :=`
+				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := "# command-line-arguments\n./1769312920_gonsole_tmp.go:8:4: no new variables on left side of :="
 					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
 				}).Times(1)
+
+				// importPathResolver
+				mockImportPathResolver.EXPECT().resolve(types.PkgName("pkg")).Return(types.ImportPath(`"github.com/test/pkg"`), nil).Times(1)
+			},
+			setupFsetProviderMocks: func(mockFsetProvider *MockfsetProvider, fset *token.FileSet) {
+				// テスト内でparseに利用したfsetを返すようにする
+				mockFsetProvider.EXPECT().fset().Return(fset).Times(1)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -1595,7 +1654,21 @@ func TestExecutor_Execute_Error(t *testing.T) {
 							Results: nil,
 						},
 						Body: &ast.BlockStmt{
-							List: []ast.Stmt{},
+							List: []ast.Stmt{
+								&ast.AssignStmt{
+									Lhs: []ast.Expr{&ast.Ident{Name: "x"}},
+									Tok: token.DEFINE,
+									Rhs: []ast.Expr{&ast.SelectorExpr{
+										X:   &ast.Ident{Name: "pkg"},
+										Sel: &ast.Ident{Name: "Variable"},
+									}},
+								},
+								&ast.AssignStmt{
+									Lhs: []ast.Expr{&ast.Ident{Name: "_"}},
+									Tok: token.ASSIGN,
+									Rhs: []ast.Expr{&ast.Ident{Name: "x"}},
+								},
+							},
 						},
 					},
 				},
@@ -1608,7 +1681,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 					},
 				},
 			},
-			expectedErrMsg: "",
+			expectedErrMsg: "\n\x1b[31m[BAD INPUT ERROR]\n \n1 errors found\n\nno new variables on left side of :=\n\n\x1b[0m\n\n",
 		},
 	}
 
@@ -1621,17 +1694,26 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				t.Fatalf("failed to create Executor: %v", err)
 			}
 
+			sessionSrcWithPos, fset, err := reparseSessionSrcWithPos(t, sut.sessionSrc)
+			if err != nil {
+				t.Fatalf("failed to reparse sessionSrc: %v", err)
+			}
+			sut.sessionSrc = sessionSrcWithPos
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			mockFiler := NewMockfiler(ctrl)
 			mockCommander := NewMockcommander(ctrl)
 			mockImportPathResolver := NewMockimportPathResolver(ctrl)
+			mockFsetProvider := NewMockfsetProvider(ctrl)
 			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver)
+			tt.setupFsetProviderMocks(mockFsetProvider, fset)
 
 			sut.filer = mockFiler
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
+			sut.fsetProvider = mockFsetProvider
 
 			// 標準出力を一時的に差し替え
 			oldStdout := os.Stdout
@@ -1651,10 +1733,18 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			if _, err := buf.ReadFrom(r); err != nil {
 				t.Fatalf("failed to read from pipe: %v", err)
 			}
-			// output := buf.String()
+			gotErrMsg := buf.String()
+			if gotErrMsg != tt.expectedErrMsg {
+				t.Errorf("expected error message %q, but got %q", tt.expectedErrMsg, gotErrMsg)
+			}
 
 			// 位置情報等はここでは無視する
 			cmpOpts := []cmp.Option{
+				cmpopts.IgnoreFields(ast.File{}, "Package", "FileStart", "FileEnd", "Scope"),
+				cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+				cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+				cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+				cmpopts.IgnoreFields(ast.BasicLit{}, "ValuePos"),
 				cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
 				cmpopts.IgnoreFields(ast.GenDecl{}, "TokPos", "Lparen", "Rparen"),
 				cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
@@ -1671,4 +1761,23 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			}
 		})
 	}
+}
+
+// テストでは実際にファイルにflushしないのでPosition情報が付与されない。
+// エラー処理のテスト等でPosition情報が必要な場合に再パースしてPosition情報を付与する。
+func reparseSessionSrcWithPos(t *testing.T, sessionSrc *ast.File) (*ast.File, *token.FileSet, error) {
+	t.Helper()
+
+	var buf bytes.Buffer
+	fset := token.NewFileSet()
+	if err := format.Node(&buf, fset, sessionSrc); err != nil {
+		return nil, nil, err
+	}
+	src := buf.String()
+	newFset := token.NewFileSet()
+	sessionSrcWithPos, err := parser.ParseFile(newFset, "", src, parser.AllErrors)
+	if err != nil {
+		return nil, nil, err
+	}
+	return sessionSrcWithPos, newFset, nil
 }
