@@ -41,14 +41,14 @@ go build -o gonsole
 ```
 
 ## Usage (Quick Start)
-We'll explain the usage using this [sample project](https://github.com/kakkky/gonsole-example).
+This section explains usage with this [sample project](https://github.com/kakkky/gonsole-example).
 
 ### Startup
-Execute the following in the project root:
+Run the following in your project root:
 ```sh
 gonsole
 ```
-You'll see a screen like this:
+You will see a screen like this:
 ```
   ____   ___   _   _  ____    ___   _      _____
  / ___| / _ \ | \ | |/ ___|  / _ \ | |    | ____|
@@ -62,17 +62,9 @@ You'll see a screen like this:
 > 
 ```
 
-If you haven't initialized your project (e.g., by running `go mod init`), you'll get an error at startup.
+Be sure to initialize your project (e.g., by running `go mod init`) before starting gonsole. Otherwise, it may not work correctly because it cannot resolve import paths from package names.
 
-If the `>` symbol appears, gonsole has started successfully. This symbol indicates that you're ready to write and execute code following it.
-
-At this point, a temporary file `tmp/gonsolexxxxxxx/main.go` is generated. This file is important for code execution, so do not edit it.
-```
-├── tmp
-│   └── gonsole784534083
-│       └── main.go
-```
-This file is automatically deleted when the console exits (`Ctrl + C`).
+If the `>` symbol appears, gonsole has started successfully. You are now ready to write and execute code after this prompt.
 
 ### Executing Go Code
 
