@@ -31,7 +31,7 @@ func (dipr *defaultImportPathResolver) resolve(pkgName types.PkgName) (types.Imp
 	var importPathCandidates []types.ImportPath
 
 	if stdpkgImportPath, found := stdpkg.IsStandardPackage(pkgName); found {
-		return stdpkgImportPath, nil
+		importPathCandidates = append(importPathCandidates, stdpkgImportPath)
 	}
 
 	cmdOut, err := dipr.execGoListAll()
@@ -77,10 +77,14 @@ func selectImportPathRepl(importPathCandidates []types.ImportPath) (types.Import
 	}
 
 	fmt.Println(toBlue("\nMultiple import candidates found.\n\nUse Tab key to select import path.\n\n"))
+	for _, importPathCandidate := range importPathCandidates {
+		fmt.Printf(toBlue("- %s\n"), importPathCandidate)
+	}
 	fmt.Print(toBlue("\n>>> "))
 	selectedImportPath := prompt.Input(
 		"",
-		completer, prompt.OptionShowCompletionAtStart(),
+		completer,
+		prompt.OptionShowCompletionAtStart(),
 		prompt.OptionPreviewSuggestionTextColor(prompt.Turquoise),
 		prompt.OptionInputTextColor(prompt.Turquoise),
 	)
