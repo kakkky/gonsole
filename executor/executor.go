@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"runtime/debug"
 	"slices"
 	"strconv"
 
@@ -52,7 +51,6 @@ func (e *Executor) Execute(input string) {
 			errs.HandleError(
 				errs.NewInternalError(panicMsg),
 			)
-			fmt.Println(string(debug.Stack()))
 		}
 	}()
 
