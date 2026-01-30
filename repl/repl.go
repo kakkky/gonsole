@@ -5,7 +5,6 @@ import (
 
 	// go:embedディレクティブ用
 	_ "embed"
-	"os"
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/completer"
@@ -25,12 +24,6 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 		executor.Execute,
 		completer.Complete,
 		prompt.OptionTitle("gonsole"),
-		prompt.OptionAddKeyBind(prompt.KeyBind{
-			Key: prompt.ControlC,
-			Fn: func(buf *prompt.Buffer) {
-				os.Exit(0)
-			},
-		}),
 	)
 	return &Repl{
 		pt: pt,
