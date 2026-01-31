@@ -6,7 +6,6 @@ import (
 	"go/parser"
 	"go/token"
 	"slices"
-	"strconv"
 
 	"os/exec"
 	"regexp"
@@ -92,7 +91,7 @@ func (e *Executor) Execute(input string) {
 		errs.HandleError(errs.NewBadInputError(formatted))
 
 		// エラー行を削除する
-		if err := e.cleanErrLineFromSessionSrc(cmdErrMsg, fset); err != nil {
+		if err := e.cleanErrElmFromSessionSrc(); err != nil {
 			errs.HandleError(err)
 		}
 
@@ -259,7 +258,11 @@ func (e *Executor) addImportPath(pkgName types.PkgName) error {
 			return nil
 		}
 	}
-	importPathAddedInSession = importPath
+
+	// fmtパッケージは式の場合に設定されるのが確定しているので、importPathAddedInSessionには設定しない。
+	if importPath != `"fmt"` {
+		importPathAddedInSession = importPath
+	}
 
 	newImportSpec := &ast.ImportSpec{
 		Path: &ast.BasicLit{
@@ -345,32 +348,56 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	if !ok {
 		return false
 	}
-	if _, ok := lastExprStmt.X.(*ast.CallExpr); ok {
-		mainFunc.Body.List = body[:len(body)-1]
 
+	// 式呼び出しはfmt.Printlnが確実に使われている
+	fmtFunc, ok := lastExprStmt.X.(*ast.CallExpr).Fun.(*ast.Ident)
+	if !ok || fmtFunc.Name != "fmt.Println" {
+		return false
+	}
+
+	fmtFuncArgExpr := lastExprStmt.X.(*ast.CallExpr).Args[0]
+
+	switch fmtFuncArgExpr.(type) {
+	case *ast.CallExpr, *ast.SelectorExpr:
 		// 該当packageを利用している宣言がなければpackage importを削除する
-		selectorBase := extractSelectorBaseFromExpr(lastExprStmt.X)
+		selectorBase := extractSelectorBaseFromExpr(fmtFuncArgExpr)
 		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+			// 該当packageを利用している宣言がなければpackage importを削除する
+			var isUsed bool
 			for _, decl := range e.declRegistry.Decls() {
 				if decl.RHS().PkgName() == types.PkgName(selectorBase) {
-					e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
-						return importSpec.Path.Value == string(importPathAddedInSession)
-					})
-					importPathAddedInSession = ""
-
-					for _, decl := range e.sessionSrc.Decls {
-						if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
-							genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
-								importSpec := spec.(*ast.ImportSpec)
-								return importSpec.Path.Value == string(importPathAddedInSession)
-							})
-							break
-						}
-					}
+					isUsed = true
+					break
 				}
 			}
-		}
 
+			if !isUsed {
+				e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+					return importSpec.Path.Value == string(importPathAddedInSession)
+				})
+
+				for _, decl := range e.sessionSrc.Decls {
+					if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+						genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+							importSpec := spec.(*ast.ImportSpec)
+							return importSpec.Path.Value == string(importPathAddedInSession)
+						})
+						break
+					}
+				}
+				importPathAddedInSession = ""
+			}
+		}
+	}
+
+	var isUsedFmt bool
+	for _, decl := range e.declRegistry.Decls() {
+		if decl.RHS().PkgName() == types.PkgName("fmt") {
+			isUsedFmt = true
+			break
+		}
+	}
+	if !isUsedFmt {
 		// fmt importを削除する
 		e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
 			return importSpec.Path.Value == `"fmt"`
@@ -384,82 +411,69 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 				break
 			}
 		}
-		return true
 	}
-	return false
+
+	mainFunc.Body.List = body[:len(body)-1]
+
+	return true
 }
 
-func (e *Executor) cleanErrLineFromSessionSrc(errMsg string, fset *token.FileSet) error {
-	// エラーメッセージからエラー行番号を抽出する
-	tmpFilePattern := regexp.MustCompile(`\./?\d+_gonsole_tmp\.go:(\d+):(\d+)`)
-	matches := tmpFilePattern.FindStringSubmatch(errMsg)
-	errLine, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return errs.NewInternalError("failed to convert error line to int").Wrap(err)
-	}
-
-	// セッションソースからエラー行を削除する
+func (e *Executor) cleanErrElmFromSessionSrc() error {
 	mainFunc := getMainFunc(e.sessionSrc)
 	cleanMainFuncBody := []ast.Stmt{}
 
-	var errDeclNames []types.DeclName // エラー行で定義された変数名リストを保持する
+	// 最後の要素を取得
+	lastElm := mainFunc.Body.List[len(mainFunc.Body.List)-1]
 
-	for _, stmt := range mainFunc.Body.List {
-		stmtPos := fset.Position(stmt.Pos())
-		if stmtPos.Line == errLine {
-			var selectorBase string
-			switch errStmtV := stmt.(type) {
+	var selectorBase string
+	switch lastElmV := lastElm.(type) {
+	case *ast.AssignStmt:
+		// 最後の要素がブランク代入の場合、ブランク代入とその前の宣言文を削除する
+		if ident, ok := lastElmV.Lhs[0].(*ast.Ident); ok && ident.Name == "_" {
+			// 最後から２番目の要素が宣言文なので、そこからselectorBaseを抽出する
+			prevElm := mainFunc.Body.List[len(mainFunc.Body.List)-2]
+			switch prevElmV := prevElm.(type) {
 			case *ast.AssignStmt:
-				selectorBase = extractSelectorBaseFromExpr(errStmtV.Rhs[0])
-				errDeclNames = append(errDeclNames, types.DeclName(errStmtV.Lhs[0].(*ast.Ident).Name))
+				selectorBase = extractSelectorBaseFromExpr(prevElmV.Rhs[0])
 			case *ast.DeclStmt:
-				selectorBase = extractSelectorBaseFromExpr(errStmtV.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Values[0])
-				errDeclNames = append(errDeclNames, types.DeclName(errStmtV.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name))
-			case *ast.ExprStmt:
-				selectorBase = extractSelectorBaseFromExpr(errStmtV.X)
+				selectorBase = extractSelectorBaseFromExpr(prevElmV.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Values[0])
 			}
-
-			// 該当packageを利用している宣言がなければpackage importを削除する
-			if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
-				for _, decl := range e.declRegistry.Decls() {
-					if decl.RHS().PkgName() == types.PkgName(selectorBase) {
-						e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
-							return importSpec.Path.Value == string(importPathAddedInSession)
-						})
-
-						for _, decl := range e.sessionSrc.Decls {
-							if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
-								genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
-									importSpec := spec.(*ast.ImportSpec)
-									return importSpec.Path.Value == string(importPathAddedInSession)
-								})
-								break
-							}
-						}
-					}
-				}
-				importPathAddedInSession = ""
-			}
-
-			continue
+			cleanMainFuncBody = mainFunc.Body.List[:len(mainFunc.Body.List)-2]
 		}
-
-		// エラー行で定義された変数をブランク代入している行を削除する
-		if len(errDeclNames) > 0 {
-			blankAssignmentDeclName := types.DeclName(stmt.(*ast.AssignStmt).Rhs[0].(*ast.Ident).Name)
-			for _, errDeclName := range errDeclNames {
-				if blankAssignmentDeclName == errDeclName {
-					continue
-				}
-			}
-			errDeclNames = slices.DeleteFunc(errDeclNames, func(errDeclName types.DeclName) bool {
-				return blankAssignmentDeclName == errDeclName
-			})
-		}
-
-		cleanMainFuncBody = append(cleanMainFuncBody, stmt)
+	case *ast.ExprStmt:
+		selectorBase = extractSelectorBaseFromExpr(lastElmV.X)
+		cleanMainFuncBody = mainFunc.Body.List[:len(mainFunc.Body.List)-1]
 	}
+
 	mainFunc.Body.List = cleanMainFuncBody
+
+	if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+		// 該当packageを利用している宣言がなければpackage importを削除する
+		var isUsed bool
+		for _, decl := range e.declRegistry.Decls() {
+			if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+				isUsed = true
+				break
+			}
+		}
+		if !isUsed {
+			e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+				return importSpec.Path.Value == string(importPathAddedInSession)
+			})
+
+			for _, decl := range e.sessionSrc.Decls {
+				if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+					genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+						importSpec := spec.(*ast.ImportSpec)
+						return importSpec.Path.Value == string(importPathAddedInSession)
+					})
+					break
+				}
+			}
+			importPathAddedInSession = ""
+		}
+	}
+
 	return nil
 }
 

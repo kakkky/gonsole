@@ -998,15 +998,8 @@ func TestExecutor_Execute(t *testing.T) {
 				Name: &ast.Ident{Name: "main"},
 				Decls: []ast.Decl{
 					&ast.GenDecl{
-						Tok: token.IMPORT,
-						Specs: []ast.Spec{
-							&ast.ImportSpec{
-								Path: &ast.BasicLit{
-									Kind:  token.STRING,
-									Value: `"github.com/test/pkg"`,
-								},
-							},
-						},
+						Tok:   token.IMPORT,
+						Specs: []ast.Spec{},
 					},
 					&ast.FuncDecl{
 						Name: &ast.Ident{Name: "main"},
@@ -1019,14 +1012,7 @@ func TestExecutor_Execute(t *testing.T) {
 						},
 					},
 				},
-				Imports: []*ast.ImportSpec{
-					{
-						Path: &ast.BasicLit{
-							Kind:  token.STRING,
-							Value: `"github.com/test/pkg"`,
-						},
-					},
-				},
+				Imports: []*ast.ImportSpec{},
 			},
 		},
 		{
