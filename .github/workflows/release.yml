@@ -6,9 +6,12 @@ on:
             new_version:
                 description: "New version (e.g., v1.2.3)"
                 required: true
+    push:
+        branches:
+            - main
 
 jobs:
-    bump-version-and-release:
+    bump-version:
         runs-on: ubuntu-latest
         steps:
             - name: Generate token
@@ -44,29 +47,40 @@ jobs:
                   git checkout -b ${{ github.event.inputs.new_version }}
                   git push origin ${{ github.event.inputs.new_version }}
 
-            - name: Rebase main into release branch
-              run: |
-                  git fetch origin
-                  git checkout ${{ github.event.inputs.new_version }}
-                  git rebase origin/main
+            - name: Create PR from release branch to main
+              uses: peter-evans/create-pull-request@v5
+              with:
+                  token: ${{ steps.app-token.outputs.token }}
+                  base: main
+                  title: "Release ${{ github.event.inputs.new_version }}"
+                  body: "Automated release PR for ${{ github.event.inputs.new_version }}"
 
-            - name: Push release branch to main
-              env:
-                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+    release-on-main:
+        runs-on: ubuntu-latest
+        if: github.ref == 'refs/heads/main'
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Get latest version from version.go
+              id: get_version
               run: |
-                  git config user.name "${{ vars.BOT_NAME }}[bot]"
-                  git config user.email "${{ secrets.APP_ID }}+${{ vars.BOT_NAME }}[bot]@users.noreply.github.com"
-                  git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} ${{ github.event.inputs.new_version }}:main
+                  VERSION=$(grep '^const VERSION' version/version.go | sed -E 's/.*"(.*)".*/\1/')
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
 
             - name: Create tag
               run: |
-                  git tag ${{ github.event.inputs.new_version }}
-                  git push origin ${{ github.event.inputs.new_version }}
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git tag ${{ steps.get_version.outputs.version }}
+                  git push origin ${{ steps.get_version.outputs.version }}
 
             - name: Create GitHub Release (auto notes)
               uses: softprops/action-gh-release@v2
               with:
-                  tag_name: ${{ github.event.inputs.new_version }}
+                  tag_name: ${{ steps.get_version.outputs.version }}
                   generate_release_notes: true
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
