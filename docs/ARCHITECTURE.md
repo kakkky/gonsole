@@ -10,7 +10,6 @@ graph TD
         EXEC[Executor]
         FILER[filer]
         IMPORTRESOLVER[importPathResolver]
-        FSETPROVIDER[fsetProvider]
         COMMANDER[commander]
     end
     subgraph DeclRegistry
@@ -27,7 +26,6 @@ graph TD
     REPL --> COMPLETER
     EXEC --> FILER
     EXEC --> IMPORTRESOLVER
-    EXEC --> FSETPROVIDER
     EXEC --> COMMANDER
     EXEC --> DECLREG
     IMPORTRESOLVER --> COMMANDER
@@ -70,13 +68,7 @@ graph TD
     - コマンド実行の部分は`commander`インターフェースを利用して抽象化している
 
 - テスタビリティのためにインターフェースとして切り出している
-
-### fsetProvider
-- `go/token.FileSet`の提供者を抽象化するインターフェース
-    - `token.FileSet`は、ソースコード中の位置情報（ファイル名、行番号、カラム番号など）を管理するための構造体であり、ASTの解析やコード生成において各ノードの位置を追跡するために利用されるもの
-
-- テスタビリティのためにインターフェースとして切り出している
-
+    
 ### commander
 - `go`コマンド実行を抽象化するインターフェース
     - `go list`

@@ -25,7 +25,6 @@ type Executor struct {
 	filer
 	commander
 	importPathResolver
-	fsetProvider
 }
 
 // NewExecutor はExecutorのインスタンスを生成する
@@ -37,7 +36,6 @@ func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
 		filer:              newDefaultFiler(),
 		commander:          commander,
 		importPathResolver: newDefaultImportPathResolver(commander),
-		fsetProvider:       newDefaultFsetProvider(),
 	}, nil
 }
 
@@ -76,7 +74,7 @@ func (e *Executor) Execute(input string) {
 	}()
 	defer cleanup()
 
-	fset := e.fset()
+	fset := token.NewFileSet()
 
 	// 一時ファイルにflushする
 	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
