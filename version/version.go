@@ -12,7 +12,7 @@ import (
 )
 
 // VERSION は現在のgonsoleのバージョンを表す
-const VERSION = "v1.4.0"
+const VERSION = "v1.4.1"
 
 // PrintVersion は現在のgonsoleのバージョンを表示する
 func PrintVersion() {
