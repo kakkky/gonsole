@@ -66,6 +66,8 @@ Be sure to initialize your project (e.g., by running `go mod init`) before start
 
 If the `>` symbol appears, gonsole has started successfully. You are now ready to write and execute code after this prompt.
 
+You can also exit the console with Control + D.
+
 ### Executing Go Code
 
 #### Package Selection
