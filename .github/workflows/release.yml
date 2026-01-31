@@ -37,13 +37,11 @@ jobs:
                   git checkout -b ${{ github.event.inputs.new_version }}
                   git push origin ${{ github.event.inputs.new_version }}
 
-            - name: Merge release branch to main
+            - name: Force push release branch to main
               run: |
-                  git fetch origin main:refs/remotes/origin/main
-                  git checkout main
-                  git pull origin main
-                  git merge --no-ff --allow-unrelated-histories ${{ github.event.inputs.new_version }}
-                  git push origin main
+                  git fetch origin
+                  git checkout ${{ github.event.inputs.new_version }}
+                  git push --force origin ${{ github.event.inputs.new_version }}:main
 
             - name: Create tag
               run: |
