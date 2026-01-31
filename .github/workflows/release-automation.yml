@@ -1,0 +1,59 @@
+name: Release Automation
+
+on:
+    workflow_dispatch:
+        inputs:
+            new_version:
+                description: "New version (例: v1.4.1)"
+                required: true
+
+jobs:
+    bump-version-and-release:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  ref: develop
+
+            - name: Set up Git
+              run: |
+                  git config --global user.name 'github-actions[bot]'
+                  git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+            - name: Bump version in version.go
+              run: |
+                  sed -i.bak 's/^const VERSION = ".*"/const VERSION = "${{ github.event.inputs.new_version }}"/' version/version.go
+                  rm version/version.go.bak
+
+            - name: Commit and push version bump
+              run: |
+                  git add version/version.go
+                  git commit -m "chore: bump version to ${{ github.event.inputs.new_version }}"
+                  git push origin HEAD:develop
+
+            - name: Create release branch
+              run: |
+                git checkout -b ${{ github.event.inputs.new_version }}
+                git push origin ${{ github.event.inputs.new_version }}
+
+            - name: Merge release branch to main
+              run: |
+                git fetch origin main
+                git checkout main
+                git pull origin main
+                git merge --no-ff ${{ github.event.inputs.new_version }}
+                git push origin main
+
+            - name: Create tag
+              run: |
+                  git tag ${{ github.event.inputs.new_version }}
+                  git push origin ${{ github.event.inputs.new_version }}
+
+            - name: Create GitHub Release (auto notes)
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ github.event.inputs.new_version }}
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
