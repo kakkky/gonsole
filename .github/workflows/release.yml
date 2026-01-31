@@ -1,10 +1,10 @@
-name: Release Automation
+name: Release
 
 on:
     workflow_dispatch:
         inputs:
             new_version:
-                description: "New version (例: v1.4.1)"
+                description: "New version (e.g., v1.2.3)"
                 required: true
 
 jobs:
@@ -34,16 +34,16 @@ jobs:
 
             - name: Create release branch
               run: |
-                git checkout -b ${{ github.event.inputs.new_version }}
-                git push origin ${{ github.event.inputs.new_version }}
+                  git checkout -b ${{ github.event.inputs.new_version }}
+                  git push origin ${{ github.event.inputs.new_version }}
 
             - name: Merge release branch to main
               run: |
-                git fetch origin main
-                git checkout main
-                git pull origin main
-                git merge --no-ff ${{ github.event.inputs.new_version }}
-                git push origin main
+                  git fetch origin main:refs/remotes/origin/main
+                  git checkout main
+                  git pull origin main
+                  git merge --no-ff ${{ github.event.inputs.new_version }}
+                  git push origin main
 
             - name: Create tag
               run: |
