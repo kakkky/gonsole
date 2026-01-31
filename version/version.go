@@ -12,14 +12,14 @@ import (
 )
 
 // VERSION は現在のgonsoleのバージョンを表す
-const VERSION = "v1.4"
+const VERSION = "v1.4.0"
 
 // PrintVersion は現在のgonsoleのバージョンを表示する
 func PrintVersion() {
 	fmt.Println("   " + VERSION)
 }
 
-type relesasesInfoResponse struct {
+type releasesInfoResponse struct {
 	LatestVersion string `json:"tag_name"`
 }
 
@@ -47,7 +47,7 @@ func fetchLatestVersion() (string, error) {
 	if err != nil {
 		return "", errs.NewInternalError("failed to read response body").Wrap(err)
 	}
-	var releasesInfo relesasesInfoResponse
+	var releasesInfo releasesInfoResponse
 	if err := json.Unmarshal(body, &releasesInfo); err != nil {
 		return "", errs.NewInternalError("failed to unmarshal response body").Wrap(err)
 	}
@@ -60,5 +60,5 @@ var latestVerNoteASCII []byte
 
 // PrintNoteLatestVersion は最新バージョンが存在する場合の通知を表示する
 func PrintNoteLatestVersion(latestVersion string) {
-	fmt.Printf(string(latestVerNoteASCII), latestVersion, VERSION)
+	fmt.Printf(string(latestVerNoteASCII), latestVersion, VERSION, latestVersion)
 }
