@@ -11,6 +11,13 @@ jobs:
     bump-version-and-release:
         runs-on: ubuntu-latest
         steps:
+            - name: Generate token
+              id: app-token
+              uses: actions/create-github-app-token@v1
+              with:
+                  app-id: ${{ secrets.APP_ID }}
+                  private-key: ${{ secrets.PRIVATE_KEY }}
+
             - name: Checkout code
               uses: actions/checkout@v4
               with:
@@ -37,11 +44,15 @@ jobs:
                   git checkout -b ${{ github.event.inputs.new_version }}
                   git push origin ${{ github.event.inputs.new_version }}
 
-            - name: Force push release branch to main
+            - name: Push release branch to main
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
               run: |
                   git fetch origin
                   git checkout ${{ github.event.inputs.new_version }}
-                  git push --force origin ${{ github.event.inputs.new_version }}:main
+                  git config user.name "${{ vars.BOT_NAME }}[bot]"
+                  git config user.email "${{ secrets.APP_ID }}+${{ vars.BOT_NAME }}[bot]@users.noreply.github.com"
+                  git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} ${{ github.event.inputs.new_version }}:main
 
             - name: Create tag
               run: |
