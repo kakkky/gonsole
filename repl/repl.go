@@ -2,6 +2,7 @@ package repl
 
 import (
 	"fmt"
+	"os"
 
 	// go:embedディレクティブ用
 	_ "embed"
@@ -24,6 +25,12 @@ func NewRepl(completer *completer.Completer, executor *executor.Executor) *Repl 
 		executor.Execute,
 		completer.Complete,
 		prompt.OptionTitle("gonsole"),
+		prompt.OptionAddKeyBind(prompt.KeyBind{
+			Key: prompt.ControlD,
+			Fn: func(buf *prompt.Buffer) {
+				os.Exit(0)
+			},
+		}),
 	)
 	return &Repl{
 		pt: pt,
