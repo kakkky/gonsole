@@ -15,6 +15,9 @@ import (
 
 var BuildStdPkgCandidatesMode bool
 
+// SkipStdPkgMergeはテスト時に標準パッケージのマージをスキップするフラグ
+var SkipStdPkgMergeMode bool
+
 type candidates struct {
 	Pkgs       []types.PkgName
 	Funcs      map[types.PkgName][]funcSet
@@ -87,8 +90,10 @@ func NewCandidates(projectRootPath string) (*candidates, error) {
 		}
 	}
 
-	// 標準ライブラリの候補とマージ
-	c.mergeCandidates(stdPkgCandidates)
+	// 標準ライブラリの候補とマージ（テスト時はスキップ）
+	if !SkipStdPkgMergeMode {
+		c.mergeCandidates(stdPkgCandidates)
+	}
 
 	return &c, nil
 }

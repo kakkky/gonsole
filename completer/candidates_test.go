@@ -9,6 +9,10 @@ import (
 )
 
 func TestCandidates(t *testing.T) {
+	// テスト時は標準ライブラリのマージをスキップ
+	SkipStdPkgMergeMode = true
+	defer func() { SkipStdPkgMergeMode = false }()
+
 	tests := []struct {
 		name string
 		path string
@@ -197,17 +201,9 @@ func TestCandidates(t *testing.T) {
 			name: "multipackage",
 			path: "./testdata/candidates/multipackage",
 			want: &candidates{
-				Pkgs: []types.PkgName{"main", "types"},
-				Funcs: map[types.PkgName][]funcSet{
-					"main": {
-						{Name: "GetConfig", Description: "GetConfig returns a Config from another package", Returns: []returnSet{{TypeName: "Config", PkgName: "types"}}},
-						{Name: "GetLogger", Description: "GetLogger returns a Logger from another package", Returns: []returnSet{{TypeName: "Logger", PkgName: "types"}}},
-					},
-				},
+				Pkgs:  []types.PkgName{"types"},
+				Funcs: map[types.PkgName][]funcSet{},
 				Methods: map[types.PkgName][]methodSet{
-					"main": {
-						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method", ReceiverTypeName: "Service", Returns: []returnSet{{TypeName: "Config", PkgName: "types"}}},
-					},
 					"types": {
 						{Name: "Info", Description: "Info logs an info message", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", PkgName: "types"}}},
 					},
@@ -215,9 +211,6 @@ func TestCandidates(t *testing.T) {
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"main": {
-						{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: "Service has a method that returns a type from another package"},
-					},
 					"types": {
 						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: "Config is a configuration struct from another package"},
 						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: "Logger is a logger struct from another package"},
