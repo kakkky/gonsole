@@ -210,6 +210,10 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 	if BuildStdPkgCandidatesMode && isPrivate(funcDecl.Name.Name) {
 		return
 	}
+	// 空の名前やアンダースコアのみの名前を除外
+	if funcDecl.Name.Name == "" || funcDecl.Name.Name == "_" {
+		return
+	}
 
 	var description string
 	var returns []returnSet
@@ -476,6 +480,10 @@ func (c *candidates) processConstDecl(pkgName types.PkgName, genDecl *ast.GenDec
 			if BuildStdPkgCandidatesMode && isPrivate(name.Name) {
 				continue
 			}
+			// 空の名前やアンダースコアのみの名前を除外
+			if name.Name == "" || name.Name == "_" {
+				continue
+			}
 			c.Consts[pkgName] = append(c.Consts[pkgName], constSet{Name: types.DeclName(name.Name), Description: genDeclDescription + specDescription})
 		}
 	}
@@ -489,6 +497,10 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 		specV := spec.(*ast.TypeSpec)
 		name := types.DeclName(specV.Name.Name)
 		if BuildStdPkgCandidatesMode && isPrivate(specV.Name.Name) {
+			continue
+		}
+		// 空の名前やアンダースコアのみの名前を除外
+		if specV.Name.Name == "" || specV.Name.Name == "_" {
 			continue
 		}
 		switch specTypeV := specV.Type.(type) {
