@@ -14,70 +14,70 @@ import (
 )
 
 type candidates struct {
-	pkgs       []types.PkgName
-	funcs      map[types.PkgName][]funcSet
-	methods    map[types.PkgName][]methodSet
-	vars       map[types.PkgName][]varSet
-	consts     map[types.PkgName][]constSet
-	structs    map[types.PkgName][]structSet
-	interfaces map[types.PkgName][]interfaceSet
+	Pkgs       []types.PkgName
+	Funcs      map[types.PkgName][]funcSet
+	Methods    map[types.PkgName][]methodSet
+	Vars       map[types.PkgName][]varSet
+	Consts     map[types.PkgName][]constSet
+	Structs    map[types.PkgName][]structSet
+	Interfaces map[types.PkgName][]interfaceSet
 }
 
 type (
 	funcSet struct {
-		name        types.DeclName
-		description string // TODO: descriptionにも型をつけたい
-		returns     []returnSet
+		Name        types.DeclName
+		Description string // TODO: descriptionにも型をつけたい
+		Returns     []returnSet
 	}
 	methodSet struct {
-		name             types.DeclName
-		description      string
-		receiverTypeName types.ReceiverTypeName
-		returns          []returnSet
+		Name             types.DeclName
+		Description      string
+		ReceiverTypeName types.ReceiverTypeName
+		Returns          []returnSet
 	}
 	varSet struct {
-		name        types.DeclName
-		description string
-		typeName    types.TypeName
-		pkgName     types.PkgName
+		Name        types.DeclName
+		Description string
+		TypeName    types.TypeName
+		PkgName     types.PkgName
 	}
 	constSet struct {
-		name        types.DeclName
-		description string
+		Name        types.DeclName
+		Description string
 	}
 	structSet struct {
-		name        types.DeclName
-		fields      []types.StructFieldName // 型情報を持たせてSetにしても良さそう。
-		description string
+		Name        types.DeclName
+		Fields      []types.StructFieldName // 型情報を持たせてSetにしても良さそう。
+		Description string
 	}
 	// interfaceの候補を返すわけではなく、関数がinterfaceを返す場合に、
 	// そのinterfaceのメソッドを候補として返すためのもの
 	interfaceSet struct {
-		name         types.DeclName
-		methods      []types.DeclName
-		descriptions []string
+		Name         types.DeclName
+		Methods      []types.DeclName
+		Descriptions []string
 	}
 )
 
 type returnSet struct {
-	typeName types.TypeName
-	pkgName  types.PkgName
+	TypeName types.TypeName
+	PkgName  types.PkgName
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func newCandidates(projectRootPath string) (*candidates, error) {
+func NewCandidates(projectRootPath string) (*candidates, error) {
 	nodes, err := parseProject(projectRootPath)
 	if err != nil {
 		return nil, err
 	}
 	c := candidates{
-		pkgs:       make([]types.PkgName, 0),
-		funcs:      make(map[types.PkgName][]funcSet),
-		methods:    make(map[types.PkgName][]methodSet),
-		vars:       make(map[types.PkgName][]varSet),
-		consts:     make(map[types.PkgName][]constSet),
-		structs:    make(map[types.PkgName][]structSet),
-		interfaces: make(map[types.PkgName][]interfaceSet),
+		Pkgs:       make([]types.PkgName, 0),
+		Funcs:      make(map[types.PkgName][]funcSet),
+		Methods:    make(map[types.PkgName][]methodSet),
+		Vars:       make(map[types.PkgName][]varSet),
+		Consts:     make(map[types.PkgName][]constSet),
+		Structs:    make(map[types.PkgName][]structSet),
+		Interfaces: make(map[types.PkgName][]interfaceSet),
 	}
 	for pkgName, pkgAsts := range nodes {
 		for _, pkgAst := range pkgAsts {
@@ -224,12 +224,12 @@ func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.Func
 				}
 			}
 			returns = append(returns, returnSet{
-				typeName: typeNameOfReturnV,
-				pkgName:  pkgNameOfReturnV,
+				TypeName: typeNameOfReturnV,
+				PkgName:  pkgNameOfReturnV,
 			})
 		}
 	}
-	c.methods[pkgName] = append(c.methods[pkgName], methodSet{name: types.DeclName(funcDecl.Name.Name), description: description, receiverTypeName: receiverTypeName, returns: returns})
+	c.Methods[pkgName] = append(c.Methods[pkgName], methodSet{Name: types.DeclName(funcDecl.Name.Name), Description: description, ReceiverTypeName: receiverTypeName, Returns: returns})
 }
 
 func (c *candidates) processGenDecl(pkgName types.PkgName, genDecl *ast.GenDecl) {
@@ -290,7 +290,7 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 							typeNameOfRHSV = types.TypeName(rhsCompositeLitTypeV.Sel.Name)
 							pkgNameOfRHSV = types.PkgName(rhsCompositeLitTypeV.X.(*ast.Ident).Name)
 						}
-						c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRHSV, pkgName: pkgNameOfRHSV})
+						c.Vars[pkgName] = append(c.Vars[pkgName], varSet{Name: name, Description: genDeclDescription + specDescription, TypeName: typeNameOfRHSV, PkgName: pkgNameOfRHSV})
 					}
 				case token.MUL:
 					// TODO: デリファレンスの場合の処理
@@ -309,20 +309,20 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 							receiverVarDecl := types.DeclName(selectorBase)
 							var receiverTypeName types.ReceiverTypeName
 							var pkgNameOfReceiver types.PkgName
-							for _, varSet := range c.vars[pkgName] {
-								if varSet.name == receiverVarDecl {
-									receiverTypeName = types.ReceiverTypeName(varSet.typeName)
-									pkgNameOfReceiver = varSet.pkgName
+							for _, varSet := range c.Vars[pkgName] {
+								if varSet.Name == receiverVarDecl {
+									receiverTypeName = types.ReceiverTypeName(varSet.TypeName)
+									pkgNameOfReceiver = varSet.PkgName
 									break
 								}
 							}
 							methodName := rhsFunV.Sel.Name
-							if methodSets, ok := c.methods[pkgNameOfReceiver]; ok {
+							if methodSets, ok := c.Methods[pkgNameOfReceiver]; ok {
 								for _, methodSet := range methodSets {
-									if methodSet.name == types.DeclName(methodName) && methodSet.receiverTypeName == receiverTypeName {
-										typeName := methodSet.returns[i].typeName
-										pkgName := methodSet.returns[i].pkgName
-										c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, pkgName: pkgName})
+									if methodSet.Name == types.DeclName(methodName) && methodSet.ReceiverTypeName == receiverTypeName {
+										typeName := methodSet.Returns[i].TypeName
+										pkgName := methodSet.Returns[i].PkgName
+										c.Vars[pkgName] = append(c.Vars[pkgName], varSet{Name: name, Description: genDeclDescription + specDescription, TypeName: typeName, PkgName: pkgName})
 										break
 									}
 								}
@@ -331,12 +331,12 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 						}
 						funcPkgName := types.PkgName(rhsFunSelectorBaseV.Name)
 						funcName := rhsFunV.Sel.Name
-						if funcSets, ok := c.funcs[funcPkgName]; ok {
+						if funcSets, ok := c.Funcs[funcPkgName]; ok {
 							for _, funcSet := range funcSets {
-								if funcSet.name == types.DeclName(funcName) {
-									typeName := funcSet.returns[i].typeName
-									pkgName := funcSet.returns[i].pkgName
-									c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, pkgName: pkgName})
+								if funcSet.Name == types.DeclName(funcName) {
+									typeName := funcSet.Returns[i].TypeName
+									pkgName := funcSet.Returns[i].PkgName
+									c.Vars[pkgName] = append(c.Vars[pkgName], varSet{Name: name, Description: genDeclDescription + specDescription, TypeName: typeName, PkgName: pkgName})
 									break
 								}
 							}
@@ -346,12 +346,12 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 					// ローカル関数呼び出し (Func())
 					funcName := rhsFunV.Name
 					// 現在のパッケージから関数を探す
-					if funcSets, ok := c.funcs[pkgName]; ok {
+					if funcSets, ok := c.Funcs[pkgName]; ok {
 						for _, funcSet := range funcSets {
-							if funcSet.name == types.DeclName(funcName) {
-								typeName := funcSet.returns[i].typeName
-								pkgName := funcSet.returns[i].pkgName
-								c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeName, pkgName: pkgName})
+							if funcSet.Name == types.DeclName(funcName) {
+								typeName := funcSet.Returns[i].TypeName
+								pkgName := funcSet.Returns[i].PkgName
+								c.Vars[pkgName] = append(c.Vars[pkgName], varSet{Name: name, Description: genDeclDescription + specDescription, TypeName: typeName, PkgName: pkgName})
 							}
 						}
 					}
@@ -376,11 +376,11 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 					typeNameOfRHSV = "unknown"
 				}
 
-				c.vars[pkgName] = append(c.vars[pkgName], varSet{
-					name:        name,
-					description: genDeclDescription + specDescription,
-					typeName:    typeNameOfRHSV,
-					pkgName:     "",
+				c.Vars[pkgName] = append(c.Vars[pkgName], varSet{
+					Name:        name,
+					Description: genDeclDescription + specDescription,
+					TypeName:    typeNameOfRHSV,
+					PkgName:     "",
 				})
 			}
 		}
@@ -433,7 +433,7 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 					fields = append(fields, types.StructFieldName(fieldName.Name))
 				}
 			}
-			c.structs[pkgName] = append(c.structs[pkgName], structSet{name: name, fields: fields, description: genDeclDescription + specDescription})
+			c.Structs[pkgName] = append(c.Structs[pkgName], structSet{Name: name, Fields: fields, Description: genDeclDescription + specDescription})
 		case *ast.InterfaceType:
 			var methods []types.DeclName
 			var descriptions []string
@@ -450,16 +450,16 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 				}
 				descriptions = append(descriptions, commentBuilder.String())
 			}
-			c.interfaces[pkgName] = append(c.interfaces[pkgName], interfaceSet{name: name, methods: methods, descriptions: descriptions})
+			c.Interfaces[pkgName] = append(c.Interfaces[pkgName], interfaceSet{Name: name, Methods: methods, Descriptions: descriptions})
 		}
 
 	}
 }
 
 func (c *candidates) isVarDecl(maybeVarDecl string) bool {
-	for _, vars := range c.vars {
+	for _, vars := range c.Vars {
 		for _, v := range vars {
-			if string(v.name) == maybeVarDecl {
+			if string(v.Name) == maybeVarDecl {
 				return true
 			}
 		}
