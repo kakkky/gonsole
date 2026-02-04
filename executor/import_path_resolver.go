@@ -8,7 +8,6 @@ import (
 
 	"github.com/kakkky/go-prompt"
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/stdpkg"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -30,8 +29,8 @@ func newDefaultImportPathResolver(cmd commander) *defaultImportPathResolver {
 func (dipr *defaultImportPathResolver) resolve(pkgName types.PkgName) (types.ImportPath, error) {
 	var importPathCandidates []types.ImportPath
 
-	if stdpkgImportPath, found := stdpkg.IsStandardPackage(pkgName); found {
-		importPathCandidates = append(importPathCandidates, stdpkgImportPath)
+	if stdpkgImportPaths, ok := stdPkgImportPathMap[pkgName]; ok {
+		importPathCandidates = append(importPathCandidates, stdpkgImportPaths...)
 	}
 
 	cmdOut, err := dipr.execGoListAll()
