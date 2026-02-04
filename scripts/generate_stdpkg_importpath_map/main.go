@@ -89,7 +89,7 @@ func main() {
 			if i > 0 {
 				buf.WriteString(", ")
 			}
-			buf.WriteString(fmt.Sprintf("types.ImportPath(`\"%s\"`)", importPath))
+			buf.WriteString(fmt.Sprintf("`\"%s\"`", importPath))
 		}
 		buf.WriteString("},\n")
 	}
