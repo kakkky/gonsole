@@ -13,6 +13,8 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
+var BuildStdPkgCandidatesMode bool
+
 type candidates struct {
 	Pkgs       []types.PkgName
 	Funcs      map[types.PkgName][]funcSet
@@ -85,7 +87,50 @@ func NewCandidates(projectRootPath string) (*candidates, error) {
 		}
 	}
 
+	// 標準ライブラリの候補とマージ
+	c.mergeCandidates(stdPkgCandidates)
+
 	return &c, nil
+}
+
+// mergeCandidates は他のcandidatesをマージする
+func (c *candidates) mergeCandidates(other *candidates) {
+	// パッケージ名をマージ
+	for _, pkg := range other.Pkgs {
+		if !slices.Contains(c.Pkgs, pkg) {
+			c.Pkgs = append(c.Pkgs, pkg)
+		}
+	}
+
+	// 関数をマージ
+	for pkgName, funcs := range other.Funcs {
+		c.Funcs[pkgName] = append(c.Funcs[pkgName], funcs...)
+	}
+
+	// メソッドをマージ
+	for pkgName, methods := range other.Methods {
+		c.Methods[pkgName] = append(c.Methods[pkgName], methods...)
+	}
+
+	// 変数をマージ
+	for pkgName, vars := range other.Vars {
+		c.Vars[pkgName] = append(c.Vars[pkgName], vars...)
+	}
+
+	// 定数をマージ
+	for pkgName, consts := range other.Consts {
+		c.Consts[pkgName] = append(c.Consts[pkgName], consts...)
+	}
+
+	// 構造体をマージ
+	for pkgName, structs := range other.Structs {
+		c.Structs[pkgName] = append(c.Structs[pkgName], structs...)
+	}
+
+	// インターフェースをマージ
+	for pkgName, interfaces := range other.Interfaces {
+		c.Interfaces[pkgName] = append(c.Interfaces[pkgName], interfaces...)
+	}
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
@@ -94,6 +139,7 @@ func parseProject(path string) (types.GoAstNodes, error) {
 	mode := parser.ParseComments | parser.AllErrors
 	// nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 	nodes := make(types.GoAstNodes)
+	skipBasePaths := []string{"vendor", "internal", "testdata", "cmd", "runtime", "benchmark"}
 	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -101,11 +147,19 @@ func parseProject(path string) (types.GoAstNodes, error) {
 		if !d.IsDir() {
 			return nil
 		}
-		if filepath.Base(path) == "vendor" {
+		if slices.Contains(skipBasePaths, filepath.Base(path)) {
 			return filepath.SkipDir
 		}
-		node, err := parser.ParseDir(fset, path, nil, mode)
+		// _test.goファイルを除外するフィルタ
+		filter := func(info fs.FileInfo) bool {
+			return !strings.HasSuffix(info.Name(), "_test.go")
+		}
+		node, err := parser.ParseDir(fset, path, filter, mode)
 		for pkgName, pkg := range node {
+			// _testパッケージは除外
+			if strings.HasSuffix(string(pkgName), "_test") || pkgName == "main" {
+				continue
+			}
 			nodes[types.PkgName(pkgName)] = append(nodes[types.PkgName(pkgName)], pkg)
 		}
 		if err != nil {
@@ -123,8 +177,8 @@ func parseProject(path string) (types.GoAstNodes, error) {
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
 func (c *candidates) processPackageAst(pkgName types.PkgName, pkgAst *ast.Package) {
-	if !slices.Contains(c.pkgs, pkgName) {
-		c.pkgs = append(c.pkgs, pkgName)
+	if !slices.Contains(c.Pkgs, pkgName) {
+		c.Pkgs = append(c.Pkgs, pkgName)
 	}
 	for _, fileAst := range pkgAst.Files {
 		c.processFileAst(pkgName, fileAst)
@@ -152,6 +206,11 @@ func isMethod(funcDecl *ast.FuncDecl) bool {
 
 // TODO: paramsも見て、補完候補のdescription部分に追加したさはある
 func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
+
+	if BuildStdPkgCandidatesMode && isPrivate(funcDecl.Name.Name) {
+		return
+	}
+
 	var description string
 	var returns []returnSet
 	if funcDecl.Doc != nil {
@@ -181,21 +240,29 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 			}
 
 			returns = append(returns, returnSet{
-				typeName: typeNameOfReturnV,
-				pkgName:  pkgNameOfReturnV,
+				TypeName: typeNameOfReturnV,
+				PkgName:  pkgNameOfReturnV,
 			})
 		}
 	}
-	c.funcs[pkgName] = append(c.funcs[pkgName], funcSet{name: types.DeclName(funcDecl.Name.Name), description: description, returns: returns})
+	c.Funcs[pkgName] = append(c.Funcs[pkgName], funcSet{Name: types.DeclName(funcDecl.Name.Name), Description: description, Returns: returns})
 }
 
 func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
+	if BuildStdPkgCandidatesMode && isPrivate(funcDecl.Name.Name) {
+		return
+	}
+
 	var receiverTypeName types.ReceiverTypeName
 	var returns []returnSet
 	switch funcDeclRecvTypeV := funcDecl.Recv.List[0].Type.(type) {
 	case *ast.Ident:
 		receiverTypeName = types.ReceiverTypeName(funcDeclRecvTypeV.Name)
 	case *ast.StarExpr:
+		if _, ok := funcDeclRecvTypeV.X.(*ast.Ident); !ok {
+			// ジェネリクス等だった場合は一旦スキップ
+			return
+		}
 		receiverTypeName = types.ReceiverTypeName(funcDeclRecvTypeV.X.(*ast.Ident).Name)
 	}
 	var description string
@@ -257,6 +324,11 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 
 		for i, rhs := range specV.Values {
 			name := types.DeclName(specV.Names[i].Name)
+
+			if BuildStdPkgCandidatesMode && isPrivate(string(name)) {
+				continue
+			}
+
 			switch rhsV := rhs.(type) {
 			case *ast.CompositeLit:
 				// 構造体リテラルの型を適切に処理
@@ -272,7 +344,7 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 					typeNameOfRHSV = types.TypeName(rhsTypeV.Sel.Name)
 					pkgNameOfRHSV = types.PkgName(rhsTypeV.X.(*ast.Ident).Name)
 				}
-				c.vars[pkgName] = append(c.vars[pkgName], varSet{name: name, description: genDeclDescription + specDescription, typeName: typeNameOfRHSV, pkgName: pkgNameOfRHSV})
+				c.Vars[pkgName] = append(c.Vars[pkgName], varSet{Name: name, Description: genDeclDescription + specDescription, TypeName: typeNameOfRHSV, PkgName: pkgNameOfRHSV})
 			case *ast.UnaryExpr:
 				var typeNameOfRHSV types.TypeName
 				var pkgNameOfRHSV types.PkgName
@@ -401,7 +473,10 @@ func (c *candidates) processConstDecl(pkgName types.PkgName, genDecl *ast.GenDec
 		// １つのValueSpecに複数の定数名がある場合に対応
 		// 例: const A, B = 1, 2
 		for _, name := range specV.Names {
-			c.consts[pkgName] = append(c.consts[pkgName], constSet{name: types.DeclName(name.Name), description: genDeclDescription + specDescription})
+			if BuildStdPkgCandidatesMode && isPrivate(name.Name) {
+				continue
+			}
+			c.Consts[pkgName] = append(c.Consts[pkgName], constSet{Name: types.DeclName(name.Name), Description: genDeclDescription + specDescription})
 		}
 	}
 }
@@ -413,6 +488,9 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 	for _, spec := range genDecl.Specs {
 		specV := spec.(*ast.TypeSpec)
 		name := types.DeclName(specV.Name.Name)
+		if BuildStdPkgCandidatesMode && isPrivate(specV.Name.Name) {
+			continue
+		}
 		switch specTypeV := specV.Type.(type) {
 		case *ast.StructType:
 			var specDescription string
