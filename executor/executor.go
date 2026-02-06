@@ -60,6 +60,7 @@ func (e *Executor) Execute(input string) {
 		errs.HandleError(err)
 		return
 	}
+	defer clearImportPathAddedInSession()
 
 	// 一時ファイルを作成
 	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
@@ -385,7 +386,6 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 						break
 					}
 				}
-				importPathAddedInSession = ""
 			}
 		}
 	}
@@ -470,7 +470,6 @@ func (e *Executor) cleanErrElmFromSessionSrc() error {
 					break
 				}
 			}
-			importPathAddedInSession = ""
 		}
 	}
 
@@ -540,4 +539,8 @@ func getMainFunc(file *ast.File) *ast.FuncDecl {
 		}
 	}
 	return nil
+}
+
+func clearImportPathAddedInSession() {
+	importPathAddedInSession = ""
 }
