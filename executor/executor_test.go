@@ -1773,6 +1773,10 @@ func TestExecutor_Execute_Error(t *testing.T) {
 
 			sut.Execute(tt.input)
 
+			if importPathAddedInSession != "" {
+				t.Fatalf("importPathAddedInSession should be empty, but got %q", importPathAddedInSession)
+			}
+
 			// パイプを閉じて出力を読み取る
 			if err := w.Close(); err != nil {
 				t.Fatalf("failed to close pipe writer: %v", err)
