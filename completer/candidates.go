@@ -13,6 +13,7 @@ import (
 	"github.com/kakkky/gonsole/types"
 )
 
+// BuildStdPkgCandidatesModeは標準パッケージの候補を構築するモードのフラグ
 var BuildStdPkgCandidatesMode bool
 
 // SkipStdPkgMergeはテスト時に標準パッケージのマージをスキップするフラグ
@@ -90,7 +91,7 @@ func NewCandidates(projectRootPath string) (*candidates, error) {
 		}
 	}
 
-	// 標準ライブラリの候補とマージ（テスト時はスキップ）
+	// 標準パッケージの候補とマージ（テスト時、標準パッケージ候補の生成スクリプト実行時はスキップ）
 	if !SkipStdPkgMergeMode {
 		c.mergeCandidates(stdPkgCandidates)
 	}

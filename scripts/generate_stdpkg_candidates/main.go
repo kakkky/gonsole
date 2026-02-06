@@ -17,7 +17,11 @@ import (
 func main() {
 	goSrcRoot := build.Default.GOROOT + "/src"
 	completer.BuildStdPkgCandidatesMode = true
-	defer func() { completer.BuildStdPkgCandidatesMode = false }()
+	completer.SkipStdPkgMergeMode = true
+	defer func() {
+		completer.BuildStdPkgCandidatesMode = false
+		completer.SkipStdPkgMergeMode = false
+	}()
 	c, err := completer.NewCandidates(goSrcRoot)
 	if err != nil {
 		panic(err)
