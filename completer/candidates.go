@@ -217,7 +217,7 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 		return
 	}
 	// 空の名前やアンダースコアのみの名前を除外
-	if funcDecl.Name.Name == "" || funcDecl.Name.Name == "_" {
+	if funcDecl.Name.Name == "" || funcDecl.Name.Name == "_" || strings.HasPrefix(funcDecl.Name.Name, "_") {
 		return
 	}
 
@@ -260,6 +260,10 @@ func (c *candidates) processFuncDecl(pkgName types.PkgName, funcDecl *ast.FuncDe
 
 func (c *candidates) processMethodDecl(pkgName types.PkgName, funcDecl *ast.FuncDecl) {
 	if BuildStdPkgCandidatesMode && isPrivate(funcDecl.Name.Name) {
+		return
+	}
+
+	if funcDecl.Name.Name == "" || funcDecl.Name.Name == "_" || strings.HasPrefix(funcDecl.Name.Name, "_") {
 		return
 	}
 
@@ -336,6 +340,10 @@ func (c *candidates) processVarDecl(pkgName types.PkgName, genDecl *ast.GenDecl)
 			name := types.DeclName(specV.Names[i].Name)
 
 			if BuildStdPkgCandidatesMode && isPrivate(string(name)) {
+				continue
+			}
+
+			if name == "" || name == "_" || strings.HasPrefix(string(name), "_") {
 				continue
 			}
 
@@ -487,7 +495,7 @@ func (c *candidates) processConstDecl(pkgName types.PkgName, genDecl *ast.GenDec
 				continue
 			}
 			// 空の名前やアンダースコアのみの名前を除外
-			if name.Name == "" || name.Name == "_" {
+			if name.Name == "" || name.Name == "_" || strings.HasPrefix(name.Name, "_") {
 				continue
 			}
 			c.Consts[pkgName] = append(c.Consts[pkgName], constSet{Name: types.DeclName(name.Name), Description: genDeclDescription + specDescription})
@@ -506,7 +514,7 @@ func (c *candidates) processTypeDecl(pkgName types.PkgName, genDecl *ast.GenDecl
 			continue
 		}
 		// 空の名前やアンダースコアのみの名前を除外
-		if specV.Name.Name == "" || specV.Name.Name == "_" {
+		if specV.Name.Name == "" || specV.Name.Name == "_" || strings.HasPrefix(specV.Name.Name, "_") {
 			continue
 		}
 		switch specTypeV := specV.Type.(type) {
