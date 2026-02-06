@@ -79,22 +79,38 @@ func main() {
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString("package executor\n\n")
-	buf.WriteString("import \"github.com/kakkky/gonsole/types\"\n\n")
-	buf.WriteString("var stdPkgImportPathMap = map[types.PkgName][]types.ImportPath{\n")
-
-	for pkgName, importPaths := range pkgMap {
-		buf.WriteString(fmt.Sprintf("\t%q: {", string(pkgName)))
-		for i, importPath := range importPaths {
-			if i > 0 {
-				buf.WriteString(", ")
-			}
-			buf.WriteString(fmt.Sprintf("`\"%s\"`", importPath))
-		}
-		buf.WriteString("},\n")
+	if _, err := buf.WriteString("package executor\n\n"); err != nil {
+		panic(err)
+	}
+	if _, err := buf.WriteString("import \"github.com/kakkky/gonsole/types\"\n\n"); err != nil {
+		panic(err)
+	}
+	if _, err := buf.WriteString("var stdPkgImportPathMap = map[types.PkgName][]types.ImportPath{\n"); err != nil {
+		panic(err)
 	}
 
-	buf.WriteString("}\n")
+	for pkgName, importPaths := range pkgMap {
+		if _, err := fmt.Fprintf(&buf, "\t%q: {", string(pkgName)); err != nil {
+			panic(err)
+		}
+		for i, importPath := range importPaths {
+			if i > 0 {
+				if _, err := buf.WriteString(", "); err != nil {
+					panic(err)
+				}
+			}
+			if _, err := fmt.Fprintf(&buf, "`\"%s\"`", importPath); err != nil {
+				panic(err)
+			}
+		}
+		if _, err := buf.WriteString("},\n"); err != nil {
+			panic(err)
+		}
+	}
+
+	if _, err := buf.WriteString("}\n"); err != nil {
+		panic(err)
+	}
 
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
