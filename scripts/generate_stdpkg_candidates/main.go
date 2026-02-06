@@ -132,13 +132,13 @@ func formatValue(buf *bytes.Buffer, v reflect.Value, indent int) {
 		for strings.Contains(s, "  ") {
 			s = strings.ReplaceAll(s, "  ", " ")
 		}
-		buf.WriteString(fmt.Sprintf("%q", s))
+		fmt.Fprintf(buf, "%q", s)
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		buf.WriteString(fmt.Sprintf("%d", v.Int()))
+		fmt.Fprintf(buf, "%d", v.Int())
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		buf.WriteString(fmt.Sprintf("%d", v.Uint()))
+		fmt.Fprintf(buf, "%d", v.Uint())
 
 	case reflect.Float32, reflect.Float64:
 		buf.WriteString(fmt.Sprintf("%g", v.Float()))
