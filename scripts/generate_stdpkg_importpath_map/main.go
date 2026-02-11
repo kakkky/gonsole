@@ -26,7 +26,7 @@ func main() {
 
 	fset := token.NewFileSet()
 	mode := parser.ParseComments | parser.AllErrors
-	skipBasePaths := []string{"vendor", "internal", "testdata", "cmd", "runtime", "benchmark"}
+	skipBasePaths := []string{"vendor", "internal", "testdata", "cmd", "benchmark"}
 	err := filepath.WalkDir(goSrcRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
