@@ -51,7 +51,7 @@ func TestCandidates(t *testing.T) {
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: ""}},
+					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: "Counter is a simple counter type\n"}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -90,7 +90,7 @@ func TestCandidates(t *testing.T) {
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: ""}},
+					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: "Person is a simple struct\n"}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -109,7 +109,7 @@ func TestCandidates(t *testing.T) {
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: ""}},
+					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a configuration struct\n"}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -135,7 +135,7 @@ func TestCandidates(t *testing.T) {
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: ""}},
+					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: "Logger is a simple logger type\n"}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -172,10 +172,10 @@ func TestCandidates(t *testing.T) {
 				Consts:  map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
 					"structs": {
-						{Name: "SimpleStruct", Fields: []types.StructFieldName{"FieldA", "FieldB"}, Description: ""},
-						{Name: "MultiFieldStruct", Fields: []types.StructFieldName{"X", "Y", "Z"}, Description: ""},
-						{Name: "Base", Fields: []types.StructFieldName{"ID"}, Description: ""},
-						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: ""},
+						{Name: "SimpleStruct", Fields: []types.StructFieldName{"FieldA", "FieldB"}, Description: "SimpleStruct has simple fields\n"},
+						{Name: "MultiFieldStruct", Fields: []types.StructFieldName{"X", "Y", "Z"}, Description: "MultiFieldStruct has multiple fields on same line\n"},
+						{Name: "Base", Fields: []types.StructFieldName{"ID"}, Description: "Base is used for embedding\n"},
+						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: "Derived embeds Base\n"},
 					},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
@@ -221,10 +221,10 @@ func TestCandidates(t *testing.T) {
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"myapp": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: ""}},
+					"myapp": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: "Service has a method that returns a type from another package\n"}},
 					"types": {
-						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: ""},
-						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: ""},
+						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: "Config is a configuration struct from another package\n"},
+						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: "Logger is a logger struct from another package\n"},
 					},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},

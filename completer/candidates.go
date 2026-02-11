@@ -382,7 +382,7 @@ func (c *candidates) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *goty
 	underlyingType := typeDeclObj.Type().Underlying()
 	switch underlyingTypeV := underlyingType.(type) {
 	case *gotypes.Struct:
-		c.processStructTypeDeclObj(pkgName, declName, underlyingTypeV, typeDeclAst)
+		c.processStructTypeDeclObj(pkgName, declName, underlyingTypeV, genDeclAst)
 	case *gotypes.Interface:
 		c.processInterfaceTypeDeclObj(pkgName, declName, underlyingTypeV, typeDeclAst)
 	default:
@@ -391,10 +391,10 @@ func (c *candidates) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *goty
 }
 
 // processStructTypeDeclObj は構造体型宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName types.DeclName, structDeclObj *gotypes.Struct, typeDeclAst *ast.TypeSpec) {
+func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName types.DeclName, structDeclObj *gotypes.Struct, genDeclAst *ast.GenDecl) {
 	var description string
-	if typeDeclAst != nil && typeDeclAst.Doc != nil {
-		description = typeDeclAst.Doc.Text()
+	if genDeclAst != nil && genDeclAst.Doc != nil {
+		description = genDeclAst.Doc.Text()
 	}
 
 	var fields []types.StructFieldName
