@@ -25,8 +25,8 @@ func TestCandidates(t *testing.T) {
 				Pkgs: []types.PkgName{"funcs"},
 				Funcs: map[types.PkgName][]funcSet{
 					"funcs": {
-						{Name: "Add", Description: "Add adds two integers and returns the sum", Returns: []returnSet{{TypeName: "int", PkgName: "funcs"}}},
-						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values", Returns: []returnSet{{TypeName: "int", PkgName: "funcs"}, {TypeName: "string", PkgName: "funcs"}}},
+						{Name: "Add", Description: "Add adds two integers and returns the sum\n", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values\n", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}, {TypeName: "string", TypePkgName: ""}}},
 					},
 				},
 				Methods:    map[types.PkgName][]methodSet{},
@@ -44,14 +44,14 @@ func TestCandidates(t *testing.T) {
 				Funcs: map[types.PkgName][]funcSet{},
 				Methods: map[types.PkgName][]methodSet{
 					"methods": {
-						{Name: "Increment", Description: "Increment increments the counter value", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", PkgName: "methods"}}},
-						{Name: "GetValue", Description: "GetValue returns the current value", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", PkgName: "methods"}}},
+						{Name: "Increment", Description: "Increment increments the counter value\n", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "GetValue", Description: "GetValue returns the current value\n", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
 					},
 				},
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: "Counter is a simple counter type"}},
+					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: ""}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -65,9 +65,9 @@ func TestCandidates(t *testing.T) {
 				Methods: map[types.PkgName][]methodSet{},
 				Vars: map[types.PkgName][]varSet{
 					"varsbasiclit": {
-						{Name: "IntVar", Description: "Basic literal variable declarations   IntVar is an integer variable", TypeName: "int", PkgName: ""},
-						{Name: "StringVar", Description: "Basic literal variable declarations   StringVar is a string variable", TypeName: "string", PkgName: ""},
-						{Name: "FloatVar", Description: "Basic literal variable declarations   FloatVar is a float variable", TypeName: "float64", PkgName: ""},
+						{Name: "IntVar", Description: "IntVar is an integer variable\n", TypeName: "int", TypePkgName: ""},
+						{Name: "StringVar", Description: "StringVar is a string variable\n", TypeName: "string", TypePkgName: ""},
+						{Name: "FloatVar", Description: "FloatVar is a float variable\n", TypeName: "float64", TypePkgName: ""},
 					},
 				},
 				Consts:     map[types.PkgName][]constSet{},
@@ -84,13 +84,13 @@ func TestCandidates(t *testing.T) {
 				Methods: map[types.PkgName][]methodSet{},
 				Vars: map[types.PkgName][]varSet{
 					"varscompositelit": {
-						{Name: "SimplePerson", Description: "SimplePerson is initialized with a composite literal", TypeName: "Person", PkgName: "varscompositelit"},
-						{Name: "PersonPtr", Description: "PersonPtr is initialized with a pointer to composite literal", TypeName: "Person", PkgName: "varscompositelit"},
+						{Name: "SimplePerson", Description: "SimplePerson is initialized with a composite literal\n", TypeName: "Person", TypePkgName: "varscompositelit"},
+						{Name: "PersonPtr", Description: "PersonPtr is initialized with a pointer to composite literal\n", TypeName: "*Person", TypePkgName: "varscompositelit"},
 					},
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: "Person is a simple struct"}},
+					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: ""}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -101,15 +101,15 @@ func TestCandidates(t *testing.T) {
 			want: &candidates{
 				Pkgs: []types.PkgName{"varsfunccall"},
 				Funcs: map[types.PkgName][]funcSet{
-					"varsfunccall": {{Name: "NewConfig", Description: "NewConfig creates a new Config instance", Returns: []returnSet{{TypeName: "Config", PkgName: "varsfunccall"}}}},
+					"varsfunccall": {{Name: "NewConfig", Description: "NewConfig creates a new Config instance\n", Returns: []returnSet{{TypeName: "Config", TypePkgName: "varsfunccall"}}}},
 				},
 				Methods: map[types.PkgName][]methodSet{},
 				Vars: map[types.PkgName][]varSet{
-					"varsfunccall": {{Name: "ConfigVar", Description: "ConfigVar is initialized by a function call", TypeName: "Config", PkgName: "varsfunccall"}},
+					"varsfunccall": {{Name: "ConfigVar", Description: "ConfigVar is initialized by a function call\n", TypeName: "Config", TypePkgName: "varsfunccall"}},
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a configuration struct"}},
+					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: ""}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -120,20 +120,22 @@ func TestCandidates(t *testing.T) {
 			want: &candidates{
 				Pkgs: []types.PkgName{"varsmethodcall"},
 				Funcs: map[types.PkgName][]funcSet{
-					"varsmethodcall": {{Name: "NewLogger", Description: "NewLogger creates a new Logger instance", Returns: []returnSet{{TypeName: "Logger", PkgName: "varsmethodcall"}}}},
+					"varsmethodcall": {{Name: "NewLogger", Description: "NewLogger creates a new Logger instance\n", Returns: []returnSet{{TypeName: "Logger", TypePkgName: "varsmethodcall"}}}},
 				},
 				Methods: map[types.PkgName][]methodSet{
-					"varsmethodcall": {{Name: "Info", Description: "Info logs an info message and returns the logged message", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", PkgName: "varsmethodcall"}}}},
+					"varsmethodcall": {
+						{Name: "Info", Description: "Info logs an info message and returns the logged message\n", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", TypePkgName: ""}}},
+					},
 				},
 				Vars: map[types.PkgName][]varSet{
 					"varsmethodcall": {
-						{Name: "GlobalLogger", Description: "GlobalLogger is a top-level variable", TypeName: "Logger", PkgName: "varsmethodcall"},
-						{Name: "ResultFromMethod", Description: "ResultFromMethod is initialized by a method call on a top-level variable", TypeName: "string", PkgName: "varsmethodcall"},
+						{Name: "GlobalLogger", Description: "GlobalLogger is a top-level variable\n", TypeName: "Logger", TypePkgName: "varsmethodcall"},
+						{Name: "ResultFromMethod", Description: "ResultFromMethod is initialized by a method call on a top-level variable\n", TypeName: "string", TypePkgName: ""},
 					},
 				},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: "Logger is a simple logger type"}},
+					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: ""}},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
 			},
@@ -148,11 +150,11 @@ func TestCandidates(t *testing.T) {
 				Vars:    map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{
 					"consts": {
-						{Name: "MaxSize", Description: "MaxSize is the maximum size"},
-						{Name: "MinValue", Description: "Multiple constants in one declaration   MinValue is the minimum value"},
-						{Name: "MaxValue", Description: "Multiple constants in one declaration   MaxValue is the maximum value"},
-						{Name: "DefaultWidth", Description: "Multiple names in one spec"},
-						{Name: "DefaultHeight", Description: "Multiple names in one spec"},
+						{Name: "MaxSize", Description: "MaxSize is the maximum size\n"},
+						{Name: "MinValue", Description: "MinValue is the minimum value\n"},
+						{Name: "MaxValue", Description: "MaxValue is the maximum value\n"},
+						{Name: "DefaultWidth", Description: "Multiple names in one spec\n"},
+						{Name: "DefaultHeight", Description: "Multiple names in one spec\n"},
 					},
 				},
 				Structs:    map[types.PkgName][]structSet{},
@@ -170,10 +172,10 @@ func TestCandidates(t *testing.T) {
 				Consts:  map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
 					"structs": {
-						{Name: "SimpleStruct", Fields: []types.StructFieldName{"FieldA", "FieldB"}, Description: "SimpleStruct has simple fields"},
-						{Name: "MultiFieldStruct", Fields: []types.StructFieldName{"X", "Y", "Z"}, Description: "MultiFieldStruct has multiple fields on same line"},
-						{Name: "Base", Fields: []types.StructFieldName{"ID"}, Description: "Base is used for embedding"},
-						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: "Derived embeds Base"},
+						{Name: "SimpleStruct", Fields: []types.StructFieldName{"FieldA", "FieldB"}, Description: ""},
+						{Name: "MultiFieldStruct", Fields: []types.StructFieldName{"X", "Y", "Z"}, Description: ""},
+						{Name: "Base", Fields: []types.StructFieldName{"ID"}, Description: ""},
+						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: ""},
 					},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
@@ -191,8 +193,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{},
 				Interfaces: map[types.PkgName][]interfaceSet{
 					"interfaces": {
-						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: []string{"Read reads data"}},
-						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data"}},
+						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: nil},
+						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: nil},
 					},
 				},
 			},
@@ -201,19 +203,28 @@ func TestCandidates(t *testing.T) {
 			name: "multipackage",
 			path: "./testdata/candidates/multipackage",
 			want: &candidates{
-				Pkgs:  []types.PkgName{"types"},
-				Funcs: map[types.PkgName][]funcSet{},
+				Pkgs: []types.PkgName{"main", "types"},
+				Funcs: map[types.PkgName][]funcSet{
+					"main": {
+						{Name: "GetConfig", Description: "GetConfig returns a Config from another package\n", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
+						{Name: "GetLogger", Description: "GetLogger returns a Logger from another package\n", Returns: []returnSet{{TypeName: "Logger", TypePkgName: "types"}}},
+					},
+				},
 				Methods: map[types.PkgName][]methodSet{
+					"main": {
+						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method\n", ReceiverTypeName: "Service", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
+					},
 					"types": {
-						{Name: "Info", Description: "Info logs an info message", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", PkgName: "types"}}},
+						{Name: "Info", Description: "Info logs an info message\n", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", TypePkgName: ""}}},
 					},
 				},
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
+					"main": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: ""}},
 					"types": {
-						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: "Config is a configuration struct from another package"},
-						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: "Logger is a logger struct from another package"},
+						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: ""},
+						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: ""},
 					},
 				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
@@ -228,18 +239,18 @@ func TestCandidates(t *testing.T) {
 				Methods: map[types.PkgName][]methodSet{},
 				Vars: map[types.PkgName][]varSet{
 					"multidecl": {
-						{Name: "VarA", Description: "Multiple variables in one line", TypeName: "string", PkgName: ""},
-						{Name: "VarB", Description: "Multiple variables in one line", TypeName: "string", PkgName: ""},
-						{Name: "VarC", Description: "Multiple variables in one var block", TypeName: "string", PkgName: ""},
-						{Name: "VarD", Description: "Multiple variables in one var block", TypeName: "string", PkgName: ""},
+						{Name: "VarA", Description: "Multiple variables in one line\n", TypeName: "string", TypePkgName: ""},
+						{Name: "VarB", Description: "Multiple variables in one line\n", TypeName: "string", TypePkgName: ""},
+						{Name: "VarC", Description: "Multiple variables in one var block\n", TypeName: "string", TypePkgName: ""},
+						{Name: "VarD", Description: "Multiple variables in one var block\n", TypeName: "string", TypePkgName: ""},
 					},
 				},
 				Consts: map[types.PkgName][]constSet{
 					"multidecl": {
-						{Name: "ConstA", Description: "Multiple constants in one line"},
-						{Name: "ConstB", Description: "Multiple constants in one line"},
-						{Name: "ConstC", Description: "Multiple constants in one const block"},
-						{Name: "ConstD", Description: "Multiple constants in one const block"},
+						{Name: "ConstA", Description: "Multiple constants in one line\n"},
+						{Name: "ConstB", Description: "Multiple constants in one line\n"},
+						{Name: "ConstC", Description: "Multiple constants in one const block\n"},
+						{Name: "ConstD", Description: "Multiple constants in one const block\n"},
 					},
 				},
 				Structs:    map[types.PkgName][]structSet{},
