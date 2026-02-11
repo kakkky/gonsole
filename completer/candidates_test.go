@@ -85,7 +85,7 @@ func TestCandidates(t *testing.T) {
 				Vars: map[types.PkgName][]varSet{
 					"varscompositelit": {
 						{Name: "SimplePerson", Description: "SimplePerson is initialized with a composite literal\n", TypeName: "Person", TypePkgName: "varscompositelit"},
-						{Name: "PersonPtr", Description: "PersonPtr is initialized with a pointer to composite literal\n", TypeName: "*Person", TypePkgName: "varscompositelit"},
+						{Name: "PersonPtr", Description: "PersonPtr is initialized with a pointer to composite literal\n", TypeName: "Person", TypePkgName: "varscompositelit"},
 					},
 				},
 				Consts: map[types.PkgName][]constSet{},
@@ -203,15 +203,15 @@ func TestCandidates(t *testing.T) {
 			name: "multipackage",
 			path: "./testdata/candidates/multipackage",
 			want: &candidates{
-				Pkgs: []types.PkgName{"main", "types"},
+				Pkgs: []types.PkgName{"myapp", "types"},
 				Funcs: map[types.PkgName][]funcSet{
-					"main": {
+					"myapp": {
 						{Name: "GetConfig", Description: "GetConfig returns a Config from another package\n", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
 						{Name: "GetLogger", Description: "GetLogger returns a Logger from another package\n", Returns: []returnSet{{TypeName: "Logger", TypePkgName: "types"}}},
 					},
 				},
 				Methods: map[types.PkgName][]methodSet{
-					"main": {
+					"myapp": {
 						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method\n", ReceiverTypeName: "Service", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
 					},
 					"types": {
@@ -221,7 +221,7 @@ func TestCandidates(t *testing.T) {
 				Vars:   map[types.PkgName][]varSet{},
 				Consts: map[types.PkgName][]constSet{},
 				Structs: map[types.PkgName][]structSet{
-					"main": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: ""}},
+					"myapp": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: ""}},
 					"types": {
 						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: ""},
 						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: ""},

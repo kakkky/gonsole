@@ -277,6 +277,16 @@ func (c *candidates) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *goty
 				if returnTypeV.Obj().Pkg() != nil {
 					returnTypePkgName = types.PkgName(returnTypeV.Obj().Pkg().Name())
 				}
+			case *gotypes.Pointer:
+				switch pointedTypeV := returnTypeV.Elem().(type) {
+				case *gotypes.Named:
+					returnTypeName = types.TypeName(pointedTypeV.Obj().Name())
+					if pointedTypeV.Obj().Pkg() != nil {
+						returnTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
+					}
+				default:
+					returnTypeName = types.TypeName(returnType.String())
+				}
 			default:
 				returnTypeName = types.TypeName(returnType.String())
 			}
@@ -323,6 +333,16 @@ func (c *candidates) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *
 				returnTypeName = types.TypeName(returnTypeV.Obj().Name())
 				if returnTypeV.Obj().Pkg() != nil {
 					returnTypePkgName = types.PkgName(returnTypeV.Obj().Pkg().Name())
+				}
+			case *gotypes.Pointer:
+				switch pointedTypeV := returnTypeV.Elem().(type) {
+				case *gotypes.Named:
+					returnTypeName = types.TypeName(pointedTypeV.Obj().Name())
+					if pointedTypeV.Obj().Pkg() != nil {
+						returnTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
+					}
+				default:
+					returnTypeName = types.TypeName(returnTypeV.String())
 				}
 			default:
 				returnTypeName = types.TypeName(returnType.String())
@@ -444,7 +464,7 @@ func (c *candidates) processVarDeclObj(pkgName types.PkgName, varDeclObj *gotype
 	case *gotypes.Pointer:
 		switch pointedTypeV := varTypeV.Elem().(type) {
 		case *gotypes.Named:
-			typeName = types.TypeName("*" + pointedTypeV.Obj().Name())
+			typeName = types.TypeName(pointedTypeV.Obj().Name())
 			if pointedTypeV.Obj().Pkg() != nil {
 				typePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 			}
