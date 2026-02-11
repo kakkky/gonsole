@@ -193,8 +193,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{},
 				Interfaces: map[types.PkgName][]interfaceSet{
 					"interfaces": {
-						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: nil},
-						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: nil},
+						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: []string{"Read reads data\n"}},
+						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data\n"}},
 					},
 				},
 			},

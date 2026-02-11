@@ -412,15 +412,30 @@ func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName ty
 
 // processInterfaceTypeDeclObj はインターフェース型宣言オブジェクトを処理して候補に追加する
 func (c *candidates) processInterfaceTypeDeclObj(pkgName types.PkgName, declName types.DeclName, interfaceDeclObj *gotypes.Interface, typeDeclAst *ast.TypeSpec) {
-	var descriptions []string
-	if typeDeclAst != nil && typeDeclAst.Doc != nil {
-		descriptions = append(descriptions, typeDeclAst.Doc.Text())
-	}
-
 	var methods []types.DeclName
+	var descriptions []string
+
+	// 各メソッドのドキュメントを取得
 	for i := 0; i < interfaceDeclObj.NumMethods(); i++ {
 		methodObj := interfaceDeclObj.Method(i)
 		methods = append(methods, types.DeclName(methodObj.Name()))
+
+		// ASTからメソッドのドキュメントを探す
+		var description string
+		switch typeDeclAstV := typeDeclAst.Type.(type) {
+		case *ast.InterfaceType:
+			for _, field := range typeDeclAstV.Methods.List {
+				for _, name := range field.Names {
+					if name.Name == methodObj.Name() {
+						if field.Doc != nil {
+							description = field.Doc.Text()
+						}
+						break
+					}
+				}
+			}
+		}
+		descriptions = append(descriptions, description)
 	}
 
 	c.Interfaces[pkgName] = append(c.Interfaces[pkgName], interfaceSet{
