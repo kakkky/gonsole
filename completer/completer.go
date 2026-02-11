@@ -428,8 +428,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		for _, methodSet := range c.candidates.Methods[firstRecvPkgName] {
 			if strings.HasPrefix(string(methodSet.Name), selectorParts[0]) && types.TypeName(methodSet.ReceiverTypeName) == firstRecvTypeName && len(methodSet.Returns) == 1 {
 				firstReturnElm = returnSet{
-					TypeName: methodSet.Returns[0].TypeName,
-					TypePkgName:  methodSet.Returns[0].TypePkgName,
+					TypeName:    methodSet.Returns[0].TypeName,
+					TypePkgName: methodSet.Returns[0].TypePkgName,
 				}
 				break
 			}
@@ -479,8 +479,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 func (c *Completer) detectReturnElmFromMethodChainRecursive(sb *suggestionBuilder, prevBasePartTypeName types.TypeName, prevBasePartPkgName types.PkgName, selectorParts []string) *returnSet {
 	if len(selectorParts) == 0 {
 		return &returnSet{
-			TypeName: prevBasePartTypeName,
-			TypePkgName:  prevBasePartPkgName,
+			TypeName:    prevBasePartTypeName,
+			TypePkgName: prevBasePartPkgName,
 		}
 	}
 	currentSelectorPart := selectorParts[0]
