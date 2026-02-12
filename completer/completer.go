@@ -152,7 +152,7 @@ func (c *Completer) findMethodSuggestionsFromDeclRHSVar(
 	}
 
 	for _, varSet := range varSets {
-		if declRHSVarPkgName == varSet.PkgName && // パッケージ名が一致
+		if declRHSVarPkgName == varSet.TypePkgName && // パッケージ名が一致
 			declRHSVarName == varSet.Name && // 変数名が一致
 			varSet.TypeName == types.TypeName(methodSet.ReceiverTypeName) { // 型名が一致
 			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
@@ -366,7 +366,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 						for _, varSet := range varSets {
 							if varSet.Name == decl.RHS().Name() {
 								firstRecvTypeName = varSet.TypeName
-								firstRecvPkgName = varSet.PkgName
+								firstRecvPkgName = varSet.TypePkgName
 								break
 							}
 						}
@@ -394,7 +394,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 						break
 					}
 					firstRecvTypeName = returnElm.TypeName
-					firstRecvPkgName = returnElm.PkgName
+					firstRecvPkgName = returnElm.TypePkgName
 				case declregistry.DeclRHSKindMethod:
 					declRHSMethodName := decl.RHS().Name()
 					declRHSMethodPkgName := decl.RHS().PkgName()
@@ -419,7 +419,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 					}
 
 					firstRecvTypeName = returnElm.TypeName
-					firstRecvPkgName = returnElm.PkgName
+					firstRecvPkgName = returnElm.TypePkgName
 
 				}
 			}
@@ -428,13 +428,13 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		for _, methodSet := range c.candidates.Methods[firstRecvPkgName] {
 			if strings.HasPrefix(string(methodSet.Name), selectorParts[0]) && types.TypeName(methodSet.ReceiverTypeName) == firstRecvTypeName && len(methodSet.Returns) == 1 {
 				firstReturnElm = returnSet{
-					TypeName: methodSet.Returns[0].TypeName,
-					PkgName:  methodSet.Returns[0].PkgName,
+					TypeName:    methodSet.Returns[0].TypeName,
+					TypePkgName: methodSet.Returns[0].TypePkgName,
 				}
 				break
 			}
 		}
-		last := c.detectReturnElmFromMethodChainRecursive(sb, firstReturnElm.TypeName, firstReturnElm.PkgName, selectorParts[1:len(selectorParts)-1])
+		last := c.detectReturnElmFromMethodChainRecursive(sb, firstReturnElm.TypeName, firstReturnElm.TypePkgName, selectorParts[1:len(selectorParts)-1])
 		if last == nil {
 			return suggestions
 		}
@@ -445,7 +445,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 			for _, funcSet := range funcSets {
 				if string(funcSet.Name) == selectorParts[0] && len(funcSet.Returns) == 1 {
 					firstReturnElm := funcSet.Returns[0]
-					last := c.detectReturnElmFromMethodChainRecursive(sb, firstReturnElm.TypeName, firstReturnElm.PkgName, selectorParts[1:len(selectorParts)-1])
+					last := c.detectReturnElmFromMethodChainRecursive(sb, firstReturnElm.TypeName, firstReturnElm.TypePkgName, selectorParts[1:len(selectorParts)-1])
 					if last == nil {
 						return suggestions
 					}
@@ -456,7 +456,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		}
 	}
 
-	for _, methodSet := range c.candidates.Methods[lastReturElm.PkgName] {
+	for _, methodSet := range c.candidates.Methods[lastReturElm.TypePkgName] {
 		if strings.HasPrefix(string(methodSet.Name), lastSelectorPart) && !isPrivate(string(methodSet.Name)) && types.TypeName(methodSet.ReceiverTypeName) == lastReturElm.TypeName && len(methodSet.Returns) == 1 {
 			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
 		}
@@ -464,7 +464,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 	if len(suggestions) > 0 {
 		return suggestions
 	}
-	for _, interfaceSet := range c.candidates.Interfaces[lastReturElm.PkgName] {
+	for _, interfaceSet := range c.candidates.Interfaces[lastReturElm.TypePkgName] {
 		if lastReturElm.TypeName == types.TypeName(interfaceSet.Name) {
 			for i, method := range interfaceSet.Methods {
 				if strings.HasPrefix(string(method), lastSelectorPart) && !isPrivate(string(method)) {
@@ -479,8 +479,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 func (c *Completer) detectReturnElmFromMethodChainRecursive(sb *suggestionBuilder, prevBasePartTypeName types.TypeName, prevBasePartPkgName types.PkgName, selectorParts []string) *returnSet {
 	if len(selectorParts) == 0 {
 		return &returnSet{
-			TypeName: prevBasePartTypeName,
-			PkgName:  prevBasePartPkgName,
+			TypeName:    prevBasePartTypeName,
+			TypePkgName: prevBasePartPkgName,
 		}
 	}
 	currentSelectorPart := selectorParts[0]
@@ -492,7 +492,7 @@ func (c *Completer) detectReturnElmFromMethodChainRecursive(sb *suggestionBuilde
 			if len(selectorParts) == 0 {
 				return &returnElm
 			}
-			nextReturnElm := c.detectReturnElmFromMethodChainRecursive(sb, returnElm.TypeName, returnElm.PkgName, selectorParts)
+			nextReturnElm := c.detectReturnElmFromMethodChainRecursive(sb, returnElm.TypeName, returnElm.TypePkgName, selectorParts)
 			if nextReturnElm != nil {
 				return nextReturnElm
 			}
@@ -509,7 +509,7 @@ func (c *Completer) detectReturnElmFromMethodChainRecursive(sb *suggestionBuilde
 							if len(selectorParts) == 0 {
 								return &returnElm
 							}
-							nextReturnElm := c.detectReturnElmFromMethodChainRecursive(sb, returnElm.TypeName, returnElm.PkgName, selectorParts)
+							nextReturnElm := c.detectReturnElmFromMethodChainRecursive(sb, returnElm.TypeName, returnElm.TypePkgName, selectorParts)
 							if nextReturnElm != nil {
 								return nextReturnElm
 							}

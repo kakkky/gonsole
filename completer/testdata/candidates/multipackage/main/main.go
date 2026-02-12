@@ -1,4 +1,4 @@
-package main
+package myapp
 
 import "github.com/kakkky/gonsole/completer/testdata/candidates/multipackage/types"
 
