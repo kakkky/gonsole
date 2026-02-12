@@ -158,10 +158,7 @@ func loadProject(path string) ([]*packages.Package, error) {
 	}
 
 	pkgs = slices.DeleteFunc(pkgs, func(pkg *packages.Package) bool {
-		if pkg.Name == "main" {
-			return true
-		}
-		return false
+		return pkg.Name == "main"
 	})
 	return pkgs, nil
 }
