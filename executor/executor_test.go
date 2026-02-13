@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/gonsole/declregistry"
+	"github.com/kakkky/gonsole/filer"
 	"github.com/kakkky/gonsole/types"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -21,7 +22,7 @@ func TestExecutor_Execute(t *testing.T) {
 		name               string
 		input              string
 		setupDeclRegistry  func(*declregistry.DeclRegistry) // 必要に応じてDeclRegistryの初期状態をセットアップする
-		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		setupMocks         func(*filer.MockFiler, *Mockcommander, *MockimportPathResolver)
 		expectedSessionSrc *ast.File
 	}{
 		{
@@ -30,7 +31,7 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// 何も呼ばれないことを期待
 			},
 			expectedSessionSrc: &ast.File{
@@ -55,9 +56,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -65,7 +66,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -116,9 +117,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -126,7 +127,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -199,9 +200,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -209,7 +210,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -285,9 +286,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -295,7 +296,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -375,13 +376,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return value",
 			input: "var x = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -389,7 +392,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -439,13 +442,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return multiple values",
 			input: "var x, y = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -453,7 +458,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -511,13 +516,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method chain's return value",
 			input: "var x = obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -525,7 +532,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -585,9 +592,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -595,7 +602,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -674,9 +681,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -684,7 +691,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -766,9 +773,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -776,7 +783,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -841,9 +848,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -851,7 +858,7 @@ func TestExecutor_Execute(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("test.go").Return([]byte{}, nil).Times(1)
@@ -894,9 +901,9 @@ func TestExecutor_Execute(t *testing.T) {
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -907,7 +914,7 @@ func TestExecutor_Execute(t *testing.T) {
 
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
 						// この時のsessionSrcの状態を確認する
 						// この途中経過の状態をテストするやり方が微妙なので、要改善
 						expectedSessionSrc := &ast.File{
@@ -982,7 +989,7 @@ func TestExecutor_Execute(t *testing.T) {
 						return nil
 					}).Times(1),
 					// 関数を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1019,13 +1026,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call function of the package when package is used by other declaration",
 			input: "pkg.Function()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var x = pkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にpkgを使用する宣言を登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "pkg",
+				}) // 事前にpkg自体も登録しておく
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1035,7 +1044,7 @@ func TestExecutor_Execute(t *testing.T) {
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
 						// この時のsessionSrcの状態を確認する
 						// この途中経過の状態をテストするやり方が微妙なので、要改善
 						expectedSessionSrc := &ast.File{
@@ -1110,7 +1119,7 @@ func TestExecutor_Execute(t *testing.T) {
 						return nil
 					}).Times(1),
 					// 関数呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1162,13 +1171,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method",
 			input: "obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				}) // 事前にpkg自体も登録しておく
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1178,7 +1189,7 @@ func TestExecutor_Execute(t *testing.T) {
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
 						// この時のsessionSrcの状態を確認する
 						// この途中経過の状態をテストするやり方が微妙なので、要改善
 						//
@@ -1243,7 +1254,7 @@ func TestExecutor_Execute(t *testing.T) {
 						return nil
 					}).Times(1),
 					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1278,13 +1289,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method chain",
 			input: "obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1294,7 +1307,7 @@ func TestExecutor_Execute(t *testing.T) {
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
 						// この時のsessionSrcの状態を確認する
 						// この途中経過の状態をテストするやり方が微妙なので、要改善
 						//
@@ -1365,7 +1378,7 @@ func TestExecutor_Execute(t *testing.T) {
 						return nil
 					}).Times(1),
 					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1400,13 +1413,15 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "defined variable",
 			input: "x",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var x = 10"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にxを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "int",
+					TypePkgName: "",
+				}) // 事前にfmtも登録しておく
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1416,7 +1431,7 @@ func TestExecutor_Execute(t *testing.T) {
 				}).Times(1)
 				gomock.InOrder(
 					// 関数呼び出しを追加してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
 						// この時のsessionSrcの状態を確認する
 						// この途中経過の状態をテストするやり方が微妙なので、要改善
 						//
@@ -1476,7 +1491,7 @@ func TestExecutor_Execute(t *testing.T) {
 						return nil
 					}).Times(1),
 					// 変数参照を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
+					mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1520,12 +1535,12 @@ func TestExecutor_Execute(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockFiler := NewMockfiler(ctrl)
+			mockFiler := filer.NewMockFiler(ctrl)
 			mockCommander := NewMockcommander(ctrl)
 			mockImportPathResolver := NewMockimportPathResolver(ctrl)
 			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver)
 
-			sut.filer = mockFiler
+			sut.Filer = mockFiler
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
 			sut.Execute(tt.input)
@@ -1555,7 +1570,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 		name               string
 		input              string
 		setupDeclRegistry  func(*declregistry.DeclRegistry)
-		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		setupMocks         func(*filer.MockFiler, *Mockcommander, *MockimportPathResolver)
 		expectedSessionSrc *ast.File
 		expectedErrMsg     string
 	}{
@@ -1563,7 +1578,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:              "input invalid syntax",
 			input:             "x := ",
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -1586,9 +1601,9 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:              "clean err element of sessionSrc when commander returns error",
 			input:             `x = "y"`, // y is undefined
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "1769312920_gonsole_tmp.go", func() {
 						if err := r.Close(); err != nil {
@@ -1596,7 +1611,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
@@ -1625,13 +1640,15 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:  "when commander returns error, clean err element of sessionSrc but import remains if other declarations use it",
 			input: "x := pkg.Variable", // x is already defined
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {
-				if err := dr.Register("x := pkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				}
+				dr.Decls = append(dr.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "pkg",
+				})
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "1769312920_gonsole_tmp.go", func() {
 						if err := r.Close(); err != nil {
@@ -1639,7 +1656,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
@@ -1691,13 +1708,15 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:  "when commander returns error, clean err element of sessionSrc and import if no other declarations use it",
 			input: "x := pkg.Variable", // x is already defined
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {
-				if err := dr.Register("x := anotherpkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				}
+				dr.Decls = append(dr.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "anotherpkg",
+				}) // 事前にpkg自体も登録しておく
 			},
-			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+			setupMocks: func(mockFiler *filer.MockFiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().CreateTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "1769312920_gonsole_tmp.go", func() {
 						if err := r.Close(); err != nil {
@@ -1705,7 +1724,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 						}
 					}, nil
 				}).Times(1)
-				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
+				mockFiler.EXPECT().Flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
 				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
@@ -1750,12 +1769,12 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockFiler := NewMockfiler(ctrl)
+			mockFiler := filer.NewMockFiler(ctrl)
 			mockCommander := NewMockcommander(ctrl)
 			mockImportPathResolver := NewMockimportPathResolver(ctrl)
 			tt.setupMocks(mockFiler, mockCommander, mockImportPathResolver)
 
-			sut.filer = mockFiler
+			sut.Filer = mockFiler
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
 

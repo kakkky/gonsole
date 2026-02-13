@@ -13,6 +13,7 @@ import (
 
 	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/filer"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -21,7 +22,7 @@ import (
 type Executor struct {
 	declRegistry *declregistry.DeclRegistry
 	sessionSrc   *ast.File
-	filer
+	filer.Filer
 	commander
 	importPathResolver
 }
@@ -32,7 +33,7 @@ func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
 	return &Executor{
 		declRegistry:       declRegistry,
 		sessionSrc:         initSessionSrc(),
-		filer:              newDefaultFiler(),
+		Filer:              filer.NewDefaultFiler(),
 		commander:          commander,
 		importPathResolver: newDefaultImportPathResolver(commander),
 	}, nil
@@ -63,7 +64,7 @@ func (e *Executor) Execute(input string) {
 	defer clearImportPathAddedInSession()
 
 	// 一時ファイルを作成
-	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
+	tmpFile, tmpFileName, cleanup, err := e.CreateTmpFile()
 	if err != nil {
 		errs.HandleError(err)
 	}
@@ -77,7 +78,7 @@ func (e *Executor) Execute(input string) {
 	fset := token.NewFileSet()
 
 	// 一時ファイルにflushする
-	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+	if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -96,7 +97,7 @@ func (e *Executor) Execute(input string) {
 			errs.HandleError(err)
 		}
 
-		if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+		if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
 			errs.HandleError(err)
 		}
 
@@ -109,7 +110,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// 変数エントリに登録する
-	if err := e.declRegistry.Register(input); err != nil {
+	if err := e.declRegistry.Register(input, importPathAddedInSession); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -118,7 +119,7 @@ func (e *Executor) Execute(input string) {
 	if cleaned := e.cleanCallExprFromSessionSrc(); !cleaned {
 		return
 	}
-	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+	if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -365,8 +366,8 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 			// 該当packageを利用している宣言がなければpackage importを削除する
 			var isUsed bool
-			for _, decl := range e.declRegistry.Decls() {
-				if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+			for _, decl := range e.declRegistry.Decls {
+				if decl.TypePkgName == types.PkgName(selectorBase) {
 					isUsed = true
 					break
 				}
@@ -391,8 +392,8 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	}
 
 	var isUsedFmt bool
-	for _, decl := range e.declRegistry.Decls() {
-		if decl.RHS().PkgName() == types.PkgName("fmt") {
+	for _, decl := range e.declRegistry.Decls {
+		if decl.TypePkgName == types.PkgName("fmt") {
 			isUsedFmt = true
 			break
 		}
@@ -450,8 +451,8 @@ func (e *Executor) cleanErrElmFromSessionSrc() error {
 	if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 		// 該当packageを利用している宣言がなければpackage importを削除する
 		var isUsed bool
-		for _, decl := range e.declRegistry.Decls() {
-			if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+		for _, decl := range e.declRegistry.Decls {
+			if decl.TypePkgName == types.PkgName(selectorBase) {
 				isUsed = true
 				break
 			}
