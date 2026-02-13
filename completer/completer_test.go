@@ -297,9 +297,12 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				if err := registry.Register("client := myapp.Client{}"); err != nil {
-					t.Fatalf("failed to register client variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "client",
+					TypeName:    "Client",
+					TypePkgName: "myapp",
+				})
+
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -349,9 +352,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				if err := registry.Register("stream := myapp.StdOut"); err != nil {
-					t.Fatalf("failed to register stream variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "stream",
+					TypeName:    "Stream",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -399,9 +404,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				if err := registry.Register("response, _ := myapp.FetchData()"); err != nil {
-					t.Fatalf("failed to register response variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "response",
+					TypeName:    "Response",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -461,14 +468,16 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				// まず response 変数を作成
-				if err := registry.Register("response, _ := myapp.FetchData()"); err != nil {
-					t.Fatalf("failed to register response variable: %v", err)
-				}
-				// 次に content 変数を response.GetContent() から作成
-				if err := registry.Register("content := response.GetContent()"); err != nil {
-					t.Fatalf("failed to register content variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "response",
+					TypeName:    "Response",
+					TypePkgName: "myapp",
+				},
+					declregistry.Decl{
+						Name:        "content",
+						TypeName:    "Content",
+						TypePkgName: "myapp",
+					})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -534,9 +543,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				if err := registry.Register("reader, _ := myapp.NewReader()"); err != nil {
-					t.Fatalf("failed to register reader variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "reader",
+					TypeName:    "MyReader",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -597,14 +608,17 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				// まずクライアント変数を作成
-				if err := registry.Register("client, _ := myapp.CreateClient()"); err != nil {
-					t.Fatalf("failed to register client variable: %v", err)
-				}
-				// 次にリソース変数をクライアントのメソッドから作成
-				if err := registry.Register("resource := client.GetResource()"); err != nil {
-					t.Fatalf("failed to register resource variable: %v", err)
-				}
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "client",
+					TypeName:    "Client",
+					TypePkgName: "myapp",
+				},
+					declregistry.Decl{
+						Name:        "resource",
+						TypeName:    "Resource",
+						TypePkgName: "myapp",
+					},
+				)
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -797,7 +811,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				_ = registry.Register("client := myapp.Client{}")
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "client",
+					TypeName:    "Client",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
@@ -837,7 +855,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				_ = registry.Register("client := myapp.Client{}")
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "client",
+					TypeName:    "Client",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: nil,
@@ -890,7 +912,11 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 			setupRegistry: func() *declregistry.DeclRegistry {
 				registry := declregistry.NewRegistry()
-				_ = registry.Register("reader := myapp.NewReader()")
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "reader",
+					TypeName:    "Reader",
+					TypePkgName: "myapp",
+				})
 				return registry
 			}(),
 			expected: []prompt.Suggest{
