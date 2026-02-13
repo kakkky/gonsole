@@ -50,8 +50,9 @@ func (c *Completer) findSuggestions(sb *suggestionBuilder) []prompt.Suggest {
 	variableSuggests := c.findVariableSuggestions(sb)
 	constantSuggets := c.findConstantSuggestions(sb)
 	structSuggests := c.findStructSuggestions(sb)
+	definedTypeSuggests := c.findDefinedTypeSuggestions(sb)
 
-	return slices.Concat(functionSuggests, methodSuggests, variableSuggests, constantSuggets, structSuggests)
+	return slices.Concat(functionSuggests, methodSuggests, variableSuggests, constantSuggets, structSuggests, definedTypeSuggests)
 }
 
 func (c *Completer) findPackageSuggestions(sb *suggestionBuilder) []prompt.Suggest {
@@ -576,4 +577,14 @@ func compositeLitStr(fields []types.StructFieldName) string {
 // 非公開の関数や変数を非表示にする
 func isPrivate(input string) bool {
 	return unicode.IsLower([]rune(input)[0])
+}
+
+func (c *Completer) findDefinedTypeSuggestions(sb *suggestionBuilder) []prompt.Suggest {
+	suggestions := make([]prompt.Suggest, 0)
+	for _, definedTypeSet := range c.candidates.DefinedTypes[types.PkgName(sb.input.basePart)] {
+		if strings.HasPrefix(string(definedTypeSet.Name), sb.input.selectorPart) && !isPrivate(string(definedTypeSet.Name)) {
+			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, "()"))
+		}
+	}
+	return suggestions
 }
