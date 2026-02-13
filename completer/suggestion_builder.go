@@ -29,6 +29,7 @@ const (
 	suggestTypeStruct
 	suggestTypeMethod
 	suggestTypeConstant
+	suggestTypeDefinedType
 )
 
 var and = token.AND.String()
@@ -118,6 +119,8 @@ func convertSuggestTypeToString(suggestType suggestType) string {
 		return "Method"
 	case suggestTypeConstant:
 		return "Constant"
+	case suggestTypeDefinedType:
+		return "DefinedType"
 	default:
 		return "Unknown"
 	}

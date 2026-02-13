@@ -216,6 +216,32 @@ func TestCompleter_Complete(t *testing.T) {
 			},
 		},
 		{
+			name:      "Complete defined types",
+			inputText: "myapp.M",
+			setupCandidates: &candidates{
+				Pkgs: []types.PkgName{"myapp"},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{
+					"myapp": {
+						{Name: "MyInt", UnderlyingType: "int", Description: "MyInt is a custom int type"},
+						{Name: "MyString", UnderlyingType: "string", Description: "MyString is a custom string type"},
+					},
+				},
+			},
+			setupRegistry: declregistry.NewRegistry(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "myapp.MyInt()",
+					DisplayText: "MyInt",
+					Description: "DefinedType: MyInt is a custom int type",
+				},
+				{
+					Text:        "myapp.MyString()",
+					DisplayText: "MyString",
+					Description: "DefinedType: MyString is a custom string type",
+				},
+			},
+		},
+		{
 			name:      "Complete after variable declaration with =",
 			inputText: "var client = myapp.C",
 			setupCandidates: &candidates{

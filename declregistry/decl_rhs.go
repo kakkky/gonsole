@@ -3,7 +3,6 @@ package declregistry
 import "github.com/kakkky/gonsole/types"
 
 // DeclRHS は宣言の右辺を表す
-// いずれかのフィールドのみがセットされる
 type DeclRHS struct {
 	name    types.DeclName
 	kind    RHSKind
