@@ -99,6 +99,9 @@ func (dr *DeclRegistry) registerAssimentStmt(assignmentStmt *ast.AssignStmt) {
 				}
 			}
 		// 右辺が関数呼び出しの場合
+		//
+		// 現状は、defined type もここに含まれてしまうが、Register()内の処理をgo/packageに移行すれば解決できるかもしれない
+		// defined type自体は、メソッドを持つことがあまりないと想定できるため、影響は小さいと考えられる
 		case *ast.CallExpr:
 			switch rhsFunV := stmtRHSV.Fun.(type) {
 			case *ast.SelectorExpr:
@@ -193,6 +196,9 @@ func (dr *DeclRegistry) registerDeclStmt(declStmt *ast.DeclStmt) {
 							}
 						}
 					// 関数呼び出しの場合
+					//
+					// 現状は、defined type もここに含まれてしまうが、Register()内の処理をgo/packageに移行すれば解決できるかもしれない
+					// defined type自体は、メソッドを持つことがあまりないと想定できるため、影響は小さいと考えられる
 					case *ast.CallExpr:
 						switch valueFunV := valueV.Fun.(type) {
 						case *ast.SelectorExpr:
