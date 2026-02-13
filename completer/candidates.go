@@ -18,13 +18,14 @@ var BuildStdPkgCandidatesMode bool
 var SkipStdPkgMergeMode bool
 
 type candidates struct {
-	Pkgs       []types.PkgName
-	Funcs      map[types.PkgName][]funcSet
-	Methods    map[types.PkgName][]methodSet
-	Vars       map[types.PkgName][]varSet
-	Consts     map[types.PkgName][]constSet
-	Structs    map[types.PkgName][]structSet
-	Interfaces map[types.PkgName][]interfaceSet
+	Pkgs         []types.PkgName
+	Funcs        map[types.PkgName][]funcSet
+	Methods      map[types.PkgName][]methodSet
+	Vars         map[types.PkgName][]varSet
+	Consts       map[types.PkgName][]constSet
+	Structs      map[types.PkgName][]structSet
+	Interfaces   map[types.PkgName][]interfaceSet
+	DefinedTypes map[types.PkgName][]DefinedTypeSet
 }
 
 type (
@@ -61,6 +62,12 @@ type (
 		Methods      []types.DeclName
 		Descriptions []string
 	}
+	DefinedTypeSet struct {
+		Name                  types.DeclName
+		UnderlyingType        types.TypeName
+		UnderlyingTypePkgName types.PkgName
+		Description           string
+	}
 )
 
 type returnSet struct {
@@ -75,13 +82,14 @@ func NewCandidates(projectRootPath string) (*candidates, error) {
 		return nil, err
 	}
 	c := candidates{
-		Pkgs:       make([]types.PkgName, 0),
-		Funcs:      make(map[types.PkgName][]funcSet),
-		Methods:    make(map[types.PkgName][]methodSet),
-		Vars:       make(map[types.PkgName][]varSet),
-		Consts:     make(map[types.PkgName][]constSet),
-		Structs:    make(map[types.PkgName][]structSet),
-		Interfaces: make(map[types.PkgName][]interfaceSet),
+		Pkgs:         make([]types.PkgName, 0),
+		Funcs:        make(map[types.PkgName][]funcSet),
+		Methods:      make(map[types.PkgName][]methodSet),
+		Vars:         make(map[types.PkgName][]varSet),
+		Consts:       make(map[types.PkgName][]constSet),
+		Structs:      make(map[types.PkgName][]structSet),
+		Interfaces:   make(map[types.PkgName][]interfaceSet),
+		DefinedTypes: make(map[types.PkgName][]DefinedTypeSet),
 	}
 
 	// パッケージスコープごとに処理
@@ -136,6 +144,10 @@ func (c *candidates) mergeCandidates(other *candidates) {
 	// インターフェースをマージ
 	for pkgName, interfaces := range other.Interfaces {
 		c.Interfaces[pkgName] = append(c.Interfaces[pkgName], interfaces...)
+	}
+	// 定義済み型をマージ
+	for pkgName, definedTypes := range other.DefinedTypes {
+		c.DefinedTypes[pkgName] = append(c.DefinedTypes[pkgName], definedTypes...)
 	}
 }
 
@@ -383,7 +395,7 @@ func (c *candidates) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *goty
 	case *gotypes.Interface:
 		c.processInterfaceTypeDeclObj(pkgName, declName, underlyingTypeV, typeDeclAst)
 	default:
-		// c.processDefinedTypeDeclObj(pkgName, declName, underlyingTypeV, typeDeclAst)
+		c.processDefinedTypeDeclObj(pkgName, declName, underlyingTypeV, genDeclAst)
 	}
 }
 
@@ -439,6 +451,38 @@ func (c *candidates) processInterfaceTypeDeclObj(pkgName types.PkgName, declName
 		Name:         declName,
 		Methods:      methods,
 		Descriptions: descriptions,
+	})
+}
+
+func (c *candidates) processDefinedTypeDeclObj(pkgName types.PkgName, declName types.DeclName, underlyingType gotypes.Type, genDeclAst *ast.GenDecl) {
+	var description string
+	if genDeclAst != nil && genDeclAst.Doc != nil {
+		description = genDeclAst.Doc.Text()
+	}
+
+	var underlyingTypeName types.TypeName
+	var underlyingTypePkgName types.PkgName
+
+	switch typeV := underlyingType.(type) {
+	case *gotypes.Pointer:
+		switch pointedTypeV := typeV.Elem().(type) {
+		case *gotypes.Named:
+			underlyingTypeName = types.TypeName(pointedTypeV.Obj().Name())
+			if pointedTypeV.Obj().Pkg() != nil {
+				underlyingTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
+			}
+		default:
+			underlyingTypeName = types.TypeName(typeV.String())
+		}
+	default:
+		underlyingTypeName = types.TypeName(typeV.String())
+	}
+
+	c.DefinedTypes[pkgName] = append(c.DefinedTypes[pkgName], DefinedTypeSet{
+		Name:                  declName,
+		UnderlyingType:        underlyingTypeName,
+		UnderlyingTypePkgName: underlyingTypePkgName,
+		Description:           description,
 	})
 }
 

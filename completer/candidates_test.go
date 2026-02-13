@@ -29,11 +29,12 @@ func TestCandidates(t *testing.T) {
 						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values\n", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}, {TypeName: "string", TypePkgName: ""}}},
 					},
 				},
-				Methods:    map[types.PkgName][]methodSet{},
-				Vars:       map[types.PkgName][]varSet{},
-				Consts:     map[types.PkgName][]constSet{},
-				Structs:    map[types.PkgName][]structSet{},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Methods:      map[types.PkgName][]methodSet{},
+				Vars:         map[types.PkgName][]varSet{},
+				Consts:       map[types.PkgName][]constSet{},
+				Structs:      map[types.PkgName][]structSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -53,7 +54,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{
 					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: "Counter is a simple counter type\n"}},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -70,9 +72,10 @@ func TestCandidates(t *testing.T) {
 						{Name: "FloatVar", Description: "FloatVar is a float variable\n", TypeName: "float64", TypePkgName: ""},
 					},
 				},
-				Consts:     map[types.PkgName][]constSet{},
-				Structs:    map[types.PkgName][]structSet{},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Consts:       map[types.PkgName][]constSet{},
+				Structs:      map[types.PkgName][]structSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -92,7 +95,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{
 					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: "Person is a simple struct\n"}},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -111,7 +115,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{
 					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a configuration struct\n"}},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -137,7 +142,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]structSet{
 					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: "Logger is a simple logger type\n"}},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -157,8 +163,9 @@ func TestCandidates(t *testing.T) {
 						{Name: "DefaultHeight", Description: "Multiple names in one spec\n"},
 					},
 				},
-				Structs:    map[types.PkgName][]structSet{},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Structs:      map[types.PkgName][]structSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -178,7 +185,8 @@ func TestCandidates(t *testing.T) {
 						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: "Derived embeds Base\n"},
 					},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -197,6 +205,7 @@ func TestCandidates(t *testing.T) {
 						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data\n"}},
 					},
 				},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -227,7 +236,8 @@ func TestCandidates(t *testing.T) {
 						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: "Logger is a logger struct from another package\n"},
 					},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
@@ -253,8 +263,35 @@ func TestCandidates(t *testing.T) {
 						{Name: "ConstD", Description: "Multiple constants in one const block\n"},
 					},
 				},
-				Structs:    map[types.PkgName][]structSet{},
+				Structs:      map[types.PkgName][]structSet{},
+				Interfaces:   map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
+			},
+		},
+		{
+			name: "defined_type",
+			path: "./testdata/candidates/defined_type",
+			want: &candidates{
+				Pkgs:    []types.PkgName{"definedtype"},
+				Funcs:   map[types.PkgName][]funcSet{},
+				Methods: map[types.PkgName][]methodSet{},
+				Vars:    map[types.PkgName][]varSet{},
+				Consts:  map[types.PkgName][]constSet{},
+				Structs: map[types.PkgName][]structSet{
+					"definedtype": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a struct type\n"}},
+				},
 				Interfaces: map[types.PkgName][]interfaceSet{},
+				DefinedTypes: map[types.PkgName][]DefinedTypeSet{
+					"definedtype": {
+						{Name: "MyInt", UnderlyingType: "int", UnderlyingTypePkgName: "", Description: "MyInt is a defined type based on int\n"},
+						{Name: "MyString", UnderlyingType: "string", UnderlyingTypePkgName: "", Description: "MyString is a defined type based on string\n"},
+						{Name: "MySlice", UnderlyingType: "[]string", UnderlyingTypePkgName: "", Description: "MySlice is a defined type based on slice\n"},
+						{Name: "MyMap", UnderlyingType: "map[string]int", UnderlyingTypePkgName: "", Description: "MyMap is a defined type based on map\n"},
+						{Name: "MyPtr", UnderlyingType: "Config", UnderlyingTypePkgName: "definedtype", Description: "MyPtr is a pointer to struct\n"},
+						{Name: "MyIntPtr", UnderlyingType: "*int", UnderlyingTypePkgName: "", Description: "MyIntPtr is a pointer to int\n"},
+						{Name: "MyFunc", UnderlyingType: "func(int) string", UnderlyingTypePkgName: "", Description: "MyFunc is a function type\n"},
+					},
+				},
 			},
 		},
 	}
@@ -267,7 +304,7 @@ func TestCandidates(t *testing.T) {
 			}
 
 			opts := []cmp.Option{
-				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}, returnSet{}),
+				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}, DefinedTypeSet{}, returnSet{}),
 				cmpopts.SortSlices(func(a, b types.PkgName) bool { return a < b }),
 				cmpopts.SortSlices(func(a, b funcSet) bool { return a.Name < b.Name }),
 				cmpopts.SortSlices(func(a, b methodSet) bool { return a.Name < b.Name }),
@@ -275,6 +312,7 @@ func TestCandidates(t *testing.T) {
 				cmpopts.SortSlices(func(a, b constSet) bool { return a.Name < b.Name }),
 				cmpopts.SortSlices(func(a, b structSet) bool { return a.Name < b.Name }),
 				cmpopts.SortSlices(func(a, b interfaceSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b DefinedTypeSet) bool { return a.Name < b.Name }),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("%s mismatch (-want +got):\n%s", tt.name, diff)
