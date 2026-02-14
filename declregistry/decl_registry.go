@@ -28,11 +28,11 @@ func NewRegistry() *DeclRegistry {
 
 // Register は入力されたコードを解析し、宣言された変数情報を登録する
 func (dr *DeclRegistry) Register(input string, importPath types.ImportPath) error {
-	tmpFile, tmpFileName, _, err := dr.Filer.CreateTmpFile()
+	tmpFile, tmpFileName, cleanup, err := dr.Filer.CreateTmpFile()
 	if err != nil {
 		return errs.NewInternalError("failed to create temp file").Wrap(err)
 	}
-	// defer cleanup()
+	defer cleanup()
 
 	var importStmt string
 	if importPath != "" {
