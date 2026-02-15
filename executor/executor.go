@@ -61,7 +61,6 @@ func (e *Executor) Execute(input string) {
 		return
 	}
 	defer clearImportPathAddedInSession()
-	defer e.cleanCallExprFromSessionSrc()
 
 	// 一時ファイルを作成
 	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
@@ -108,6 +107,9 @@ func (e *Executor) Execute(input string) {
 	if len(cmdOut) > 0 {
 		printCmdOutput(cmdOut)
 	}
+
+	// sessionSrcから式呼び出しを削除する（式呼び出しは実行結果の表示のためだけに追加しているため、実行後は削除する）
+	e.cleanCallExprFromSessionSrc()
 
 	// 変数エントリに登録する
 	if err := e.declRegistry.Register(tmpFileName); err != nil {
@@ -334,18 +336,18 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	return fmt.Sprintf("\n%d errors found\n\n%s\n\n", cmdErrCount, formattedCmdErrLine)
 }
 
-func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
+func (e *Executor) cleanCallExprFromSessionSrc() {
 	mainFunc := getMainFunc(e.sessionSrc)
 	body := mainFunc.Body.List
 	lastExprStmt, ok := body[len(body)-1].(*ast.ExprStmt)
 	if !ok {
-		return false
+		return
 	}
 
 	// 式呼び出しはfmt.Printlnが確実に使われている
 	fmtFunc, ok := lastExprStmt.X.(*ast.CallExpr).Fun.(*ast.Ident)
 	if !ok || fmtFunc.Name != "fmt.Println" {
-		return false
+		return
 	}
 
 	fmtFuncArgExpr := lastExprStmt.X.(*ast.CallExpr).Args[0]
@@ -406,8 +408,6 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	}
 
 	mainFunc.Body.List = body[:len(body)-1]
-
-	return true
 }
 
 func (e *Executor) cleanErrElmFromSessionSrc() error {

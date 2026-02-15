@@ -988,8 +988,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 関数を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1118,8 +1116,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 関数呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1253,8 +1249,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1377,8 +1371,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1490,8 +1482,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 変数参照を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
