@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/gonsole/declregistry"
+
 	"github.com/kakkky/gonsole/types"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -375,9 +376,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return value",
 			input: "var x = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -439,9 +442,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method's return multiple values",
 			input: "var x, y = obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -511,9 +516,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "define variable from method chain's return value",
 			input: "var x = obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -981,8 +988,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 関数を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1019,9 +1024,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call function of the package when package is used by other declaration",
 			input: "pkg.Function()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var x = pkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にpkgを使用する宣言を登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "pkg",
+				}) // 事前にpkg自体も登録しておく
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1109,8 +1116,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 関数呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1162,9 +1167,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method",
 			input: "obj.Method()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				}) // 事前にpkg自体も登録しておく
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1242,8 +1249,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1278,9 +1283,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "call method chain",
 			input: "obj.Method1().Method2()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var obj = pkg.NewObject()"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にobjを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "obj",
+					TypeName:    "Object",
+					TypePkgName: "pkg",
+				})
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1364,8 +1371,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// メソッド呼び出しを削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1400,9 +1405,11 @@ func TestExecutor_Execute(t *testing.T) {
 			name:  "defined variable",
 			input: "x",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
-				if err := declRegistry.Register("var x = 10"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				} // 事前にxを登録しておく。右辺は適当
+				declRegistry.Decls = append(declRegistry.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "int",
+					TypePkgName: "",
+				}) // 事前にfmtも登録しておく
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1475,8 +1482,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 						return nil
 					}).Times(1),
-					// 変数参照を削除してflushする時
-					mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1),
 				)
 
 				// commander
@@ -1509,10 +1514,13 @@ func TestExecutor_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			declregistry := declregistry.NewRegistry()
-			tt.setupDeclRegistry(declregistry)
 
-			sut, err := NewExecutor(declregistry)
+			registry := declregistry.NewRegistry()
+			tt.setupDeclRegistry(registry)
+			// テストではRegisterをスキップ
+			declregistry.SkipRegisterMode = true
+
+			sut, err := NewExecutor(registry)
 			if err != nil {
 				t.Fatalf("failed to create Executor: %v", err)
 			}
@@ -1625,9 +1633,11 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:  "when commander returns error, clean err element of sessionSrc but import remains if other declarations use it",
 			input: "x := pkg.Variable", // x is already defined
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {
-				if err := dr.Register("x := pkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				}
+				dr.Decls = append(dr.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "pkg",
+				})
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1691,9 +1701,11 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			name:  "when commander returns error, clean err element of sessionSrc and import if no other declarations use it",
 			input: "x := pkg.Variable", // x is already defined
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {
-				if err := dr.Register("x := anotherpkg.Variable"); err != nil {
-					t.Fatalf("failed to register declaration: %v", err)
-				}
+				dr.Decls = append(dr.Decls, declregistry.Decl{
+					Name:        "x",
+					TypeName:    "Variable",
+					TypePkgName: "anotherpkg",
+				}) // 事前にpkg自体も登録しておく
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
@@ -1740,9 +1752,10 @@ func TestExecutor_Execute_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			declregistry := declregistry.NewRegistry()
+			registry := declregistry.NewRegistry()
+			declregistry.SkipRegisterMode = true
 
-			sut, err := NewExecutor(declregistry)
+			sut, err := NewExecutor(registry)
 			if err != nil {
 				t.Fatalf("failed to create Executor: %v", err)
 			}
@@ -1759,7 +1772,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
 
-			tt.setupDeclRegistry(declregistry)
+			tt.setupDeclRegistry(registry)
 
 			// 標準出力を一時的に差し替え
 			oldStdout := os.Stdout

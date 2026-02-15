@@ -108,17 +108,11 @@ func (e *Executor) Execute(input string) {
 		printCmdOutput(cmdOut)
 	}
 
-	// 変数エントリに登録する
-	if err := e.declRegistry.Register(input); err != nil {
-		errs.HandleError(err)
-		return
-	}
+	// sessionSrcから式呼び出しを削除する（式呼び出しは実行結果の表示のためだけに追加しているため、実行後は削除する）
+	e.cleanCallExprFromSessionSrc()
 
-	// 式呼び出しをセッションソースから削除した場合はflushする
-	if cleaned := e.cleanCallExprFromSessionSrc(); !cleaned {
-		return
-	}
-	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+	// 変数エントリに登録する
+	if err := e.declRegistry.Register(tmpFileName); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -342,18 +336,18 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	return fmt.Sprintf("\n%d errors found\n\n%s\n\n", cmdErrCount, formattedCmdErrLine)
 }
 
-func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
+func (e *Executor) cleanCallExprFromSessionSrc() {
 	mainFunc := getMainFunc(e.sessionSrc)
 	body := mainFunc.Body.List
 	lastExprStmt, ok := body[len(body)-1].(*ast.ExprStmt)
 	if !ok {
-		return false
+		return
 	}
 
 	// 式呼び出しはfmt.Printlnが確実に使われている
 	fmtFunc, ok := lastExprStmt.X.(*ast.CallExpr).Fun.(*ast.Ident)
 	if !ok || fmtFunc.Name != "fmt.Println" {
-		return false
+		return
 	}
 
 	fmtFuncArgExpr := lastExprStmt.X.(*ast.CallExpr).Args[0]
@@ -365,8 +359,8 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 			// 該当packageを利用している宣言がなければpackage importを削除する
 			var isUsed bool
-			for _, decl := range e.declRegistry.Decls() {
-				if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+			for _, decl := range e.declRegistry.Decls {
+				if decl.TypePkgName == types.PkgName(selectorBase) {
 					isUsed = true
 					break
 				}
@@ -391,8 +385,8 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	}
 
 	var isUsedFmt bool
-	for _, decl := range e.declRegistry.Decls() {
-		if decl.RHS().PkgName() == types.PkgName("fmt") {
+	for _, decl := range e.declRegistry.Decls {
+		if decl.TypePkgName == types.PkgName("fmt") {
 			isUsedFmt = true
 			break
 		}
@@ -414,8 +408,6 @@ func (e *Executor) cleanCallExprFromSessionSrc() (isCleaned bool) {
 	}
 
 	mainFunc.Body.List = body[:len(body)-1]
-
-	return true
 }
 
 func (e *Executor) cleanErrElmFromSessionSrc() error {
@@ -450,8 +442,8 @@ func (e *Executor) cleanErrElmFromSessionSrc() error {
 	if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
 		// 該当packageを利用している宣言がなければpackage importを削除する
 		var isUsed bool
-		for _, decl := range e.declRegistry.Decls() {
-			if decl.RHS().PkgName() == types.PkgName(selectorBase) {
+		for _, decl := range e.declRegistry.Decls {
+			if decl.TypePkgName == types.PkgName(selectorBase) {
 				isUsed = true
 				break
 			}

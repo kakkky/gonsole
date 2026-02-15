@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/format"
 	"go/token"
+	"math/rand"
 	"os"
 	"time"
 
@@ -24,7 +25,8 @@ func newDefaultFiler() *defaultFiler {
 }
 
 func (df *defaultFiler) createTmpFile() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
-	prefix := time.Now().Unix()
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prefix := r.Int63n(1e10)
 	tmpFileName = fmt.Sprintf("%d_gonsole_tmp.go", prefix)
 
 	file, err := os.Create(tmpFileName)
