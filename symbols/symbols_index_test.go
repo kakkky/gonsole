@@ -1,4 +1,4 @@
-package completer
+package symbols
 
 import (
 	"testing"
@@ -16,145 +16,145 @@ func TestCandidates(t *testing.T) {
 	tests := []struct {
 		name string
 		path string
-		want *candidates
+		want *SymbolIndex
 	}{
 		{
 			name: "functions",
-			path: "./testdata/candidates/funcs",
-			want: &candidates{
+			path: "./testdata/funcs",
+			want: &SymbolIndex{
 				Pkgs: []types.PkgName{"funcs"},
-				Funcs: map[types.PkgName][]funcSet{
+				Funcs: map[types.PkgName][]FuncSet{
 					"funcs": {
-						{Name: "Add", Description: "Add adds two integers and returns the sum\n", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
-						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values\n", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}, {TypeName: "string", TypePkgName: ""}}},
+						{Name: "Add", Description: "Add adds two integers and returns the sum\n", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values\n", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}, {TypeName: "string", TypePkgName: ""}}},
 					},
 				},
-				Methods:      map[types.PkgName][]methodSet{},
-				Vars:         map[types.PkgName][]varSet{},
-				Consts:       map[types.PkgName][]constSet{},
-				Structs:      map[types.PkgName][]structSet{},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Methods:      map[types.PkgName][]MethodSet{},
+				Vars:         map[types.PkgName][]VarSet{},
+				Consts:       map[types.PkgName][]ConstSet{},
+				Structs:      map[types.PkgName][]StructSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "methods",
-			path: "./testdata/candidates/methods",
-			want: &candidates{
+			path: "./testdata/methods",
+			want: &SymbolIndex{
 				Pkgs:  []types.PkgName{"methods"},
-				Funcs: map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{
+				Funcs: map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{
 					"methods": {
-						{Name: "Increment", Description: "Increment increments the counter value\n", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
-						{Name: "GetValue", Description: "GetValue returns the current value\n", ReceiverTypeName: "Counter", Returns: []returnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "Increment", Description: "Increment increments the counter value\n", ReceiverTypeName: "Counter", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "GetValue", Description: "GetValue returns the current value\n", ReceiverTypeName: "Counter", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}}},
 					},
 				},
-				Vars:   map[types.PkgName][]varSet{},
-				Consts: map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Vars:   map[types.PkgName][]VarSet{},
+				Consts: map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"methods": {{Name: "Counter", Fields: []types.StructFieldName{"Value"}, Description: "Counter is a simple counter type\n"}},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "vars_basiclit",
-			path: "./testdata/candidates/vars_basiclit",
-			want: &candidates{
+			path: "./testdata/vars_basiclit",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"varsbasiclit"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars: map[types.PkgName][]varSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars: map[types.PkgName][]VarSet{
 					"varsbasiclit": {
 						{Name: "IntVar", Description: "IntVar is an integer variable\n", TypeName: "int", TypePkgName: ""},
 						{Name: "StringVar", Description: "StringVar is a string variable\n", TypeName: "string", TypePkgName: ""},
 						{Name: "FloatVar", Description: "FloatVar is a float variable\n", TypeName: "float64", TypePkgName: ""},
 					},
 				},
-				Consts:       map[types.PkgName][]constSet{},
-				Structs:      map[types.PkgName][]structSet{},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Consts:       map[types.PkgName][]ConstSet{},
+				Structs:      map[types.PkgName][]StructSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "vars_compositelit",
-			path: "./testdata/candidates/vars_compositelit",
-			want: &candidates{
+			path: "./testdata/vars_compositelit",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"varscompositelit"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars: map[types.PkgName][]varSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars: map[types.PkgName][]VarSet{
 					"varscompositelit": {
 						{Name: "SimplePerson", Description: "SimplePerson is initialized with a composite literal\n", TypeName: "Person", TypePkgName: "varscompositelit"},
 						{Name: "PersonPtr", Description: "PersonPtr is initialized with a pointer to composite literal\n", TypeName: "Person", TypePkgName: "varscompositelit"},
 					},
 				},
-				Consts: map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Consts: map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"varscompositelit": {{Name: "Person", Fields: []types.StructFieldName{"Name", "Age"}, Description: "Person is a simple struct\n"}},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "vars_funccall",
-			path: "./testdata/candidates/vars_funccall",
-			want: &candidates{
+			path: "./testdata/vars_funccall",
+			want: &SymbolIndex{
 				Pkgs: []types.PkgName{"varsfunccall"},
-				Funcs: map[types.PkgName][]funcSet{
-					"varsfunccall": {{Name: "NewConfig", Description: "NewConfig creates a new Config instance\n", Returns: []returnSet{{TypeName: "Config", TypePkgName: "varsfunccall"}}}},
+				Funcs: map[types.PkgName][]FuncSet{
+					"varsfunccall": {{Name: "NewConfig", Description: "NewConfig creates a new Config instance\n", Returns: []ReturnSet{{TypeName: "Config", TypePkgName: "varsfunccall"}}}},
 				},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars: map[types.PkgName][]varSet{
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars: map[types.PkgName][]VarSet{
 					"varsfunccall": {{Name: "ConfigVar", Description: "ConfigVar is initialized by a function call\n", TypeName: "Config", TypePkgName: "varsfunccall"}},
 				},
-				Consts: map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Consts: map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"varsfunccall": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a configuration struct\n"}},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "vars_methodcall",
-			path: "./testdata/candidates/vars_methodcall",
-			want: &candidates{
+			path: "./testdata/vars_methodcall",
+			want: &SymbolIndex{
 				Pkgs: []types.PkgName{"varsmethodcall"},
-				Funcs: map[types.PkgName][]funcSet{
-					"varsmethodcall": {{Name: "NewLogger", Description: "NewLogger creates a new Logger instance\n", Returns: []returnSet{{TypeName: "Logger", TypePkgName: "varsmethodcall"}}}},
+				Funcs: map[types.PkgName][]FuncSet{
+					"varsmethodcall": {{Name: "NewLogger", Description: "NewLogger creates a new Logger instance\n", Returns: []ReturnSet{{TypeName: "Logger", TypePkgName: "varsmethodcall"}}}},
 				},
-				Methods: map[types.PkgName][]methodSet{
+				Methods: map[types.PkgName][]MethodSet{
 					"varsmethodcall": {
-						{Name: "Info", Description: "Info logs an info message and returns the logged message\n", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", TypePkgName: ""}}},
+						{Name: "Info", Description: "Info logs an info message and returns the logged message\n", ReceiverTypeName: "Logger", Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
 					},
 				},
-				Vars: map[types.PkgName][]varSet{
+				Vars: map[types.PkgName][]VarSet{
 					"varsmethodcall": {
 						{Name: "GlobalLogger", Description: "GlobalLogger is a top-level variable\n", TypeName: "Logger", TypePkgName: "varsmethodcall"},
 						{Name: "ResultFromMethod", Description: "ResultFromMethod is initialized by a method call on a top-level variable\n", TypeName: "string", TypePkgName: ""},
 					},
 				},
-				Consts: map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Consts: map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"varsmethodcall": {{Name: "Logger", Fields: []types.StructFieldName{"Name"}, Description: "Logger is a simple logger type\n"}},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "consts",
-			path: "./testdata/candidates/consts",
-			want: &candidates{
+			path: "./testdata/consts",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"consts"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars:    map[types.PkgName][]varSet{},
-				Consts: map[types.PkgName][]constSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars:    map[types.PkgName][]VarSet{},
+				Consts: map[types.PkgName][]ConstSet{
 					"consts": {
 						{Name: "MaxSize", Description: "MaxSize is the maximum size\n"},
 						{Name: "MinValue", Description: "MinValue is the minimum value\n"},
@@ -163,21 +163,21 @@ func TestCandidates(t *testing.T) {
 						{Name: "DefaultHeight", Description: "Multiple names in one spec\n"},
 					},
 				},
-				Structs:      map[types.PkgName][]structSet{},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Structs:      map[types.PkgName][]StructSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "structs",
-			path: "./testdata/candidates/structs",
-			want: &candidates{
+			path: "./testdata/structs",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"structs"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars:    map[types.PkgName][]varSet{},
-				Consts:  map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars:    map[types.PkgName][]VarSet{},
+				Consts:  map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"structs": {
 						{Name: "SimpleStruct", Fields: []types.StructFieldName{"FieldA", "FieldB"}, Description: "SimpleStruct has simple fields\n"},
 						{Name: "MultiFieldStruct", Fields: []types.StructFieldName{"X", "Y", "Z"}, Description: "MultiFieldStruct has multiple fields on same line\n"},
@@ -185,21 +185,21 @@ func TestCandidates(t *testing.T) {
 						{Name: "Derived", Fields: []types.StructFieldName{"Base", "Name"}, Description: "Derived embeds Base\n"},
 					},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "interfaces",
-			path: "./testdata/candidates/interfaces",
-			want: &candidates{
+			path: "./testdata/interfaces",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"interfaces"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars:    map[types.PkgName][]varSet{},
-				Consts:  map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{},
-				Interfaces: map[types.PkgName][]interfaceSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars:    map[types.PkgName][]VarSet{},
+				Consts:  map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{},
+				Interfaces: map[types.PkgName][]InterfaceSet{
 					"interfaces": {
 						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: []string{"Read reads data\n"}},
 						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data\n"}},
@@ -210,44 +210,44 @@ func TestCandidates(t *testing.T) {
 		},
 		{
 			name: "multipackage",
-			path: "./testdata/candidates/multipackage",
-			want: &candidates{
+			path: "./testdata/multipackage",
+			want: &SymbolIndex{
 				Pkgs: []types.PkgName{"myapp", "types"},
-				Funcs: map[types.PkgName][]funcSet{
+				Funcs: map[types.PkgName][]FuncSet{
 					"myapp": {
-						{Name: "GetConfig", Description: "GetConfig returns a Config from another package\n", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
-						{Name: "GetLogger", Description: "GetLogger returns a Logger from another package\n", Returns: []returnSet{{TypeName: "Logger", TypePkgName: "types"}}},
+						{Name: "GetConfig", Description: "GetConfig returns a Config from another package\n", Returns: []ReturnSet{{TypeName: "Config", TypePkgName: "types"}}},
+						{Name: "GetLogger", Description: "GetLogger returns a Logger from another package\n", Returns: []ReturnSet{{TypeName: "Logger", TypePkgName: "types"}}},
 					},
 				},
-				Methods: map[types.PkgName][]methodSet{
+				Methods: map[types.PkgName][]MethodSet{
 					"myapp": {
-						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method\n", ReceiverTypeName: "Service", Returns: []returnSet{{TypeName: "Config", TypePkgName: "types"}}},
+						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method\n", ReceiverTypeName: "Service", Returns: []ReturnSet{{TypeName: "Config", TypePkgName: "types"}}},
 					},
 					"types": {
-						{Name: "Info", Description: "Info logs an info message\n", ReceiverTypeName: "Logger", Returns: []returnSet{{TypeName: "string", TypePkgName: ""}}},
+						{Name: "Info", Description: "Info logs an info message\n", ReceiverTypeName: "Logger", Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
 					},
 				},
-				Vars:   map[types.PkgName][]varSet{},
-				Consts: map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Vars:   map[types.PkgName][]VarSet{},
+				Consts: map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"myapp": {{Name: "Service", Fields: []types.StructFieldName{"Name"}, Description: "Service has a method that returns a type from another package\n"}},
 					"types": {
 						{Name: "Config", Fields: []types.StructFieldName{"Name", "Value"}, Description: "Config is a configuration struct from another package\n"},
 						{Name: "Logger", Fields: []types.StructFieldName{"Level"}, Description: "Logger is a logger struct from another package\n"},
 					},
 				},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "multidecl",
-			path: "./testdata/candidates/multidecl",
-			want: &candidates{
+			path: "./testdata/multidecl",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"multidecl"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars: map[types.PkgName][]varSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars: map[types.PkgName][]VarSet{
 					"multidecl": {
 						{Name: "VarA", Description: "Multiple variables in one line\n", TypeName: "string", TypePkgName: ""},
 						{Name: "VarB", Description: "Multiple variables in one line\n", TypeName: "string", TypePkgName: ""},
@@ -255,7 +255,7 @@ func TestCandidates(t *testing.T) {
 						{Name: "VarD", Description: "Multiple variables in one var block\n", TypeName: "string", TypePkgName: ""},
 					},
 				},
-				Consts: map[types.PkgName][]constSet{
+				Consts: map[types.PkgName][]ConstSet{
 					"multidecl": {
 						{Name: "ConstA", Description: "Multiple constants in one line\n"},
 						{Name: "ConstB", Description: "Multiple constants in one line\n"},
@@ -263,24 +263,24 @@ func TestCandidates(t *testing.T) {
 						{Name: "ConstD", Description: "Multiple constants in one const block\n"},
 					},
 				},
-				Structs:      map[types.PkgName][]structSet{},
-				Interfaces:   map[types.PkgName][]interfaceSet{},
+				Structs:      map[types.PkgName][]StructSet{},
+				Interfaces:   map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
 			},
 		},
 		{
 			name: "defined_type",
-			path: "./testdata/candidates/defined_type",
-			want: &candidates{
+			path: "./testdata/defined_type",
+			want: &SymbolIndex{
 				Pkgs:    []types.PkgName{"definedtype"},
-				Funcs:   map[types.PkgName][]funcSet{},
-				Methods: map[types.PkgName][]methodSet{},
-				Vars:    map[types.PkgName][]varSet{},
-				Consts:  map[types.PkgName][]constSet{},
-				Structs: map[types.PkgName][]structSet{
+				Funcs:   map[types.PkgName][]FuncSet{},
+				Methods: map[types.PkgName][]MethodSet{},
+				Vars:    map[types.PkgName][]VarSet{},
+				Consts:  map[types.PkgName][]ConstSet{},
+				Structs: map[types.PkgName][]StructSet{
 					"definedtype": {{Name: "Config", Fields: []types.StructFieldName{"Name"}, Description: "Config is a struct type\n"}},
 				},
-				Interfaces: map[types.PkgName][]interfaceSet{},
+				Interfaces: map[types.PkgName][]InterfaceSet{},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{
 					"definedtype": {
 						{Name: "MyInt", UnderlyingType: "int", UnderlyingTypePkgName: "", Description: "MyInt is a defined type based on int\n"},
@@ -298,20 +298,19 @@ func TestCandidates(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCandidates(tt.path)
+			got, err := NewSymbolIndex(tt.path)
 			if err != nil {
-				t.Fatalf("NewCandidates() error = %v", err)
+				t.Fatalf("NewSymbolIndex() error = %v", err)
 			}
 
 			opts := []cmp.Option{
-				cmp.AllowUnexported(candidates{}, funcSet{}, methodSet{}, varSet{}, constSet{}, structSet{}, interfaceSet{}, DefinedTypeSet{}, returnSet{}),
 				cmpopts.SortSlices(func(a, b types.PkgName) bool { return a < b }),
-				cmpopts.SortSlices(func(a, b funcSet) bool { return a.Name < b.Name }),
-				cmpopts.SortSlices(func(a, b methodSet) bool { return a.Name < b.Name }),
-				cmpopts.SortSlices(func(a, b varSet) bool { return a.Name < b.Name }),
-				cmpopts.SortSlices(func(a, b constSet) bool { return a.Name < b.Name }),
-				cmpopts.SortSlices(func(a, b structSet) bool { return a.Name < b.Name }),
-				cmpopts.SortSlices(func(a, b interfaceSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b FuncSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b MethodSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b VarSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b ConstSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b StructSet) bool { return a.Name < b.Name }),
+				cmpopts.SortSlices(func(a, b InterfaceSet) bool { return a.Name < b.Name }),
 				cmpopts.SortSlices(func(a, b DefinedTypeSet) bool { return a.Name < b.Name }),
 			}
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {

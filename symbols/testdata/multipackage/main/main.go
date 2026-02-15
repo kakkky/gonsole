@@ -1,6 +1,6 @@
 package myapp
 
-import "github.com/kakkky/gonsole/completer/testdata/candidates/multipackage/types"
+import "github.com/kakkky/gonsole/symbols/testdata/multipackage/types"
 
 // GetConfig returns a Config from another package
 func GetConfig() types.Config {
