@@ -13,7 +13,6 @@ import (
 
 	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/filer"
 	"github.com/kakkky/gonsole/types"
 )
 
@@ -22,7 +21,7 @@ import (
 type Executor struct {
 	declRegistry *declregistry.DeclRegistry
 	sessionSrc   *ast.File
-	filer.Filer
+	filer
 	commander
 	importPathResolver
 }
@@ -33,7 +32,7 @@ func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
 	return &Executor{
 		declRegistry:       declRegistry,
 		sessionSrc:         initSessionSrc(),
-		Filer:              filer.NewDefaultFiler(),
+		filer:              newDefaultFiler(),
 		commander:          commander,
 		importPathResolver: newDefaultImportPathResolver(commander),
 	}, nil
@@ -62,9 +61,10 @@ func (e *Executor) Execute(input string) {
 		return
 	}
 	defer clearImportPathAddedInSession()
+	defer e.cleanCallExprFromSessionSrc()
 
 	// 一時ファイルを作成
-	tmpFile, tmpFileName, cleanup, err := e.CreateTmpFile()
+	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
 	if err != nil {
 		errs.HandleError(err)
 	}
@@ -78,7 +78,7 @@ func (e *Executor) Execute(input string) {
 	fset := token.NewFileSet()
 
 	// 一時ファイルにflushする
-	if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
+	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -97,7 +97,7 @@ func (e *Executor) Execute(input string) {
 			errs.HandleError(err)
 		}
 
-		if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
+		if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
 			errs.HandleError(err)
 		}
 
@@ -110,16 +110,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// 変数エントリに登録する
-	if err := e.declRegistry.Register(input, importPathAddedInSession); err != nil {
-		errs.HandleError(err)
-		return
-	}
-
-	// 式呼び出しをセッションソースから削除した場合はflushする
-	if cleaned := e.cleanCallExprFromSessionSrc(); !cleaned {
-		return
-	}
-	if err := e.Flush(e.sessionSrc, tmpFile, fset); err != nil {
+	if err := e.declRegistry.Register(tmpFileName); err != nil {
 		errs.HandleError(err)
 		return
 	}
