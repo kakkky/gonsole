@@ -24,8 +24,17 @@ func NewRegistry() *DeclRegistry {
 	}
 }
 
+// テストコードでRegisterの呼び出しをスキップするためのフラグ
+var SkipRegisterMode bool
+
 // Register は入力された最後の文を解析して、宣言された変数の情報をDeclRegistryに登録する
 func (dr *DeclRegistry) Register(tmpFileName string) error {
+	// テストコードでの呼び出しをスキップするためのフラグ
+	// 見通しは悪いが、一旦これで対応
+	if SkipRegisterMode {
+		return nil
+	}
+
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
 		Dir:  "",

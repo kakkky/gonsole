@@ -1514,10 +1514,13 @@ func TestExecutor_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			declregistry := declregistry.NewRegistry()
-			tt.setupDeclRegistry(declregistry)
 
-			sut, err := NewExecutor(declregistry)
+			registry := declregistry.NewRegistry()
+			tt.setupDeclRegistry(registry)
+			// テストではRegisterをスキップ
+			declregistry.SkipRegisterMode = true
+
+			sut, err := NewExecutor(registry)
 			if err != nil {
 				t.Fatalf("failed to create Executor: %v", err)
 			}
@@ -1749,9 +1752,10 @@ func TestExecutor_Execute_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			declregistry := declregistry.NewRegistry()
+			registry := declregistry.NewRegistry()
+			declregistry.SkipRegisterMode = true
 
-			sut, err := NewExecutor(declregistry)
+			sut, err := NewExecutor(registry)
 			if err != nil {
 				t.Fatalf("failed to create Executor: %v", err)
 			}
@@ -1768,7 +1772,7 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			sut.commander = mockCommander
 			sut.importPathResolver = mockImportPathResolver
 
-			tt.setupDeclRegistry(declregistry)
+			tt.setupDeclRegistry(registry)
 
 			// 標準出力を一時的に差し替え
 			oldStdout := os.Stdout
