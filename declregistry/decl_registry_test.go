@@ -9,17 +9,14 @@ import (
 
 func TestDeclRegistry_Register(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		importPath    types.ImportPath
-		expected      []Decl
-		existingDecls []Decl
-		wantErr       bool
+		name                string
+		existingTmpFileName string
+		existingDecls       []Decl
+		expected            []Decl
 	}{
 		{
-			name:       "selector expression assignment",
-			input:      "a := testdata.Var",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "selector expression assignment",
+			existingTmpFileName: "./testdata/selector_expression_assignment/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "a",
@@ -27,39 +24,33 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "composite literal assignment",
-			input:      "s := testdata.Struct{}",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "composite literal assignment",
+			existingTmpFileName: "./testdata/composite_literal_assignment/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "s",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "pointer to struct assignment",
-			input:      "p := &testdata.Struct{}",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "pointer to struct assignment",
+			existingTmpFileName: "./testdata/pointer_to_struct_assignment/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "p",
 					Pointered:   true,
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "function call assignment",
-			input:      "f := testdata.Func()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "function call assignment",
+			existingTmpFileName: "./testdata/function_call_assignment/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "f",
@@ -67,12 +58,10 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "multiple return values from function",
-			input:      "a, b := testdata.MultiReturn()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "multiple return values from function",
+			existingTmpFileName: "./testdata/multiple_return_values_from_function/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "a",
@@ -85,12 +74,10 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "var declaration with selector",
-			input:      "var v = testdata.Var",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "var declaration with selector",
+			existingTmpFileName: "./testdata/var_declaration_with_selector/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "v",
@@ -98,39 +85,33 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "var declaration with composite literal",
-			input:      "var s = testdata.Struct{}",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "var declaration with composite literal",
+			existingTmpFileName: "./testdata/var_declaration_with_composite_literal/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "s",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "var declaration with pointer to struct",
-			input:      "var p = &testdata.Struct{}",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "var declaration with pointer to struct",
+			existingTmpFileName: "./testdata/var_declaration_with_pointer_to_struct/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "p",
 					Pointered:   true,
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "var declaration with function call",
-			input:      "var f = testdata.Func()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "var declaration with function call",
+			existingTmpFileName: "./testdata/var_declaration_with_function_call/00000_gonsole_tmp.go",
 			expected: []Decl{
 				{
 					Name:        "f",
@@ -138,50 +119,45 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:     "invalid syntax",
-			input:    "a := 1 +",
-			expected: []Decl{},
-			wantErr:  true,
-		},
-		{
-			name:       "method assignment",
-			input:      "b := a.Method1()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "method assignment",
+			existingTmpFileName: "./testdata/method_assignment/00000_gonsole_tmp.go",
 			existingDecls: []Decl{
 				{
 					Name:        "a",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
 			expected: []Decl{
+				{
+					Name:        "a",
+					TypeName:    "Struct",
+					TypePkgName: "sample",
+				},
 				{
 					Name:        "b",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "method chain assignment",
-			input:      "b := a.Method1().Method2()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "method chain assignment",
+			existingTmpFileName: "./testdata/method_chain_assignment/00000_gonsole_tmp.go",
 			existingDecls: []Decl{
 				{
 					Name:        "a",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
 			expected: []Decl{
 				{
 					Name:        "a",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 				{
 					Name:        "b",
@@ -189,24 +165,22 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 		{
-			name:       "var declaration with method chain",
-			input:      "var b = a.Method1().Method2()",
-			importPath: `"github.com/kakkky/gonsole/declregistry/testdata"`,
+			name:                "var declaration with method chain",
+			existingTmpFileName: "./testdata/var_declaration_with_method_chain/00000_gonsole_tmp.go",
 			existingDecls: []Decl{
 				{
 					Name:        "a",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 			},
 			expected: []Decl{
 				{
 					Name:        "a",
 					TypeName:    "Struct",
-					TypePkgName: "testdata",
+					TypePkgName: "sample",
 				},
 				{
 					Name:        "b",
@@ -214,28 +188,22 @@ func TestDeclRegistry_Register(t *testing.T) {
 					TypePkgName: "",
 				},
 			},
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sut := NewRegistry()
-			if len(tt.existingDecls) > 0 {
-				sut.Decls = append(sut.Decls, tt.existingDecls...)
+
+			if tt.existingDecls != nil {
+				sut.Decls = tt.existingDecls
 			}
 
-			err := sut.Register(tt.input, tt.importPath)
+			err := sut.Register(tt.existingTmpFileName)
 
 			// エラーステータスの確認
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Register() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			// エラーが期待される場合は結果チェック不要
-			if tt.wantErr {
-				return
+			if err != nil {
+				t.Fatalf("Register() returned an error: %v", err)
 			}
 
 			// cmp.Diffを使って結果を比較

@@ -1,13 +1,13 @@
 package declregistry
 
 import (
-	"fmt"
 	"go/ast"
+	"slices"
+	"strings"
 
 	gotypes "go/types"
 
 	"github.com/kakkky/gonsole/errs"
-	"github.com/kakkky/gonsole/filer"
 	"github.com/kakkky/gonsole/types"
 	"golang.org/x/tools/go/packages"
 )
@@ -15,37 +15,17 @@ import (
 // DeclRegistry はReplセッション中に宣言された変数の情報を管理する
 type DeclRegistry struct {
 	Decls []Decl
-	filer.Filer
 }
 
 // NewRegistry はDeclRegistryのインスタンスを生成する
 func NewRegistry() *DeclRegistry {
 	return &DeclRegistry{
 		Decls: []Decl{},
-		Filer: filer.NewDefaultFiler(),
 	}
 }
 
-// Register は入力されたコードを解析し、宣言された変数情報を登録する
-func (dr *DeclRegistry) Register(input string, importPath types.ImportPath) error {
-	tmpFile, tmpFileName, cleanup, err := dr.Filer.CreateTmpFile()
-	if err != nil {
-		return errs.NewInternalError("failed to create temp file").Wrap(err)
-	}
-	defer cleanup()
-
-	var importStmt string
-	if importPath != "" {
-		importStmt = fmt.Sprintf("import %s\n\n", importPath)
-	}
-	wrappedSrc := "package main\n" + importStmt + "func tmp() {\n" + input + "\n}"
-	if _, err := tmpFile.WriteString(wrappedSrc); err != nil {
-		return errs.NewInternalError("failed to write temp file").Wrap(err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return errs.NewInternalError("failed to close temp file").Wrap(err)
-	}
-
+// Register は入力された最後の文を解析して、宣言された変数の情報をDeclRegistryに登録する
+func (dr *DeclRegistry) Register(tmpFileName string) error {
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
 		Dir:  "",
@@ -57,24 +37,63 @@ func (dr *DeclRegistry) Register(input string, importPath types.ImportPath) erro
 	}
 
 	pkg := pkgs[0]
-	for _, file := range pkg.Syntax {
-		for _, decl := range file.Decls {
-			funcDecl, ok := decl.(*ast.FuncDecl)
+
+	pkg.Errors = slices.DeleteFunc(pkg.Errors, func(err packages.Error) bool {
+		switch {
+		case strings.Contains(err.Msg, "declared and not used"):
+			return true
+		case strings.Contains(err.Msg, "imported and not used"):
+			return true
+		case strings.Contains(err.Msg, "undefined"):
+			return true
+		}
+		return false
+	})
+
+	if len(pkg.Errors) > 0 {
+		var errMsgs []string
+		for _, pkgErr := range pkg.Errors {
+			errMsgs = append(errMsgs, pkgErr.Msg)
+		}
+		return errs.NewBadInputError("failed to parse input: " + strings.Join(errMsgs, "; "))
+	}
+
+	var mainFunc *ast.FuncDecl
+	for _, decl := range pkg.Syntax[0].Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if ok && funcDecl.Name.Name == "main" {
+			mainFunc = funcDecl
+			break
+		}
+	}
+	if mainFunc == nil {
+		return errs.NewBadInputError("main function not found")
+	}
+	mainFuncBodyList := mainFunc.Body.List
+	mainFuncBodyList = slices.DeleteFunc(mainFuncBodyList, func(stmt ast.Stmt) bool {
+		assignStmt, ok := stmt.(*ast.AssignStmt)
+		if !ok {
+			return false
+		}
+		for _, stmtLHS := range assignStmt.Lhs {
+			lhsIdent, ok := stmtLHS.(*ast.Ident)
 			if !ok {
 				continue
 			}
-			if funcDecl.Name.Name != "tmp" {
-				continue
-			}
-			for _, stmt := range funcDecl.Body.List {
-				switch stmtV := stmt.(type) {
-				case *ast.AssignStmt:
-					dr.registerAssimentStmt(stmtV, pkg.TypesInfo)
-				case *ast.DeclStmt:
-					dr.registerDeclStmt(stmtV, pkg.TypesInfo)
-				}
+			if lhsIdent.Name == "_" {
+				return true
 			}
 		}
+		return false
+	})
+
+	lastStmt := mainFuncBodyList[len(mainFuncBodyList)-1]
+
+	switch lastStmtV := lastStmt.(type) {
+	case *ast.AssignStmt:
+		dr.registerAssimentStmt(lastStmtV, pkg.TypesInfo)
+	case *ast.DeclStmt:
+		dr.registerDeclStmt(lastStmtV, pkg.TypesInfo)
 	}
 	return nil
 }
