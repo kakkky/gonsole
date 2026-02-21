@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	gotypes "go/types"
+	"runtime/debug"
 	"slices"
 
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
+	"github.com/kakkky/gonsole/symbols"
 	"github.com/kakkky/gonsole/types"
 	"golang.org/x/tools/go/packages"
 )
@@ -23,17 +25,19 @@ import (
 type Executor struct {
 	declRegistry *declregistry.DeclRegistry
 	sessionSrc   *ast.File
+	symbolIndex  *symbols.SymbolIndex
 	filer
 	commander
 	importPathResolver
 }
 
 // NewExecutor はExecutorのインスタンスを生成する
-func NewExecutor(declRegistry *declregistry.DeclRegistry) (*Executor, error) {
+func NewExecutor(declRegistry *declregistry.DeclRegistry, symbolIndex *symbols.SymbolIndex) (*Executor, error) {
 	commander := newDefaultCommander()
 	return &Executor{
 		declRegistry:       declRegistry,
 		sessionSrc:         initSessionSrc(),
+		symbolIndex:        symbolIndex,
 		filer:              newDefaultFiler(),
 		commander:          commander,
 		importPathResolver: newDefaultImportPathResolver(commander),
@@ -47,6 +51,8 @@ func (e *Executor) Execute(input string) {
 	defer func() {
 		if r := recover(); r != nil {
 			panicMsg := fmt.Sprintf("%v", r)
+			// スタックトレースも出力
+			debug.PrintStack()
 			errs.HandleError(
 				errs.NewInternalError(panicMsg),
 			)
@@ -170,6 +176,11 @@ func (e *Executor) writeInSessionSrc(inputStmt ast.Stmt) error {
 	return nil
 }
 
+var goStructFormatLit = &ast.BasicLit{
+	Kind:  token.STRING,
+	Value: "\"%#v\\n\"",
+}
+
 func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc *ast.FuncDecl) error {
 	switch exprStmtV := exprStmt.X.(type) {
 	case *ast.SelectorExpr:
@@ -182,38 +193,78 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
 				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
-				Fun:  ast.NewIdent("fmt.Println"),
-				Args: []ast.Expr{exprStmtV},
+				Fun: ast.NewIdent("fmt.Printf"),
+				Args: []ast.Expr{
+					goStructFormatLit,
+					exprStmtV,
+				},
 			},
+		}
+		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+			return err
 		}
 	case *ast.Ident:
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
 				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
-				Fun:  ast.NewIdent("fmt.Println"),
-				Args: []ast.Expr{exprStmtV},
+				Fun: ast.NewIdent("fmt.Printf"),
+				Args: []ast.Expr{
+					goStructFormatLit,
+					exprStmtV,
+				},
 			},
 		}
-
+		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+			return err
+		}
 	case *ast.CallExpr:
+		var returnValuesCnt int
 		selectorBase := extractSelectorBaseFromExpr(exprStmtV)
-		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+		if e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+			var pkgName types.PkgName
+			for _, decl := range e.declRegistry.Decls {
+				if decl.Name == types.DeclName(selectorBase) {
+					pkgName = decl.TypePkgName
+				}
+			}
+			methodDeclName := types.DeclName(exprStmtV.Fun.(*ast.SelectorExpr).Sel.Name)
+			methodSets := e.symbolIndex.Methods[pkgName]
+			for _, methodSet := range methodSets {
+				if methodSet.Name == methodDeclName {
+					returnValuesCnt = len(methodSet.Returns)
+				}
+			}
+		} else {
 			if err := e.addImportPath(types.PkgName(selectorBase)); err != nil {
 				return err
 			}
+			pkgName := types.PkgName(selectorBase)
+			funcDeclName := types.DeclName(exprStmtV.Fun.(*ast.SelectorExpr).Sel.Name)
+			funcSets := e.symbolIndex.Funcs[pkgName]
+			for _, funcSet := range funcSets {
+				if funcSet.Name == funcDeclName {
+					returnValuesCnt = len(funcSet.Returns)
+				}
+			}
 		}
+
+		// 返り値0(void)の場合は返り値がないのでfmt.Printfでwrapしない
+		if returnValuesCnt == 0 {
+			break
+		}
+		args := composeArgsForFmtPrintf(exprStmtV, returnValuesCnt)
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
 				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
-				Fun:  ast.NewIdent("fmt.Println"),
-				Args: []ast.Expr{exprStmtV},
+				Fun:  ast.NewIdent("fmt.Printf"),
+				Args: args,
 			},
+		}
+		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+			return err
 		}
 	default:
 		return errs.NewBadInputError("unsupported expression type")
-	}
-	if err := e.addImportPath(types.PkgName("fmt")); err != nil {
-		return err
 	}
 	mainFunc.Body.List = append(mainFunc.Body.List, exprStmt)
 	return nil
@@ -664,4 +715,67 @@ func extractInputStmtWithTypeInfo(syntax *ast.File) (ast.Stmt, error) {
 
 	lastStmt := mainFuncBodyList[len(mainFuncBodyList)-1]
 	return lastStmt, nil
+}
+
+// fmt.Printfの引数を生成する
+// 返り値の数だけ"%#v\n"を生成して、最後に元の呼び出し式をラップした関数リテラルを引数に追加する
+func composeArgsForFmtPrintf(origin *ast.CallExpr, returnValuesCnt int) []ast.Expr {
+	var args []ast.Expr
+	for i := 0; i < returnValuesCnt; i++ {
+		args = append(args, goStructFormatLit)
+	}
+	wrappedCallExpr := wrapCallExpr(origin, returnValuesCnt)
+	args = append(args, wrappedCallExpr)
+
+	return args
+}
+
+// 元の関数/メソッド呼び出し式を元に、返り値をany型のスライスにつめて返却する関数リテラルを生成
+//
+//	func() [N]any {
+//	    value_0, value_1, ..., value_N-1 := origin()
+//	    return [N]any{value_0, value_1, ..., value_N-1}
+//	}
+func wrapCallExpr(origin *ast.CallExpr, returnValuesCnt int) ast.Expr {
+	var idents []ast.Expr
+	for i := 0; i < returnValuesCnt; i++ {
+		idents = append(idents, ast.NewIdent(fmt.Sprintf("value_%d", i)))
+	}
+	return &ast.CallExpr{
+		Fun: &ast.FuncLit{
+			Type: &ast.FuncType{
+				Params: &ast.FieldList{},
+				Results: &ast.FieldList{
+					List: []*ast.Field{
+						{Type: &ast.ArrayType{
+							Elt: ast.NewIdent("any"),
+						}},
+					},
+				},
+			},
+			Body: &ast.BlockStmt{
+				List: []ast.Stmt{
+					&ast.AssignStmt{
+						Lhs: idents,
+						Tok: token.DEFINE,
+						Rhs: []ast.Expr{
+							&ast.CallExpr{
+								Fun: origin.Fun,
+							},
+						},
+					},
+					&ast.ReturnStmt{
+						Results: []ast.Expr{
+							&ast.CompositeLit{
+								Type: &ast.ArrayType{
+									Elt: ast.NewIdent("any"),
+								},
+								Elts: idents,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
