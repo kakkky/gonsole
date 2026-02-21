@@ -40,10 +40,10 @@ func (m *Mockfiler) EXPECT() *MockfilerMockRecorder {
 	return m.recorder
 }
 
-// createTmpFile mocks base method.
-func (m *Mockfiler) createTmpFile() (*os.File, string, func(), error) {
+// createSessionSrcFile mocks base method.
+func (m *Mockfiler) createSessionSrcFile() (*os.File, string, func(), error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createTmpFile")
+	ret := m.ctrl.Call(m, "createSessionSrcFile")
 	ret0, _ := ret[0].(*os.File)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(func())
@@ -51,10 +51,10 @@ func (m *Mockfiler) createTmpFile() (*os.File, string, func(), error) {
 	return ret0, ret1, ret2, ret3
 }
 
-// createTmpFile indicates an expected call of createTmpFile.
-func (mr *MockfilerMockRecorder) createTmpFile() *gomock.Call {
+// createSessionSrcFile indicates an expected call of createSessionSrcFile.
+func (mr *MockfilerMockRecorder) createSessionSrcFile() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createTmpFile", reflect.TypeOf((*Mockfiler)(nil).createTmpFile))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createSessionSrcFile", reflect.TypeOf((*Mockfiler)(nil).createSessionSrcFile))
 }
 
 // flush mocks base method.

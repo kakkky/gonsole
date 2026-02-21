@@ -14,7 +14,7 @@ import (
 
 //go:generate mockgen -package=executor -source=./filer.go -destination=./filer_mock.go
 type filer interface {
-	createTmpFile() (tmpFile *os.File, tmpFileName string, cleanup func(), err error)
+	createSessionSrcFile() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error)
 	flush(ast *ast.File, targetFile *os.File, fset *token.FileSet) error
 }
 
@@ -24,23 +24,23 @@ func newDefaultFiler() *defaultFiler {
 	return &defaultFiler{}
 }
 
-func (df *defaultFiler) createTmpFile() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+func (df *defaultFiler) createSessionSrcFile() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prefix := r.Int63n(1e10)
-	tmpFileName = fmt.Sprintf("%d_gonsole_tmp.go", prefix)
+	sessionSrcFileName = fmt.Sprintf("%d_gonsole_session_src.go", prefix)
 
-	file, err := os.Create(tmpFileName)
+	file, err := os.Create(sessionSrcFileName)
 	if err != nil {
-		return nil, "", nil, errs.NewInternalError("failed to create temporary file").Wrap(err)
+		return nil, "", nil, errs.NewInternalError("failed to create session src file").Wrap(err)
 	}
 
 	cleanup = func() {
-		if err := os.Remove(tmpFileName); err != nil {
+		if err := os.Remove(sessionSrcFileName); err != nil {
 			errs.HandleError(err)
 		}
 	}
 
-	return file, tmpFileName, cleanup, nil
+	return file, sessionSrcFileName, cleanup, nil
 }
 
 func (df *defaultFiler) flush(ast *ast.File, targetFile *os.File, fset *token.FileSet) error {

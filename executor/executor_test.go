@@ -58,7 +58,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -119,7 +119,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -202,7 +202,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -288,7 +288,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -384,7 +384,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -450,7 +450,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -524,7 +524,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -594,7 +594,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -683,7 +683,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -775,7 +775,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -850,7 +850,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -903,7 +903,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1032,7 +1032,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1175,7 +1175,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1291,7 +1291,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1413,7 +1413,7 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
 					return w, "test.go", func() {
 						if err := r.Close(); err != nil {
@@ -1594,9 +1594,9 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "1769312920_gonsole_tmp.go", func() {
+					return w, "1769312920_gonsole_session_src.go", func() {
 						if err := r.Close(); err != nil {
 							t.Errorf("failed to close pipe: %v", err)
 						}
@@ -1605,8 +1605,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
-				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
-					errMsg := "# command-line-arguments\n./1769312920_gonsole_tmp.go:3:2: undefined: x"
+				mockCommander.EXPECT().execGoRun("1769312920_gonsole_session_src.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := "# command-line-arguments\n./1769312920_gonsole_session_src.go:3:2: undefined: x"
 					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
 				}).Times(1)
 			},
@@ -1639,9 +1639,9 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "1769312920_gonsole_tmp.go", func() {
+					return w, "1769312920_gonsole_session_src.go", func() {
 						if err := r.Close(); err != nil {
 							t.Errorf("failed to close pipe: %v", err)
 						}
@@ -1650,8 +1650,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
-				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
-					errMsg := "# command-line-arguments\n./1769312920_gonsole_tmp.go:8:4: no new variables on left side of :="
+				mockCommander.EXPECT().execGoRun("1769312920_gonsole_session_src.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := "# command-line-arguments\n./1769312920_gonsole_session_src.go:8:4: no new variables on left side of :="
 					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
 				}).Times(1)
 
@@ -1707,9 +1707,9 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
-				mockFiler.EXPECT().createTmpFile().DoAndReturn(func() (tmpFile *os.File, tmpFileName string, cleanup func(), err error) {
+				mockFiler.EXPECT().createSessionSrcFile().DoAndReturn(func() (sessionSrcFile *os.File, sessionSrcFileName string, cleanup func(), err error) {
 					r, w, _ := os.Pipe()
-					return w, "1769312920_gonsole_tmp.go", func() {
+					return w, "1769312920_gonsole_session_src.go", func() {
 						if err := r.Close(); err != nil {
 							t.Errorf("failed to close pipe: %v", err)
 						}
@@ -1718,8 +1718,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 				mockFiler.EXPECT().flush(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2) // 呼ばれていることが確認できればいいのでgomock.Any()で対応
 
 				// commander
-				mockCommander.EXPECT().execGoRun("1769312920_gonsole_tmp.go").DoAndReturn(func(filename string) ([]byte, error) {
-					errMsg := "# command-line-arguments\n./1769312920_gonsole_tmp.go:8:4: no new variables on left side of :="
+				mockCommander.EXPECT().execGoRun("1769312920_gonsole_session_src.go").DoAndReturn(func(filename string) ([]byte, error) {
+					errMsg := "# command-line-arguments\n./1769312920_gonsole_session_src.go:8:4: no new variables on left side of :="
 					return []byte{}, &exec.ExitError{Stderr: []byte(errMsg)}
 				}).Times(1)
 
