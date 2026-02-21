@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kakkky/gonsole/declregistry"
+	"github.com/kakkky/gonsole/symbols"
 
 	"github.com/kakkky/gonsole/types"
 	gomock "go.uber.org/mock/gomock"
@@ -23,6 +24,7 @@ func TestExecutor_Execute(t *testing.T) {
 		input              string
 		setupDeclRegistry  func(*declregistry.DeclRegistry) // 必要に応じてDeclRegistryの初期状態をセットアップする
 		setupMocks         func(*Mockfiler, *Mockcommander, *MockimportPathResolver)
+		setupSymbolIndex   *symbols.SymbolIndex
 		expectedSessionSrc *ast.File
 	}{
 		{
@@ -900,6 +902,9 @@ func TestExecutor_Execute(t *testing.T) {
 			input: "pkg.Function()",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
 				// 初期状態のセットアップが不要な場合は空の関数を指定
+			},
+			setupSymbolIndex: &symbols.SymbolIndex{
+				Funcs: ,
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				// filer
