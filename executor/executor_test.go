@@ -1517,8 +1517,6 @@ func TestExecutor_Execute(t *testing.T) {
 
 			registry := declregistry.NewRegistry()
 			tt.setupDeclRegistry(registry)
-			// テストではRegisterをスキップ
-			declregistry.SkipRegisterMode = true
 
 			sut, err := NewExecutor(registry)
 			if err != nil {
@@ -1753,7 +1751,6 @@ func TestExecutor_Execute_Error(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			registry := declregistry.NewRegistry()
-			declregistry.SkipRegisterMode = true
 
 			sut, err := NewExecutor(registry)
 			if err != nil {
