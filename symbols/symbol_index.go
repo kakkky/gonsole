@@ -1,4 +1,4 @@
-package completer
+package symbols
 
 import (
 	"go/ast"
@@ -11,53 +11,53 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// BuildStdPkgCandidatesModeは標準パッケージの候補を構築するモードのフラグ
-var BuildStdPkgCandidatesMode bool
+// BuildStdPkgSymbolIndexModeは標準パッケージの候補を構築するモードのフラグ
+var BuildStdPkgSymbolIndexMode bool
 
 // SkipStdPkgMergeはテスト時に標準パッケージのマージをスキップするフラグ
 var SkipStdPkgMergeMode bool
 
-type candidates struct {
+type SymbolIndex struct {
 	Pkgs         []types.PkgName
-	Funcs        map[types.PkgName][]funcSet
-	Methods      map[types.PkgName][]methodSet
-	Vars         map[types.PkgName][]varSet
-	Consts       map[types.PkgName][]constSet
-	Structs      map[types.PkgName][]structSet
-	Interfaces   map[types.PkgName][]interfaceSet
+	Funcs        map[types.PkgName][]FuncSet
+	Methods      map[types.PkgName][]MethodSet
+	Vars         map[types.PkgName][]VarSet
+	Consts       map[types.PkgName][]ConstSet
+	Structs      map[types.PkgName][]StructSet
+	Interfaces   map[types.PkgName][]InterfaceSet
 	DefinedTypes map[types.PkgName][]DefinedTypeSet
 }
 
 type (
-	funcSet struct {
+	FuncSet struct {
 		Name        types.DeclName
 		Description string // TODO: descriptionにも型をつけたい
-		Returns     []returnSet
+		Returns     []ReturnSet
 	}
-	methodSet struct {
+	MethodSet struct {
 		Name             types.DeclName
 		Description      string
 		ReceiverTypeName types.ReceiverTypeName
-		Returns          []returnSet
+		Returns          []ReturnSet
 	}
-	varSet struct {
+	VarSet struct {
 		Name        types.DeclName
 		Description string
 		TypeName    types.TypeName
 		TypePkgName types.PkgName
 	}
-	constSet struct {
+	ConstSet struct {
 		Name        types.DeclName
 		Description string
 	}
-	structSet struct {
+	StructSet struct {
 		Name        types.DeclName
 		Fields      []types.StructFieldName // 型情報を持たせてSetにしても良さそう。
 		Description string
 	}
 	// interfaceの候補を返すわけではなく、関数がinterfaceを返す場合に、
 	// そのinterfaceのメソッドを候補として返すためのもの
-	interfaceSet struct {
+	InterfaceSet struct {
 		Name         types.DeclName
 		Methods      []types.DeclName
 		Descriptions []string
@@ -70,25 +70,25 @@ type (
 	}
 )
 
-type returnSet struct {
+type ReturnSet struct {
 	TypeName    types.TypeName
 	TypePkgName types.PkgName
 }
 
 // nolint:staticcheck // 定義されている変数名、関数名など名前だけに関心があるため、*ast.Packageだけで十分
-func NewCandidates(projectRootPath string) (*candidates, error) {
+func NewSymbolIndex(projectRootPath string) (*SymbolIndex, error) {
 	pkgs, err := loadProject(projectRootPath)
 	if err != nil {
 		return nil, err
 	}
-	c := candidates{
+	c := SymbolIndex{
 		Pkgs:         make([]types.PkgName, 0),
-		Funcs:        make(map[types.PkgName][]funcSet),
-		Methods:      make(map[types.PkgName][]methodSet),
-		Vars:         make(map[types.PkgName][]varSet),
-		Consts:       make(map[types.PkgName][]constSet),
-		Structs:      make(map[types.PkgName][]structSet),
-		Interfaces:   make(map[types.PkgName][]interfaceSet),
+		Funcs:        make(map[types.PkgName][]FuncSet),
+		Methods:      make(map[types.PkgName][]MethodSet),
+		Vars:         make(map[types.PkgName][]VarSet),
+		Consts:       make(map[types.PkgName][]ConstSet),
+		Structs:      make(map[types.PkgName][]StructSet),
+		Interfaces:   make(map[types.PkgName][]InterfaceSet),
 		DefinedTypes: make(map[types.PkgName][]DefinedTypeSet),
 	}
 
@@ -99,16 +99,16 @@ func NewCandidates(projectRootPath string) (*candidates, error) {
 		c.processScope(pkgName, pkg.Types.Scope(), pkg.Syntax)
 	}
 
-	// 標準パッケージの候補とマージ（テスト時、標準パッケージ候補の生成スクリプト実行時はスキップ）
+	// 標準パッケージのsymbol indexとマージ（テスト時、標準パッケージ候補の生成スクリプト実行時はスキップ）
 	if !SkipStdPkgMergeMode {
-		c.mergeCandidates(stdPkgCandidates)
+		c.mergeSymbolIndex(stdPkgSymbolIndex)
 	}
 
 	return &c, nil
 }
 
-// mergeCandidates は他のcandidatesをマージする
-func (c *candidates) mergeCandidates(other *candidates) {
+// mergeSymbolIndex は他のSymbolIndexをマージする
+func (c *SymbolIndex) mergeSymbolIndex(other *SymbolIndex) {
 	// パッケージ名をマージ
 	for _, pkg := range other.Pkgs {
 		if !slices.Contains(c.Pkgs, pkg) {
@@ -175,7 +175,7 @@ func loadProject(path string) ([]*packages.Package, error) {
 	return pkgs, nil
 }
 
-func (c *candidates) processScope(pkgName types.PkgName, scope *gotypes.Scope, astFiles []*ast.File) {
+func (c *SymbolIndex) processScope(pkgName types.PkgName, scope *gotypes.Scope, astFiles []*ast.File) {
 	for _, declName := range scope.Names() {
 		declObj := scope.Lookup(declName)
 		if !declObj.Exported() {
@@ -265,13 +265,13 @@ func detectDecl(declName string, astFiles []*ast.File) ast.Decl {
 }
 
 // processFuncDeclObj は関数宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *gotypes.Func, funcDeclAst *ast.FuncDecl) {
+func (c *SymbolIndex) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *gotypes.Func, funcDeclAst *ast.FuncDecl) {
 	var description string
 	if funcDeclAst.Doc != nil {
 		description = funcDeclAst.Doc.Text()
 	}
 
-	var returns []returnSet
+	var returns []ReturnSet
 	results := funcDeclObj.Signature().Results()
 
 	if results != nil {
@@ -299,18 +299,18 @@ func (c *candidates) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *goty
 			default:
 				returnTypeName = types.TypeName(returnType.String())
 			}
-			returns = append(returns, returnSet{
+			returns = append(returns, ReturnSet{
 				TypeName:    returnTypeName,
 				TypePkgName: returnTypePkgName,
 			})
 		}
 	}
 
-	c.Funcs[pkgName] = append(c.Funcs[pkgName], funcSet{Name: types.DeclName(funcDeclObj.Name()), Description: description, Returns: returns})
+	c.Funcs[pkgName] = append(c.Funcs[pkgName], FuncSet{Name: types.DeclName(funcDeclObj.Name()), Description: description, Returns: returns})
 }
 
 // processMethodDeclObj はメソッド宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *gotypes.Func, methodDeclAst *ast.FuncDecl) {
+func (c *SymbolIndex) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *gotypes.Func, methodDeclAst *ast.FuncDecl) {
 	var description string
 	if methodDeclAst.Doc != nil {
 		description = methodDeclAst.Doc.Text()
@@ -328,7 +328,7 @@ func (c *candidates) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *
 		}
 	}
 
-	var returns []returnSet
+	var returns []ReturnSet
 	results := methodDeclObj.Signature().Results()
 
 	if results != nil {
@@ -357,14 +357,14 @@ func (c *candidates) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *
 				returnTypeName = types.TypeName(returnType.String())
 			}
 
-			returns = append(returns, returnSet{
+			returns = append(returns, ReturnSet{
 				TypeName:    returnTypeName,
 				TypePkgName: returnTypePkgName,
 			})
 		}
 	}
 
-	c.Methods[pkgName] = append(c.Methods[pkgName], methodSet{
+	c.Methods[pkgName] = append(c.Methods[pkgName], MethodSet{
 		Name:             types.DeclName(methodDeclObj.Name()),
 		Description:      description,
 		ReceiverTypeName: receiverTypeName,
@@ -374,7 +374,7 @@ func (c *candidates) processMethodDeclObj(pkgName types.PkgName, methodDeclObj *
 }
 
 // processTypeDeclObj は型宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *gotypes.TypeName, genDeclAst *ast.GenDecl) {
+func (c *SymbolIndex) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *gotypes.TypeName, genDeclAst *ast.GenDecl) {
 	declName := types.DeclName(typeDeclObj.Name())
 
 	var typeDeclAst *ast.TypeSpec
@@ -400,7 +400,7 @@ func (c *candidates) processTypeDeclObj(pkgName types.PkgName, typeDeclObj *goty
 }
 
 // processStructTypeDeclObj は構造体型宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName types.DeclName, structDeclObj *gotypes.Struct, genDeclAst *ast.GenDecl) {
+func (c *SymbolIndex) processStructTypeDeclObj(pkgName types.PkgName, declName types.DeclName, structDeclObj *gotypes.Struct, genDeclAst *ast.GenDecl) {
 	var description string
 	if genDeclAst != nil && genDeclAst.Doc != nil {
 		description = genDeclAst.Doc.Text()
@@ -412,7 +412,7 @@ func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName ty
 		fields = append(fields, types.StructFieldName(fieldObj.Name()))
 	}
 
-	c.Structs[pkgName] = append(c.Structs[pkgName], structSet{
+	c.Structs[pkgName] = append(c.Structs[pkgName], StructSet{
 		Name:        declName,
 		Fields:      fields,
 		Description: description,
@@ -420,7 +420,7 @@ func (c *candidates) processStructTypeDeclObj(pkgName types.PkgName, declName ty
 }
 
 // processInterfaceTypeDeclObj はインターフェース型宣言オブジェクトを処理して候補に追加する
-func (c *candidates) processInterfaceTypeDeclObj(pkgName types.PkgName, declName types.DeclName, interfaceDeclObj *gotypes.Interface, typeDeclAst *ast.TypeSpec) {
+func (c *SymbolIndex) processInterfaceTypeDeclObj(pkgName types.PkgName, declName types.DeclName, interfaceDeclObj *gotypes.Interface, typeDeclAst *ast.TypeSpec) {
 	var methods []types.DeclName
 	var descriptions []string
 
@@ -447,14 +447,14 @@ func (c *candidates) processInterfaceTypeDeclObj(pkgName types.PkgName, declName
 		descriptions = append(descriptions, description)
 	}
 
-	c.Interfaces[pkgName] = append(c.Interfaces[pkgName], interfaceSet{
+	c.Interfaces[pkgName] = append(c.Interfaces[pkgName], InterfaceSet{
 		Name:         declName,
 		Methods:      methods,
 		Descriptions: descriptions,
 	})
 }
 
-func (c *candidates) processDefinedTypeDeclObj(pkgName types.PkgName, declName types.DeclName, underlyingType gotypes.Type, genDeclAst *ast.GenDecl) {
+func (c *SymbolIndex) processDefinedTypeDeclObj(pkgName types.PkgName, declName types.DeclName, underlyingType gotypes.Type, genDeclAst *ast.GenDecl) {
 	var description string
 	if genDeclAst != nil && genDeclAst.Doc != nil {
 		description = genDeclAst.Doc.Text()
@@ -486,7 +486,7 @@ func (c *candidates) processDefinedTypeDeclObj(pkgName types.PkgName, declName t
 	})
 }
 
-func (c *candidates) processVarDeclObj(pkgName types.PkgName, varDeclObj *gotypes.Var, genDeclAst *ast.GenDecl) {
+func (c *SymbolIndex) processVarDeclObj(pkgName types.PkgName, varDeclObj *gotypes.Var, genDeclAst *ast.GenDecl) {
 	declName := types.DeclName(varDeclObj.Name())
 
 	var varDeclAst *ast.ValueSpec
@@ -531,7 +531,7 @@ func (c *candidates) processVarDeclObj(pkgName types.PkgName, varDeclObj *gotype
 		typeName = types.TypeName(varTypeV.String())
 	}
 
-	c.Vars[pkgName] = append(c.Vars[pkgName], varSet{
+	c.Vars[pkgName] = append(c.Vars[pkgName], VarSet{
 		Name:        declName,
 		Description: description,
 		TypeName:    typeName,
@@ -539,7 +539,7 @@ func (c *candidates) processVarDeclObj(pkgName types.PkgName, varDeclObj *gotype
 	})
 }
 
-func (c *candidates) processConstDeclObj(pkgName types.PkgName, constDeclObj *gotypes.Const, genDeclAst *ast.GenDecl) {
+func (c *SymbolIndex) processConstDeclObj(pkgName types.PkgName, constDeclObj *gotypes.Const, genDeclAst *ast.GenDecl) {
 	declName := types.DeclName(constDeclObj.Name())
 
 	var constDeclAst *ast.ValueSpec
@@ -562,7 +562,7 @@ func (c *candidates) processConstDeclObj(pkgName types.PkgName, constDeclObj *go
 		description = genDeclAst.Doc.Text()
 	}
 
-	c.Consts[pkgName] = append(c.Consts[pkgName], constSet{
+	c.Consts[pkgName] = append(c.Consts[pkgName], ConstSet{
 		Name:        declName,
 		Description: description,
 	})
