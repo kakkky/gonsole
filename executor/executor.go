@@ -252,12 +252,10 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		if returnValuesCnt == 0 {
 			break
 		}
-		args := composeArgsForFmtPrintf(exprStmtV, returnValuesCnt)
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
-				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
 				Fun:  ast.NewIdent("fmt.Printf"),
-				Args: args,
+				Args: composeArgsForFmtPrintf(exprStmtV, returnValuesCnt),
 			},
 		}
 		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
@@ -720,13 +718,32 @@ func extractInputStmtWithTypeInfo(syntax *ast.File) (ast.Stmt, error) {
 // fmt.Printfの引数を生成する
 // 返り値の数だけ"%#v\n"を生成して、最後に元の呼び出し式をラップした関数リテラルを引数に追加する
 func composeArgsForFmtPrintf(origin *ast.CallExpr, returnValuesCnt int) []ast.Expr {
-	var args []ast.Expr
+	// フォーマット文字列を連結し、Go構文に正しくエスケープ
+	var formatStrs []string
 	for i := 0; i < returnValuesCnt; i++ {
-		args = append(args, goStructFormatLit)
+		formatStrs = append(formatStrs, "%#v\\n")
 	}
-	wrappedCallExpr := wrapCallExpr(origin, returnValuesCnt)
-	args = append(args, wrappedCallExpr)
+	formatStr := strings.Join(formatStrs, "")
+	formatLit := &ast.BasicLit{
+		Kind:  token.STRING,
+		Value: fmt.Sprintf("\"%s\"", formatStr), // "%#v\\n%#v\\n" のような形になる
+	}
 
+	// スライスを展開して各要素をfmt.Printfの引数に渡す
+	wrappedCallExpr := wrapCallExpr(origin, returnValuesCnt)
+
+	// wrappedCallExprはfunc() []any { ... }() の形になる
+	// これを展開するため、ast.IndexExprで各要素を取り出して渡す
+	args := []ast.Expr{formatLit}
+	for i := 0; i < returnValuesCnt; i++ {
+		args = append(args, &ast.IndexExpr{
+			X: wrappedCallExpr,
+			Index: &ast.BasicLit{
+				Kind:  token.INT,
+				Value: fmt.Sprintf("%d", i),
+			},
+		})
+	}
 	return args
 }
 
