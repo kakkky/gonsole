@@ -70,12 +70,12 @@ func (e *Executor) Execute(input string) {
 	defer clearImportPathAddedInSession()
 
 	// 一時ファイルを作成
-	tmpFile, tmpFileName, cleanup, err := e.createTmpFile()
+	sessionSrcFile, sessionSrcFileName, cleanup, err := e.createSessionSrcFile()
 	if err != nil {
 		errs.HandleError(err)
 	}
 	defer func() {
-		if err := tmpFile.Close(); err != nil {
+		if err := sessionSrcFile.Close(); err != nil {
 			errs.HandleError(err)
 		}
 	}()
@@ -84,13 +84,13 @@ func (e *Executor) Execute(input string) {
 	fset := token.NewFileSet()
 
 	// 一時ファイルにflushする
-	if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+	if err := e.flush(e.sessionSrc, sessionSrcFile, fset); err != nil {
 		errs.HandleError(err)
 		return
 	}
 
 	// 一時ファイルを実行する
-	cmdOut, cmdErr := e.execGoRun(tmpFileName)
+	cmdOut, cmdErr := e.execGoRun(sessionSrcFileName)
 	if cmdErr != nil {
 		// 実行時のエラー出力を整形して表示する
 		cmdErrMsg := string(cmdErr.(*exec.ExitError).Stderr)
@@ -103,7 +103,7 @@ func (e *Executor) Execute(input string) {
 			errs.HandleError(err)
 		}
 
-		if err := e.flush(e.sessionSrc, tmpFile, fset); err != nil {
+		if err := e.flush(e.sessionSrc, sessionSrcFile, fset); err != nil {
 			errs.HandleError(err)
 		}
 
@@ -121,7 +121,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// セッションソースファイルから解決された型情報付きのASTを取得
-	pkg, err := loadTmpFile(tmpFileName)
+	pkg, err := loadsessionSrcFile(sessionSrcFileName)
 	if err != nil {
 		errs.HandleError(err)
 		return
@@ -340,7 +340,7 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	var formattedCmdErrLines []string
 
 	cmdVirtualPkgPattern := regexp.MustCompile(`^# command-line-arguments$`)
-	tmpFilePathPattern := regexp.MustCompile(`\./?\d+_gonsole_tmp\.go:\d+:\d+:\s*`)
+	sessionSrcFilePathPattern := regexp.MustCompile(`\./?\d+_gonsole_session_src\.go:\d+:\d+:\s*`)
 	var cmdErrCount int
 	for _, cmdErrLine := range cmdErrLines {
 		// 仮想パッケージに関するエラー行はスキップ
@@ -349,7 +349,7 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 		}
 
 		// 一時ファイルパス部分を削除
-		cmdErrLine = tmpFilePathPattern.ReplaceAllString(cmdErrLine, "")
+		cmdErrLine = sessionSrcFilePathPattern.ReplaceAllString(cmdErrLine, "")
 
 		// インデントがない行はエラーの件数としてカウントする
 		if !strings.HasPrefix(cmdErrLine, "\t") {
@@ -564,13 +564,13 @@ func clearImportPathAddedInSession() {
 	importPathAddedInSession = ""
 }
 
-func loadTmpFile(tmpFileName string) (*packages.Package, error) {
+func loadsessionSrcFile(sessionSrcFileName string) (*packages.Package, error) {
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
 		Dir:  "",
 	}
 
-	pkgs, err := packages.Load(cfg, tmpFileName)
+	pkgs, err := packages.Load(cfg, sessionSrcFileName)
 	if err != nil || len(pkgs) == 0 {
 		return nil, errs.NewInternalError("failed to load package").Wrap(err)
 	}
