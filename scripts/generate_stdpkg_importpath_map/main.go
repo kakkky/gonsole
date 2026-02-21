@@ -41,7 +41,7 @@ func main() {
 		filter := func(info fs.FileInfo) bool {
 			return !strings.HasSuffix(info.Name(), "_test.go")
 		}
-		node, err := parser.ParseDir(fset, path, filter, mode)
+		node, err := parser.ParseDir(fset, path, filter, mode) // nolint:staticcheck
 		if err != nil {
 			return err
 		}
