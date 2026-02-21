@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	gotypes "go/types"
 	"slices"
 
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 	"github.com/kakkky/gonsole/declregistry"
 	"github.com/kakkky/gonsole/errs"
 	"github.com/kakkky/gonsole/types"
+	"golang.org/x/tools/go/packages"
 )
 
 // Executor はREPLセッション内でのコード実行を担う
@@ -56,7 +58,12 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// 入力文をセッションに書き込む
-	if err := e.writeInSessionSrc(input); err != nil {
+	inputStmt, err := parseInput(input)
+	if err != nil {
+		errs.HandleError(err)
+		return
+	}
+	if err := e.writeInSessionSrc(inputStmt); err != nil {
 		errs.HandleError(err)
 		return
 	}
@@ -109,23 +116,42 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// sessionSrcから式呼び出しを削除する（式呼び出しは実行結果の表示のためだけに追加しているため、実行後は削除する）
-	e.cleanCallExprFromSessionSrc()
+	if cleaned := e.cleanCallExprFromSessionSrc(); cleaned {
+		return // 式呼び出しだったということは、以降の変数登録処理は不要
+	}
 
-	// 変数エントリに登録する
-	if err := e.declRegistry.Register(tmpFileName); err != nil {
+	// セッションソースファイルから解決された型情報付きのASTを取得
+	pkg, err := loadTmpFile(tmpFileName)
+	if err != nil {
 		errs.HandleError(err)
 		return
 	}
+
+	// 今セッションで入力された宣言文のASTを抽出する
+	inputStmtWithTypeInfo, err := extractInputStmtWithTypeInfo(pkg.Syntax[0])
+	if err != nil {
+		errs.HandleError(err)
+		return
+	}
+	// 入力文の 宣言名：左辺情報(式)のmapを抽出する
+	declLHSMap := extractDeclLHSMapFromInputStmt(inputStmtWithTypeInfo)
+
+	// 宣言名の数分だけ宣言情報をレジストリに登録
+	for declName, declLHS := range declLHSMap {
+		declType, err := detectGoType(pkg.TypesInfo, declLHS)
+		if err != nil {
+			errs.HandleError(err)
+		}
+		if err := e.declRegistry.Register(declName, declType); err != nil {
+			errs.HandleError(err)
+			return
+		}
+	}
 }
 
-func (e *Executor) writeInSessionSrc(input string) error {
-	inputStmtAst, err := parseInput(input)
-	if err != nil {
-		return err
-	}
-
+func (e *Executor) writeInSessionSrc(inputStmt ast.Stmt) error {
 	mainFunc := getMainFunc(e.sessionSrc)
-	switch inputStmtV := inputStmtAst.(type) {
+	switch inputStmtV := inputStmt.(type) {
 	case *ast.ExprStmt:
 		if err := e.appendExprStmtToMainFuncBody(inputStmtV, mainFunc); err != nil {
 			return err
@@ -336,7 +362,7 @@ func formatCmdErrMsg(cmdErrMsg string) string {
 	return fmt.Sprintf("\n%d errors found\n\n%s\n\n", cmdErrCount, formattedCmdErrLine)
 }
 
-func (e *Executor) cleanCallExprFromSessionSrc() {
+func (e *Executor) cleanCallExprFromSessionSrc() (cleaned bool) {
 	mainFunc := getMainFunc(e.sessionSrc)
 	body := mainFunc.Body.List
 	lastExprStmt, ok := body[len(body)-1].(*ast.ExprStmt)
@@ -408,6 +434,7 @@ func (e *Executor) cleanCallExprFromSessionSrc() {
 	}
 
 	mainFunc.Body.List = body[:len(body)-1]
+	return true
 }
 
 func (e *Executor) cleanErrElmFromSessionSrc() error {
@@ -535,4 +562,106 @@ func getMainFunc(file *ast.File) *ast.FuncDecl {
 
 func clearImportPathAddedInSession() {
 	importPathAddedInSession = ""
+}
+
+func loadTmpFile(tmpFileName string) (*packages.Package, error) {
+	cfg := &packages.Config{
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
+		Dir:  "",
+	}
+
+	pkgs, err := packages.Load(cfg, tmpFileName)
+	if err != nil || len(pkgs) == 0 {
+		return nil, errs.NewInternalError("failed to load package").Wrap(err)
+	}
+
+	pkg := pkgs[0]
+
+	pkg.Errors = slices.DeleteFunc(pkg.Errors, func(err packages.Error) bool {
+		switch {
+		case strings.Contains(err.Msg, "declared and not used"):
+			return true
+		case strings.Contains(err.Msg, "imported and not used"):
+			return true
+		case strings.Contains(err.Msg, "undefined"):
+			return true
+		}
+		return false
+	})
+
+	if len(pkg.Errors) > 0 {
+		var errMsgs []string
+		for _, pkgErr := range pkg.Errors {
+			errMsgs = append(errMsgs, pkgErr.Msg)
+		}
+		return nil, errs.NewBadInputError("failed to parse input: " + strings.Join(errMsgs, "; "))
+	}
+	return pkg, nil
+}
+
+func detectGoType(typInfo *gotypes.Info, declLHS ast.Expr) (gotypes.Type, error) {
+	typ := typInfo.TypeOf(declLHS)
+	if typ == nil {
+		return nil, errs.NewInternalError("failed to detect type of variable")
+	}
+	return typ, nil
+}
+
+func extractDeclLHSMapFromInputStmt(inputStmt ast.Stmt) map[types.DeclName]ast.Expr {
+	declLHS := make(map[types.DeclName]ast.Expr)
+	switch inputStmtV := inputStmt.(type) {
+	case *ast.AssignStmt:
+		for _, lhs := range inputStmtV.Lhs {
+			if ident, ok := lhs.(*ast.Ident); ok {
+				declLHS[types.DeclName(ident.Name)] = lhs
+			}
+		}
+	case *ast.DeclStmt:
+		switch inputDeclStmtV := inputStmtV.Decl.(type) {
+		case *ast.GenDecl:
+			for _, spec := range inputDeclStmtV.Specs {
+				switch specV := spec.(type) {
+				case *ast.ValueSpec:
+					for _, name := range specV.Names {
+						declLHS[types.DeclName(name.Name)] = name
+					}
+				}
+			}
+		}
+	}
+	return declLHS
+}
+
+func extractInputStmtWithTypeInfo(syntax *ast.File) (ast.Stmt, error) {
+	var mainFunc *ast.FuncDecl
+	for _, decl := range syntax.Decls {
+		funcDecl, ok := decl.(*ast.FuncDecl)
+		if ok && funcDecl.Name.Name == "main" {
+			mainFunc = funcDecl
+			break
+		}
+	}
+	if mainFunc == nil {
+		return nil, errs.NewBadInputError("main function not found")
+	}
+	mainFuncBodyList := mainFunc.Body.List
+	mainFuncBodyList = slices.DeleteFunc(mainFuncBodyList, func(stmt ast.Stmt) bool {
+		assignStmt, ok := stmt.(*ast.AssignStmt)
+		if !ok {
+			return false
+		}
+		for _, stmtLHS := range assignStmt.Lhs {
+			lhsIdent, ok := stmtLHS.(*ast.Ident)
+			if !ok {
+				continue
+			}
+			if lhsIdent.Name == "_" {
+				return true
+			}
+		}
+		return false
+	})
+
+	lastStmt := mainFuncBodyList[len(mainFuncBodyList)-1]
+	return lastStmt, nil
 }
