@@ -3,210 +3,74 @@ package declregistry
 import (
 	"testing"
 
+	gotypes "go/types"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/kakkky/gonsole/types"
 )
 
 func TestDeclRegistry_Register(t *testing.T) {
 	tests := []struct {
-		name                string
-		existingTmpFileName string
-		existingDecls       []Decl
-		expected            []Decl
+		name          string
+		declName      types.DeclName
+		declType      func() gotypes.Type // gotypes.Typeを返す関数
+		existingDecls []Decl
+		expected      []Decl
 	}{
 		{
-			name:                "selector expression assignment",
-			existingTmpFileName: "./testdata/selector_expression_assignment/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "int",
-					TypePkgName: "",
-				},
+			name:     "int variable",
+			declName: "a",
+			declType: func() gotypes.Type {
+				return gotypes.NewNamed(gotypes.NewTypeName(0, nil, "int", nil), nil, nil)
 			},
+			expected: []Decl{{Name: "a", TypeName: "int"}},
 		},
 		{
-			name:                "composite literal assignment",
-			existingTmpFileName: "./testdata/composite_literal_assignment/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "s",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
+			name:     "struct variable",
+			declName: "s",
+			declType: func() gotypes.Type {
+				return gotypes.NewNamed(gotypes.NewTypeName(0, nil, "Struct", nil), nil, nil)
 			},
+			expected: []Decl{{Name: "s", TypeName: "Struct"}},
 		},
 		{
-			name:                "pointer to struct assignment",
-			existingTmpFileName: "./testdata/pointer_to_struct_assignment/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "p",
-					Pointered:   true,
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
+			name:     "pointer to struct",
+			declName: "p",
+			declType: func() gotypes.Type {
+				named := gotypes.NewNamed(gotypes.NewTypeName(0, nil, "Struct", nil), nil, nil)
+				return gotypes.NewPointer(named)
 			},
+			expected: []Decl{{Name: "p", TypeName: "Struct", Pointered: true}},
 		},
 		{
-			name:                "function call assignment",
-			existingTmpFileName: "./testdata/function_call_assignment/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "f",
-					TypeName:    "int",
-					TypePkgName: "",
-				},
+			name:     "string variable",
+			declName: "b",
+			declType: func() gotypes.Type {
+				return gotypes.NewNamed(gotypes.NewTypeName(0, nil, "string", nil), nil, nil)
 			},
+			expected: []Decl{{Name: "b", TypeName: "string"}},
 		},
 		{
-			name:                "multiple return values from function",
-			existingTmpFileName: "./testdata/multiple_return_values_from_function/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "int",
-					TypePkgName: "",
-				},
-				{
-					Name:        "b",
-					TypeName:    "string",
-					TypePkgName: "",
-				},
+			name:     "method assignment",
+			declName: "b",
+			declType: func() gotypes.Type {
+				return gotypes.NewNamed(gotypes.NewTypeName(0, nil, "Struct", nil), nil, nil)
 			},
-		},
-		{
-			name:                "var declaration with selector",
-			existingTmpFileName: "./testdata/var_declaration_with_selector/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "v",
-					TypeName:    "int",
-					TypePkgName: "",
-				},
-			},
-		},
-		{
-			name:                "var declaration with composite literal",
-			existingTmpFileName: "./testdata/var_declaration_with_composite_literal/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "s",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-		},
-		{
-			name:                "var declaration with pointer to struct",
-			existingTmpFileName: "./testdata/var_declaration_with_pointer_to_struct/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "p",
-					Pointered:   true,
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-		},
-		{
-			name:                "var declaration with function call",
-			existingTmpFileName: "./testdata/var_declaration_with_function_call/00000_gonsole_tmp.go",
-			expected: []Decl{
-				{
-					Name:        "f",
-					TypeName:    "int",
-					TypePkgName: "",
-				},
-			},
-		},
-		{
-			name:                "method assignment",
-			existingTmpFileName: "./testdata/method_assignment/00000_gonsole_tmp.go",
-			existingDecls: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-			expected: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-				{
-					Name:        "b",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-		},
-		{
-			name:                "method chain assignment",
-			existingTmpFileName: "./testdata/method_chain_assignment/00000_gonsole_tmp.go",
-			existingDecls: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-			expected: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-				{
-					Name:        "b",
-					TypeName:    "string",
-					TypePkgName: "",
-				},
-			},
-		},
-		{
-			name:                "var declaration with method chain",
-			existingTmpFileName: "./testdata/var_declaration_with_method_chain/00000_gonsole_tmp.go",
-			existingDecls: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-			},
-			expected: []Decl{
-				{
-					Name:        "a",
-					TypeName:    "Struct",
-					TypePkgName: "sample",
-				},
-				{
-					Name:        "b",
-					TypeName:    "string",
-					TypePkgName: "",
-				},
-			},
+			existingDecls: []Decl{{Name: "a", TypeName: "Struct"}},
+			expected:      []Decl{{Name: "a", TypeName: "Struct"}, {Name: "b", TypeName: "Struct"}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sut := NewRegistry()
-
 			if tt.existingDecls != nil {
 				sut.Decls = tt.existingDecls
 			}
-
-			err := sut.Register(tt.existingTmpFileName)
-
-			// エラーステータスの確認
+			err := sut.Register(tt.declName, tt.declType())
 			if err != nil {
 				t.Fatalf("Register() returned an error: %v", err)
 			}
-
-			// cmp.Diffを使って結果を比較
 			if diff := cmp.Diff(tt.expected, sut.Decls); diff != "" {
 				t.Errorf("Register() mismatch (-want +got):\n%s", diff)
 			}
@@ -218,7 +82,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 	tests := []struct {
 		name          string
 		existingDecls []Decl
-		checkName     string
+		checkName     types.DeclName
 		expectedFound bool
 	}{
 		{
@@ -283,7 +147,7 @@ func TestRegistry_IsRegisteredDecl(t *testing.T) {
 			}
 
 			// テスト対象メソッドの実行
-			result := dr.IsRegisteredDecl(types.DeclName(tt.checkName))
+			result := dr.IsRegisteredDecl(tt.checkName)
 
 			// 結果の検証
 			if result != tt.expectedFound {
