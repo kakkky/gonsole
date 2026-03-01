@@ -347,12 +347,6 @@ If you encounter this error, please post it to the [Issues](https://github.com/k
     That is, you cannot access private functions or types. This is due to gonsole using the Go execution engine installed on the user side.
     We plan to address this issue in the near future.
 
-- **Proper completion when functions or methods return types from other packages**
-
-    With the current implementation, even if you call a function that returns a type from another package and store it in a variable, you cannot get appropriate method candidates with that variable as a receiver in subsequent operations.
-    This is because the implementation assumes that functions and methods return types that belong to the package where they are defined.
-    We want to address this issue for a better completion experience in the future.
-
 - **Declaring functions or methods within the console**
 
     We do not plan to support this in the future unless there is demand.
