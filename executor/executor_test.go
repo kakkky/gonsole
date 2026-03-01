@@ -108,8 +108,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -178,8 +178,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -251,8 +251,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -510,8 +510,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -588,8 +588,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -669,8 +669,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -772,8 +772,8 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, nil,
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -855,103 +855,103 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						// この時のsessionSrcの状態を確認する
-						// この途中経過の状態をテストするやり方が微妙なので、要改善
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/test/pkg"`,
-											},
+					// この時のsessionSrcの状態を確認する
+					// この途中経過の状態をテストするやり方が微妙なので、要改善
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/test/pkg"`,
 										},
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+									},
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.FuncLit{
-														Type: &ast.FuncType{
-															Params:  &ast.FieldList{List: nil},
-															Results: nil,
-														},
-														Body: &ast.BlockStmt{
-															List: []ast.Stmt{
-																&ast.AssignStmt{
-																	Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
-																	Tok: token.DEFINE,
-																	Rhs: []ast.Expr{&ast.CallExpr{
-																		Fun: &ast.SelectorExpr{
-																			X:   &ast.Ident{Name: "pkg"},
-																			Sel: &ast.Ident{Name: "Function"},
-																		},
-																	}},
-																},
-																&ast.ExprStmt{
-																	X: &ast.CallExpr{
-																		Fun:  &ast.Ident{Name: "pp.Println"},
-																		Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.FuncLit{
+													Type: &ast.FuncType{
+														Params:  &ast.FieldList{List: nil},
+														Results: nil,
+													},
+													Body: &ast.BlockStmt{
+														List: []ast.Stmt{
+															&ast.AssignStmt{
+																Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																Tok: token.DEFINE,
+																Rhs: []ast.Expr{&ast.CallExpr{
+																	Fun: &ast.SelectorExpr{
+																		X:   &ast.Ident{Name: "pkg"},
+																		Sel: &ast.Ident{Name: "Function"},
 																	},
+																}},
+															},
+															&ast.ExprStmt{
+																X: &ast.CallExpr{
+																	Fun:  &ast.Ident{Name: "pp.Println"},
+																	Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
 																},
 															},
 														},
 													},
-													Args: []ast.Expr{},
 												},
+												Args: []ast.Expr{},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/test/pkg"`,
-									},
-								},
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/test/pkg"`,
 								},
 							},
-						}
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
+								},
+							},
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
-							cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-							cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
-						}
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
+						cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+						cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+					}
 
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
 
-						return nil
-					}),
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
@@ -1000,103 +1000,103 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						// この時のsessionSrcの状態を確認する
-						// この途中経過の状態をテストするやり方が微妙なので、要改善
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/test/pkg"`,
-											},
+					// この時のsessionSrcの状態を確認する
+					// この途中経過の状態をテストするやり方が微妙なので、要改善
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/test/pkg"`,
 										},
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+									},
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.FuncLit{
-														Type: &ast.FuncType{
-															Params:  &ast.FieldList{List: nil},
-															Results: nil,
-														},
-														Body: &ast.BlockStmt{
-															List: []ast.Stmt{
-																&ast.AssignStmt{
-																	Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
-																	Tok: token.DEFINE,
-																	Rhs: []ast.Expr{&ast.CallExpr{
-																		Fun: &ast.SelectorExpr{
-																			X:   &ast.Ident{Name: "pkg"},
-																			Sel: &ast.Ident{Name: "Function"},
-																		},
-																	}},
-																},
-																&ast.ExprStmt{
-																	X: &ast.CallExpr{
-																		Fun:  &ast.Ident{Name: "pp.Println"},
-																		Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.FuncLit{
+													Type: &ast.FuncType{
+														Params:  &ast.FieldList{List: nil},
+														Results: nil,
+													},
+													Body: &ast.BlockStmt{
+														List: []ast.Stmt{
+															&ast.AssignStmt{
+																Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																Tok: token.DEFINE,
+																Rhs: []ast.Expr{&ast.CallExpr{
+																	Fun: &ast.SelectorExpr{
+																		X:   &ast.Ident{Name: "pkg"},
+																		Sel: &ast.Ident{Name: "Function"},
 																	},
+																}},
+															},
+															&ast.ExprStmt{
+																X: &ast.CallExpr{
+																	Fun:  &ast.Ident{Name: "pp.Println"},
+																	Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
 																},
 															},
 														},
 													},
-													Args: []ast.Expr{},
 												},
+												Args: []ast.Expr{},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/test/pkg"`,
-									},
-								},
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/test/pkg"`,
 								},
 							},
-						}
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
+								},
+							},
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
-							cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-							cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
-						}
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
+						cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+						cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+					}
 
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
 
-						return nil
-					}),
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
@@ -1160,93 +1160,93 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						// この時のsessionSrcの状態を確認する
-						// この途中経過の状態をテストするやり方が微妙なので、要改善
-						//
-						// 実際には、"var obj = pkg.NewObject()""に関連するASTも含まれるが、ここでは省略
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+					// この時のsessionSrcの状態を確認する
+					// この途中経過の状態をテストするやり方が微妙なので、要改善
+					//
+					// 実際には、"var obj = pkg.NewObject()""に関連するASTも含まれるが、ここでは省略
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.FuncLit{
-														Type: &ast.FuncType{
-															Params:  &ast.FieldList{List: nil},
-															Results: nil,
-														},
-														Body: &ast.BlockStmt{
-															List: []ast.Stmt{
-																&ast.AssignStmt{
-																	Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
-																	Tok: token.DEFINE,
-																	Rhs: []ast.Expr{&ast.CallExpr{
-																		Fun: &ast.SelectorExpr{
-																			X:   &ast.Ident{Name: "obj"},
-																			Sel: &ast.Ident{Name: "Method"},
-																		},
-																	}},
-																},
-																&ast.ExprStmt{
-																	X: &ast.CallExpr{
-																		Fun:  &ast.Ident{Name: "pp.Println"},
-																		Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.FuncLit{
+													Type: &ast.FuncType{
+														Params:  &ast.FieldList{List: nil},
+														Results: nil,
+													},
+													Body: &ast.BlockStmt{
+														List: []ast.Stmt{
+															&ast.AssignStmt{
+																Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																Tok: token.DEFINE,
+																Rhs: []ast.Expr{&ast.CallExpr{
+																	Fun: &ast.SelectorExpr{
+																		X:   &ast.Ident{Name: "obj"},
+																		Sel: &ast.Ident{Name: "Method"},
 																	},
+																}},
+															},
+															&ast.ExprStmt{
+																X: &ast.CallExpr{
+																	Fun:  &ast.Ident{Name: "pp.Println"},
+																	Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
 																},
 															},
 														},
 													},
-													Args: []ast.Expr{},
 												},
+												Args: []ast.Expr{},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
 								},
 							},
-						}
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
-							cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-							cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
-						}
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
+						cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+						cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+					}
 
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
 
-						return nil
-					}),
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
 				)
@@ -1295,98 +1295,98 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						// この時のsessionSrcの状態を確認する
-						// この途中経過の状態をテストするやり方が微妙なので、要改善
-						//
-						// 実際には、"var obj = pkg.NewObject()""に関連するASTも含まれるが、ここでは省略
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+					// この時のsessionSrcの状態を確認する
+					// この途中経過の状態をテストするやり方が微妙なので、要改善
+					//
+					// 実際には、"var obj = pkg.NewObject()""に関連するASTも含まれるが、ここでは省略
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.FuncLit{
-														Type: &ast.FuncType{
-															Params:  &ast.FieldList{List: nil},
-															Results: nil,
-														},
-														Body: &ast.BlockStmt{
-															List: []ast.Stmt{
-																&ast.AssignStmt{
-																	Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
-																	Tok: token.DEFINE,
-																	Rhs: []ast.Expr{&ast.CallExpr{
-																		Fun: &ast.SelectorExpr{
-																			X: &ast.CallExpr{
-																				Fun: &ast.SelectorExpr{
-																					X:   &ast.Ident{Name: "obj"},
-																					Sel: &ast.Ident{Name: "Method1"},
-																				},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.FuncLit{
+													Type: &ast.FuncType{
+														Params:  &ast.FieldList{List: nil},
+														Results: nil,
+													},
+													Body: &ast.BlockStmt{
+														List: []ast.Stmt{
+															&ast.AssignStmt{
+																Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																Tok: token.DEFINE,
+																Rhs: []ast.Expr{&ast.CallExpr{
+																	Fun: &ast.SelectorExpr{
+																		X: &ast.CallExpr{
+																			Fun: &ast.SelectorExpr{
+																				X:   &ast.Ident{Name: "obj"},
+																				Sel: &ast.Ident{Name: "Method1"},
 																			},
-																			Sel: &ast.Ident{Name: "Method2"},
 																		},
-																	}},
-																},
-																&ast.ExprStmt{
-																	X: &ast.CallExpr{
-																		Fun:  &ast.Ident{Name: "pp.Println"},
-																		Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																		Sel: &ast.Ident{Name: "Method2"},
 																	},
+																}},
+															},
+															&ast.ExprStmt{
+																X: &ast.CallExpr{
+																	Fun:  &ast.Ident{Name: "pp.Println"},
+																	Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
 																},
 															},
 														},
 													},
-													Args: []ast.Expr{},
 												},
+												Args: []ast.Expr{},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
 								},
 							},
-						}
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
-							cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-							cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
-						}
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
+						cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+						cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+					}
 
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
 
-						return nil
-					}),
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
 				)
@@ -1431,61 +1431,61 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrc *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/test/pkg"`,
-											},
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/test/pkg"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.SelectorExpr{
-														X:   &ast.Ident{Name: "pkg"},
-														Sel: &ast.Ident{Name: "VoidFunction"},
-													},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.SelectorExpr{
+													X:   &ast.Ident{Name: "pkg"},
+													Sel: &ast.Ident{Name: "VoidFunction"},
 												},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/test/pkg"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/test/pkg"`,
 								},
 							},
-						}
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-						}
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
-						return nil
-					}),
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+					}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
 				)
@@ -1603,42 +1603,41 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrc *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/test/pkg"`,
-											},
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/test/pkg"`,
 										},
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+									},
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.Ident{Name: "pp.Println"},
-													Args: []ast.Expr{
-														&ast.SelectorExpr{
-															X:   &ast.Ident{Name: "pkg"},
-															Sel: &ast.Ident{Name: "Var"},
-														},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.Ident{Name: "pp.Println"},
+												Args: []ast.Expr{
+													&ast.SelectorExpr{
+														X:   &ast.Ident{Name: "pkg"},
+														Sel: &ast.Ident{Name: "Var"},
 													},
 												},
 											},
@@ -1646,34 +1645,35 @@ func TestExecutor_Execute(t *testing.T) {
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/test/pkg"`,
-									},
-								},
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/test/pkg"`,
 								},
 							},
-						}
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
+								},
+							},
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-						}
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
-						return nil
-					}),
-					[]byte{}, nil,					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+					}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
+					return nil
+				}),
+					[]byte{}, nil, resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
 				)
 			},
@@ -1711,36 +1711,35 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrc *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
 										},
 									},
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.Ident{Name: "pp.Println"},
-													Args: []ast.Expr{
-														&ast.SelectorExpr{
-															X:   &ast.Ident{Name: "obj"},
-															Sel: &ast.Ident{Name: "Field"},
-														},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.Ident{Name: "pp.Println"},
+												Args: []ast.Expr{
+													&ast.SelectorExpr{
+														X:   &ast.Ident{Name: "obj"},
+														Sel: &ast.Ident{Name: "Field"},
 													},
 												},
 											},
@@ -1748,27 +1747,28 @@ func TestExecutor_Execute(t *testing.T) {
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
 								},
 							},
-						}
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-							cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
-							cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
-						}
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
-						return nil
-					}),
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+					}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrc, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
 				)
@@ -1807,64 +1807,64 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
-						// この時のsessionSrcの状態を確認する
-						// この途中経過の状態をテストするやり方が微妙なので、要改善
-						//
-						// 実際には、"var x = 10""に関連するASTも含まれるが、ここでは省略
-						expectedSessionSrc := &ast.File{
-							Name: &ast.Ident{Name: "main"},
-							Decls: []ast.Decl{
-								&ast.GenDecl{
-									Tok: token.IMPORT,
-									Specs: []ast.Spec{
-										&ast.ImportSpec{
-											Path: &ast.BasicLit{
-												Kind:  token.STRING,
-												Value: `"github.com/k0kubun/pp/v3"`,
-											},
-										}},
+					// この時のsessionSrcの状態を確認する
+					// この途中経過の状態をテストするやり方が微妙なので、要改善
+					//
+					// 実際には、"var x = 10""に関連するASTも含まれるが、ここでは省略
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{
+											Kind:  token.STRING,
+											Value: `"github.com/k0kubun/pp/v3"`,
+										},
+									}},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
 								},
-								&ast.FuncDecl{
-									Name: &ast.Ident{Name: "main"},
-									Type: &ast.FuncType{
-										Params:  &ast.FieldList{List: nil},
-										Results: nil,
-									},
-									Body: &ast.BlockStmt{
-										List: []ast.Stmt{
-											&ast.ExprStmt{
-												X: &ast.CallExpr{
-													Fun: &ast.Ident{Name: "pp.Println"},
-													Args: []ast.Expr{
-														&ast.Ident{Name: "x"},
-													},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.Ident{Name: "pp.Println"},
+												Args: []ast.Expr{
+													&ast.Ident{Name: "x"},
 												},
 											},
 										},
 									},
 								},
 							},
-							Imports: []*ast.ImportSpec{
-								{
-									Path: &ast.BasicLit{
-										Kind:  token.STRING,
-										Value: `"github.com/k0kubun/pp/v3"`,
-									},
+						},
+						Imports: []*ast.ImportSpec{
+							{
+								Path: &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: `"github.com/k0kubun/pp/v3"`,
 								},
 							},
-						}
+						},
+					}
 
-						cmpOpts := []cmp.Option{
-							cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
-							cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
-						}
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+					}
 
-						if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
-							t.Errorf("mismatch (-want +got):\n%s", diff)
-						}
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
 
-						return nil
-					}),
+					return nil
+				}),
 					[]byte{}, nil,
 					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
 				)
@@ -2063,8 +2063,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				errMsg := "# command-line-arguments\n1769312920_gonsole_session_src.go:8:4: no new variables on left side of :="
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "1769312920_gonsole_session_src.go", declFlush(), []byte{}, &exec.ExitError{Stderr: []byte(errMsg)},
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -2116,8 +2116,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				errMsg := "# command-line-arguments\n1769312920_gonsole_session_src.go:8:4: no new variables on left side of :="
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "1769312920_gonsole_session_src.go", declFlush(), []byte{}, &exec.ExitError{Stderr: []byte(errMsg)},
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -2140,14 +2140,14 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			expectedErrMsg: "\n\x1b[31m[BAD INPUT ERROR]\n \n1 errors found\n\nno new variables on left side of :=\n\n\x1b[0m\n\n",
 		},
 		{
-			name:  "clean err element of ExprStmt from sessionSrc when commander returns error",
-			input: "pkg.VoidFunction()", // void なので ExprStmt がそのまま追加される (returnValuesCnt==0)
+			name:              "clean err element of ExprStmt from sessionSrc when commander returns error",
+			input:             "pkg.VoidFunction()", // void なので ExprStmt がそのまま追加される (returnValuesCnt==0)
 			setupDeclRegistry: func(dr *declregistry.DeclRegistry) {},
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				errMsg := "# command-line-arguments\ntest.go:3:2: undefined: pkg"
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, &exec.ExitError{Stderr: []byte(errMsg)},
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
@@ -2181,8 +2181,8 @@ func TestExecutor_Execute_Error(t *testing.T) {
 			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
 				errMsg := "# command-line-arguments\ntest.go:3:2: undefined: VoidFunction"
 				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", declFlush(), []byte{}, &exec.ExitError{Stderr: []byte(errMsg)},
-				resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
-			)
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"github.com/test/pkg"`)},
+				)
 			},
 			expectedSessionSrc: &ast.File{
 				Name: &ast.Ident{Name: "main"},
