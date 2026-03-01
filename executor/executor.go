@@ -246,7 +246,10 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 				}
 			}
 			methodDeclName := types.DeclName(exprStmtV.Fun.(*ast.SelectorExpr).Sel.Name)
-			methodSets := e.symbolIndex.Methods[pkgName]
+			var methodSets []symbols.MethodSet
+			if e.symbolIndex != nil {
+				methodSets = e.symbolIndex.Methods[pkgName]
+			}
 			for _, methodSet := range methodSets {
 				if methodSet.Name == methodDeclName {
 					returnValuesCnt = len(methodSet.Returns)
@@ -258,7 +261,10 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 			}
 			pkgName := types.PkgName(selectorBase)
 			funcDeclName := types.DeclName(exprStmtV.Fun.(*ast.SelectorExpr).Sel.Name)
-			funcSets := e.symbolIndex.Funcs[pkgName]
+			var funcSets []symbols.FuncSet
+			if e.symbolIndex != nil {
+				funcSets = e.symbolIndex.Funcs[pkgName]
+			}
 			for _, funcSet := range funcSets {
 				if funcSet.Name == funcDeclName {
 					returnValuesCnt = len(funcSet.Returns)
