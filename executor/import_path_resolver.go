@@ -26,11 +26,19 @@ func newDefaultImportPathResolver(cmd commander) *defaultImportPathResolver {
 	}
 }
 
+var thirdPartyPkgImportPathMap = map[types.PkgName][]types.ImportPath{
+	"pp": {`"github.com/k0kubun/pp/v3"`},
+}
+
 func (dipr *defaultImportPathResolver) resolve(pkgName types.PkgName) (types.ImportPath, error) {
 	var importPathCandidates []types.ImportPath
 
 	if stdpkgImportPaths, ok := stdPkgImportPathMap[pkgName]; ok {
 		importPathCandidates = append(importPathCandidates, stdpkgImportPaths...)
+	}
+
+	if thirdPartyPkgImportPaths, ok := thirdPartyPkgImportPathMap[pkgName]; ok {
+		importPathCandidates = append(importPathCandidates, thirdPartyPkgImportPaths...)
 	}
 
 	cmdOut, err := dipr.execGoListAll()

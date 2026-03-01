@@ -40,6 +40,36 @@ func (m *Mockfiler) EXPECT() *MockfilerMockRecorder {
 	return m.recorder
 }
 
+// cleanupGoSumFile mocks base method.
+func (m *Mockfiler) cleanupGoSumFile(targetDir string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "cleanupGoSumFile", targetDir)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// cleanupGoSumFile indicates an expected call of cleanupGoSumFile.
+func (mr *MockfilerMockRecorder) cleanupGoSumFile(targetDir any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "cleanupGoSumFile", reflect.TypeOf((*Mockfiler)(nil).cleanupGoSumFile), targetDir)
+}
+
+// createSessionSrcDir mocks base method.
+func (m *Mockfiler) createSessionSrcDir() (string, func(), error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "createSessionSrcDir")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(func())
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// createSessionSrcDir indicates an expected call of createSessionSrcDir.
+func (mr *MockfilerMockRecorder) createSessionSrcDir() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createSessionSrcDir", reflect.TypeOf((*Mockfiler)(nil).createSessionSrcDir))
+}
+
 // createSessionSrcFile mocks base method.
 func (m *Mockfiler) createSessionSrcFile() (*os.File, string, func(), error) {
 	m.ctrl.T.Helper()
@@ -69,4 +99,20 @@ func (m *Mockfiler) flush(ast *ast.File, targetFile *os.File, fset *token.FileSe
 func (mr *MockfilerMockRecorder) flush(ast, targetFile, fset any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "flush", reflect.TypeOf((*Mockfiler)(nil).flush), ast, targetFile, fset)
+}
+
+// prepareGoModFile mocks base method.
+func (m *Mockfiler) prepareGoModFile(targetDir string, content []byte) (string, func(), error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "prepareGoModFile", targetDir, content)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(func())
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// prepareGoModFile indicates an expected call of prepareGoModFile.
+func (mr *MockfilerMockRecorder) prepareGoModFile(targetDir, content any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "prepareGoModFile", reflect.TypeOf((*Mockfiler)(nil).prepareGoModFile), targetDir, content)
 }

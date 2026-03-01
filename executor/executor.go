@@ -1,12 +1,14 @@
 package executor
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	gotypes "go/types"
-	"runtime/debug"
+	"path/filepath"
+	"runtime"
 	"slices"
 
 	"os/exec"
@@ -51,8 +53,6 @@ func (e *Executor) Execute(input string) {
 	defer func() {
 		if r := recover(); r != nil {
 			panicMsg := fmt.Sprintf("%v", r)
-			// スタックトレースも出力
-			debug.PrintStack()
 			errs.HandleError(
 				errs.NewInternalError(panicMsg),
 			)
@@ -76,16 +76,23 @@ func (e *Executor) Execute(input string) {
 	defer clearImportPathAddedInSession()
 
 	// 一時ファイルを作成
-	sessionSrcFile, sessionSrcFileName, cleanup, err := e.createSessionSrcFile()
+	sessionSrcDir, cleanupSessionSrcDir, err := e.createSessionSrcDir()
 	if err != nil {
 		errs.HandleError(err)
+		return
+	}
+	defer cleanupSessionSrcDir()
+	sessionSrcFile, sessionSrcFilePath, cleanupSessionSrcFile, err := e.createSessionSrcFile()
+	if err != nil {
+		errs.HandleError(err)
+		return
 	}
 	defer func() {
 		if err := sessionSrcFile.Close(); err != nil {
 			errs.HandleError(err)
 		}
 	}()
-	defer cleanup()
+	defer cleanupSessionSrcFile()
 
 	fset := token.NewFileSet()
 
@@ -95,13 +102,32 @@ func (e *Executor) Execute(input string) {
 		return
 	}
 
+	// go.modファイルを準備する
+	goModContent, err := e.goModContent()
+	if err != nil {
+		errs.HandleError(err)
+		return
+	}
+	goModFilePath, cleanupGoModFile, err := e.prepareGoModFile(sessionSrcDir, goModContent)
+	if err != nil {
+		errs.HandleError(err)
+		return
+	}
+	defer cleanupGoModFile()
+
+	// go.mod tidyを実行して、go.sumファイルを生成する
+	if err := e.execGoModTidy(sessionSrcDir); err != nil {
+		errs.HandleError(err)
+		return
+	}
+	defer e.cleanupGoSumFile(sessionSrcDir)
 	// 一時ファイルを実行する
-	cmdOut, cmdErr := e.execGoRun(sessionSrcFileName)
+	cmdOut, cmdErr := e.execGoRun(goModFilePath, sessionSrcFilePath)
 	if cmdErr != nil {
 		// 実行時のエラー出力を整形して表示する
 		cmdErrMsg := string(cmdErr.(*exec.ExitError).Stderr)
 
-		formatted := formatCmdErrMsg(cmdErrMsg)
+		formatted := formatCmdErrMsg(sessionSrcFilePath, cmdErrMsg)
 		errs.HandleError(errs.NewBadInputError(formatted))
 
 		// エラー行を削除する
@@ -118,7 +144,7 @@ func (e *Executor) Execute(input string) {
 
 	// 実行結果を表示する
 	if len(cmdOut) > 0 {
-		printCmdOutput(cmdOut)
+		fmt.Print(string(cmdOut))
 	}
 
 	// sessionSrcから式呼び出しを削除する（式呼び出しは実行結果の表示のためだけに追加しているため、実行後は削除する）
@@ -127,7 +153,7 @@ func (e *Executor) Execute(input string) {
 	}
 
 	// セッションソースファイルから解決された型情報付きのASTを取得
-	pkg, err := loadsessionSrcFile(sessionSrcFileName)
+	pkg, err := loadsessionSrcFile(sessionSrcFilePath)
 	if err != nil {
 		errs.HandleError(err)
 		return
@@ -176,11 +202,6 @@ func (e *Executor) writeInSessionSrc(inputStmt ast.Stmt) error {
 	return nil
 }
 
-var goStructFormatLit = &ast.BasicLit{
-	Kind:  token.STRING,
-	Value: "\"%#v\\n\"",
-}
-
 func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc *ast.FuncDecl) error {
 	switch exprStmtV := exprStmt.X.(type) {
 	case *ast.SelectorExpr:
@@ -192,29 +213,26 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		}
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
-				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
-				Fun: ast.NewIdent("fmt.Printf"),
+				Fun: ast.NewIdent("pp.Println"),
 				Args: []ast.Expr{
-					goStructFormatLit,
 					exprStmtV,
 				},
 			},
 		}
-		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+		if err := e.addImportPath(types.PkgName("pp")); err != nil {
 			return err
 		}
 	case *ast.Ident:
 		exprStmt = &ast.ExprStmt{
 			X: &ast.CallExpr{
 				// AST的には表現が不正確になるがこちらの方がシンプルに書けるのでIdentに押し込める
-				Fun: ast.NewIdent("fmt.Printf"),
+				Fun: ast.NewIdent("pp.Println"),
 				Args: []ast.Expr{
-					goStructFormatLit,
 					exprStmtV,
 				},
 			},
 		}
-		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+		if err := e.addImportPath(types.PkgName("pp")); err != nil {
 			return err
 		}
 	case *ast.CallExpr:
@@ -252,13 +270,8 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 		if returnValuesCnt == 0 {
 			break
 		}
-		exprStmt = &ast.ExprStmt{
-			X: &ast.CallExpr{
-				Fun:  ast.NewIdent("fmt.Printf"),
-				Args: composeArgsForFmtPrintf(exprStmtV, returnValuesCnt),
-			},
-		}
-		if err := e.addImportPath(types.PkgName("fmt")); err != nil {
+		exprStmt = composePrintClosure(exprStmtV, returnValuesCnt)
+		if err := e.addImportPath(types.PkgName("pp")); err != nil {
 			return err
 		}
 	default:
@@ -329,8 +342,8 @@ func (e *Executor) addImportPath(pkgName types.PkgName) error {
 		}
 	}
 
-	// fmtパッケージは式の場合に設定されるのが確定しているので、importPathAddedInSessionには設定しない。
-	if importPath != `"fmt"` {
+	// ppパッケージはimportPathAddedInSessionには設定しない。
+	if pkgName != "pp" {
 		importPathAddedInSession = importPath
 	}
 
@@ -384,12 +397,13 @@ func extractSelectorBaseFromExpr(expr ast.Expr) string {
 	return ""
 }
 
-func formatCmdErrMsg(cmdErrMsg string) string {
+func formatCmdErrMsg(filePath string, cmdErrMsg string) string {
 	cmdErrLines := strings.Split(cmdErrMsg, "\n")
 	var formattedCmdErrLines []string
 
 	cmdVirtualPkgPattern := regexp.MustCompile(`^# command-line-arguments$`)
-	sessionSrcFilePathPattern := regexp.MustCompile(`\./?\d+_gonsole_session_src\.go:\d+:\d+:\s*`)
+	// 新しい一時ファイル名 gonsole_session_src/session_src.go に対応
+	sessionSrcFilePathPattern := regexp.MustCompile(filePath + `:\d+:\d+:\s*`)
 	var cmdErrCount int
 	for _, cmdErrLine := range cmdErrLines {
 		// 仮想パッケージに関するエラー行はスキップ
@@ -418,67 +432,63 @@ func (e *Executor) cleanCallExprFromSessionSrc() (cleaned bool) {
 	if !ok {
 		return
 	}
-
-	// 式呼び出しはfmt.Printlnが確実に使われている
-	fmtFunc, ok := lastExprStmt.X.(*ast.CallExpr).Fun.(*ast.Ident)
-	if !ok || fmtFunc.Name != "fmt.Println" {
+	if _, ok := lastExprStmt.X.(*ast.CallExpr); !ok {
 		return
 	}
 
-	fmtFuncArgExpr := lastExprStmt.X.(*ast.CallExpr).Args[0]
+	callExpr := lastExprStmt.X.(*ast.CallExpr)
+	var selectorBase string
+	switch fun := callExpr.Fun.(type) {
+	case *ast.FuncLit:
+		// closure即時実行の場合
+		if len(fun.Body.List) > 0 {
+			if assignStmt, ok := fun.Body.List[0].(*ast.AssignStmt); ok && len(assignStmt.Rhs) > 0 {
+				selectorBase = extractSelectorBaseFromExpr(assignStmt.Rhs[0])
+			}
+		}
+	default:
+		// 通常の関数呼び出し
+		if len(callExpr.Args) > 0 {
+			ppPrintlnFuncArgExpr := callExpr.Args[0]
+			selectorBase = extractSelectorBaseFromExpr(ppPrintlnFuncArgExpr)
+		}
+	}
 
-	switch fmtFuncArgExpr.(type) {
-	case *ast.CallExpr, *ast.SelectorExpr:
-		// 該当packageを利用している宣言がなければpackage importを削除する
-		selectorBase := extractSelectorBaseFromExpr(fmtFuncArgExpr)
-		if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
-			// 該当packageを利用している宣言がなければpackage importを削除する
-			var isUsed bool
-			for _, decl := range e.declRegistry.Decls {
-				if decl.TypePkgName == types.PkgName(selectorBase) {
-					isUsed = true
+	if !e.declRegistry.IsRegisteredDecl(types.DeclName(selectorBase)) {
+		var isUsed bool
+		for _, decl := range e.declRegistry.Decls {
+			if decl.TypePkgName == types.PkgName(selectorBase) {
+				isUsed = true
+				break
+			}
+		}
+		if !isUsed {
+			e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+				return importSpec.Path.Value == string(importPathAddedInSession)
+			})
+
+			for _, decl := range e.sessionSrc.Decls {
+				if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+					genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+						importSpec := spec.(*ast.ImportSpec)
+						return importSpec.Path.Value == string(importPathAddedInSession)
+					})
 					break
 				}
 			}
-
-			if !isUsed {
-				e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
-					return importSpec.Path.Value == string(importPathAddedInSession)
-				})
-
-				for _, decl := range e.sessionSrc.Decls {
-					if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
-						genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
-							importSpec := spec.(*ast.ImportSpec)
-							return importSpec.Path.Value == string(importPathAddedInSession)
-						})
-						break
-					}
-				}
-			}
 		}
 	}
-
-	var isUsedFmt bool
-	for _, decl := range e.declRegistry.Decls {
-		if decl.TypePkgName == types.PkgName("fmt") {
-			isUsedFmt = true
+	// pp importを削除する
+	e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
+		return importSpec.Path.Value == `"github.com/k0kubun/pp/v3"`
+	})
+	for _, decl := range e.sessionSrc.Decls {
+		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
+			genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
+				importSpec := spec.(*ast.ImportSpec)
+				return importSpec.Path.Value == `"github.com/k0kubun/pp/v3"`
+			})
 			break
-		}
-	}
-	if !isUsedFmt {
-		// fmt importを削除する
-		e.sessionSrc.Imports = slices.DeleteFunc(e.sessionSrc.Imports, func(importSpec *ast.ImportSpec) bool {
-			return importSpec.Path.Value == `"fmt"`
-		})
-		for _, decl := range e.sessionSrc.Decls {
-			if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
-				genDecl.Specs = slices.DeleteFunc(genDecl.Specs, func(spec ast.Spec) bool {
-					importSpec := spec.(*ast.ImportSpec)
-					return importSpec.Path.Value == `"fmt"`
-				})
-				break
-			}
 		}
 	}
 
@@ -544,6 +554,26 @@ func (e *Executor) cleanErrElmFromSessionSrc() error {
 	return nil
 }
 
+const GO_MOD_NAME = "gonsole_session_src"
+
+func (e *Executor) goModContent() ([]byte, error) {
+	modName, err := e.execGoListMod()
+	if err != nil {
+		return nil, err
+	}
+
+	projectRootAbsPath, err := filepath.Abs(".")
+
+	var buf bytes.Buffer
+	buf.WriteString("module " + GO_MOD_NAME + "\n\n")
+	buf.WriteString("go " + strings.TrimPrefix(runtime.Version(), "go") + "\n\n")
+	buf.WriteString("require " + strings.TrimSpace(string(modName)) + " v0.0.0\n")
+	buf.WriteString("replace " + strings.TrimSpace(string(modName)) + " => " + projectRootAbsPath + "\n")
+	buf.WriteString("require github.com/k0kubun/pp/v3 v3.5.1\n")
+
+	return buf.Bytes(), nil
+}
+
 // ================以下に関数を定義する======================
 
 func initSessionSrc() *ast.File {
@@ -591,15 +621,6 @@ func blankAssignStmt(name types.DeclName) *ast.AssignStmt {
 	}
 	return &blankAssign
 }
-
-func printCmdOutput(cmdOut []byte) {
-	cmdOutText := string(cmdOut)
-
-	const greenColor = "\033[32m"
-	const colorReset = "\033[0m"
-	fmt.Printf("\n%s%s%s\n", greenColor, cmdOutText, colorReset)
-}
-
 func getMainFunc(file *ast.File) *ast.FuncDecl {
 	for _, decl := range file.Decls {
 		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Name.Name == "main" {
@@ -613,13 +634,13 @@ func clearImportPathAddedInSession() {
 	importPathAddedInSession = ""
 }
 
-func loadsessionSrcFile(sessionSrcFileName string) (*packages.Package, error) {
+func loadsessionSrcFile(sessionSrcFilePath string) (*packages.Package, error) {
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
 		Dir:  "",
 	}
 
-	pkgs, err := packages.Load(cfg, sessionSrcFileName)
+	pkgs, err := packages.Load(cfg, sessionSrcFilePath)
 	if err != nil || len(pkgs) == 0 {
 		return nil, errs.NewInternalError("failed to load package").Wrap(err)
 	}
@@ -715,84 +736,45 @@ func extractInputStmtWithTypeInfo(syntax *ast.File) (ast.Stmt, error) {
 	return lastStmt, nil
 }
 
-// fmt.Printfの引数を生成する
-// 返り値の数だけ"%#v\n"を生成して、最後に元の呼び出し式をラップした関数リテラルを引数に追加する
-func composeArgsForFmtPrintf(origin *ast.CallExpr, returnValuesCnt int) []ast.Expr {
-	// フォーマット文字列を連結し、Go構文に正しくエスケープ
-	var formatStrs []string
+// originCallExprの返り値の数だけpp.Printlnを呼び出す式を生成する
+func composePrintClosure(originCallExpr ast.Expr, returnValuesCnt int) *ast.ExprStmt {
+	// 返り値を束縛する変数名を生成
+	retIdents := make([]ast.Expr, returnValuesCnt)
 	for i := 0; i < returnValuesCnt; i++ {
-		formatStrs = append(formatStrs, "%#v\\n")
-	}
-	formatStr := strings.Join(formatStrs, "")
-	formatLit := &ast.BasicLit{
-		Kind:  token.STRING,
-		Value: fmt.Sprintf("\"%s\"", formatStr), // "%#v\\n%#v\\n" のような形になる
+		retIdents[i] = &ast.Ident{Name: fmt.Sprintf("ret%d", i)}
 	}
 
-	// スライスを展開して各要素をfmt.Printfの引数に渡す
-	wrappedCallExpr := wrapCallExpr(origin, returnValuesCnt)
-
-	// wrappedCallExprはfunc() []any { ... }() の形になる
-	// これを展開するため、ast.IndexExprで各要素を取り出して渡す
-	args := []ast.Expr{formatLit}
-	for i := 0; i < returnValuesCnt; i++ {
-		args = append(args, &ast.IndexExpr{
-			X: wrappedCallExpr,
-			Index: &ast.BasicLit{
-				Kind:  token.INT,
-				Value: fmt.Sprintf("%d", i),
-			},
-		})
+	// ret0, ret1, ... := originCallExpr()の形の式を生成
+	resultAssignStmt := &ast.AssignStmt{
+		Lhs: retIdents,
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{originCallExpr},
 	}
-	return args
-}
 
-// 元の関数/メソッド呼び出し式を元に、返り値をany型のスライスにつめて返却する関数リテラルを生成
-//
-//	func() [N]any {
-//	    value_0, value_1, ..., value_N-1 := origin()
-//	    return [N]any{value_0, value_1, ..., value_N-1}
-//	}
-func wrapCallExpr(origin *ast.CallExpr, returnValuesCnt int) ast.Expr {
-	var idents []ast.Expr
+	// 各返り値をpp.Printlnで出力するための式を生成
+	printStmts := make([]ast.Stmt, returnValuesCnt)
 	for i := 0; i < returnValuesCnt; i++ {
-		idents = append(idents, ast.NewIdent(fmt.Sprintf("value_%d", i)))
+		printStmts[i] = &ast.ExprStmt{
+			X: &ast.CallExpr{
+				Fun:  ast.NewIdent("pp.Println"),
+				Args: []ast.Expr{&ast.Ident{Name: fmt.Sprintf("ret%d", i)}},
+			},
+		}
 	}
-	return &ast.CallExpr{
-		Fun: &ast.FuncLit{
-			Type: &ast.FuncType{
-				Params: &ast.FieldList{},
-				Results: &ast.FieldList{
-					List: []*ast.Field{
-						{Type: &ast.ArrayType{
-							Elt: ast.NewIdent("any"),
-						}},
-					},
-				},
-			},
-			Body: &ast.BlockStmt{
-				List: []ast.Stmt{
-					&ast.AssignStmt{
-						Lhs: idents,
-						Tok: token.DEFINE,
-						Rhs: []ast.Expr{
-							&ast.CallExpr{
-								Fun: origin.Fun,
-							},
-						},
-					},
-					&ast.ReturnStmt{
-						Results: []ast.Expr{
-							&ast.CompositeLit{
-								Type: &ast.ArrayType{
-									Elt: ast.NewIdent("any"),
-								},
-								Elts: idents,
-							},
-						},
-					},
-				},
-			},
+
+	printClosure := &ast.FuncLit{
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{List: nil},
+			Results: nil,
+		},
+		Body: &ast.BlockStmt{
+			List: append([]ast.Stmt{resultAssignStmt}, printStmts...),
+		},
+	}
+	return &ast.ExprStmt{
+		X: &ast.CallExpr{
+			Fun:  printClosure,
+			Args: []ast.Expr{},
 		},
 	}
 }
