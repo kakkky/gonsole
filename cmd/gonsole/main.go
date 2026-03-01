@@ -16,7 +16,7 @@ func main() {
 	}
 	registry := declregistry.NewRegistry()
 
-	executor, err := executor.NewExecutor(registry)
+	executor, err := executor.NewExecutor(registry, symbolIndex)
 	if err != nil {
 		errs.HandleError(err)
 	}

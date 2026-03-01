@@ -52,17 +52,46 @@ func (mr *MockcommanderMockRecorder) execGoListAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "execGoListAll", reflect.TypeOf((*Mockcommander)(nil).execGoListAll))
 }
 
-// execGoRun mocks base method.
-func (m *Mockcommander) execGoRun(targetFile string) ([]byte, error) {
+// execGoListMod mocks base method.
+func (m *Mockcommander) execGoListMod() ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "execGoRun", targetFile)
+	ret := m.ctrl.Call(m, "execGoListMod")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// execGoListMod indicates an expected call of execGoListMod.
+func (mr *MockcommanderMockRecorder) execGoListMod() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "execGoListMod", reflect.TypeOf((*Mockcommander)(nil).execGoListMod))
+}
+
+// execGoModTidy mocks base method.
+func (m *Mockcommander) execGoModTidy(targetDir string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "execGoModTidy", targetDir)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// execGoModTidy indicates an expected call of execGoModTidy.
+func (mr *MockcommanderMockRecorder) execGoModTidy(targetDir any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "execGoModTidy", reflect.TypeOf((*Mockcommander)(nil).execGoModTidy), targetDir)
+}
+
+// execGoRun mocks base method.
+func (m *Mockcommander) execGoRun(targetModFilePath, targetFilePath string) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "execGoRun", targetModFilePath, targetFilePath)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // execGoRun indicates an expected call of execGoRun.
-func (mr *MockcommanderMockRecorder) execGoRun(targetFile any) *gomock.Call {
+func (mr *MockcommanderMockRecorder) execGoRun(targetModFilePath, targetFilePath any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "execGoRun", reflect.TypeOf((*Mockcommander)(nil).execGoRun), targetFile)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "execGoRun", reflect.TypeOf((*Mockcommander)(nil).execGoRun), targetModFilePath, targetFilePath)
 }
