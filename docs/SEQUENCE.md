@@ -8,7 +8,7 @@ sequenceDiagram
     participant Completer
     participant DeclRegistry
     participant Executor
-    participant SessionSrcFile as 📁SessionSrcFile
+    participant SessionSrcDir as 📁SessionSrcDir
 
     loop
         User->>Repl: 文字入力...
@@ -32,20 +32,26 @@ sequenceDiagram
             Note over Executor: 入力情報を元に実行
             Executor->>Executor: 入力文字列をASTに解釈
             Executor->>Executor: メモリとして保持するASTキャッシュに追加
-            Executor->>SessionSrcFile: 一時ファイルを生成
-            Executor->>SessionSrcFile: 一時ファイルにASTのキャッシュを<br>ソースコードとしてフラッシュ
-            Executor->>SessionSrcFile: 一時ファイルに対して`go run`で実行
+            Executor->>SessionSrcDir: 一時ディレクトリを生成
+            Executor->>SessionSrcDir: 一時ディレクトリ内にGoファイルを作成
+            Executor->>SessionSrcDir: 一時ファイルにASTのキャッシュを<br>ソースコードとしてフラッシュ
+            Executor->>SessionSrcDir: `go.mod`を動的生成して配置<br>(pp/v3をrequire、プロジェクト本体をreplace)
+            Executor->>SessionSrcDir: `go mod tidy`で`go.sum`を生成
+            Executor->>SessionSrcDir: 一時ファイルに対して`go run`で実行
             alt 実行エラー
                 Executor->>Executor: 今回の入力情報を<br>ASTキャッシュから削除
-                Executor->>SessionSrcFile: 一時ファイルに更新されたASTのキャッシュを<br>ソースコードとしてフラッシュ
+                Executor->>SessionSrcDir: 一時ファイルに更新されたASTのキャッシュを<br>ソースコードとしてフラッシュ
             end
             alt 出力がある
-                Executor-->>User: 実行結果を標準出力で提示
+                Executor-->>User: 実行結果を標準出力で提示<br>(式の場合はpp.Printlnでフォーマット&シンタックスハイライト)
             end
-            Executor->>Executor: 式呼び出しの場合はASTキャッシュからそれを削除
-            Executor->>SessionSrcFile: 一時ファイルをparseして型解決済みの宣言情報を取得
-            Executor->>DeclRegistry: 宣言情報をレジストリに登録
-            Executor->>SessionSrcFile: 一時ファイル削除
+            alt 式呼び出しの場合
+                Executor->>Executor: ASTキャッシュから式呼び出しを削除
+            else 宣言文の場合
+                Executor->>SessionSrcDir: 一時ファイルをparseして型解決済みの宣言情報を取得
+                Executor->>DeclRegistry: 宣言情報をレジストリに登録
+            end
+            Executor->>SessionSrcDir: 一時ディレクトリ配下の各ファイル削除後、一時ディレクトリを削除
             Executor-->>Repl:実行完了
         deactivate Executor
         Repl->>User: `>`を提示して入力待機
