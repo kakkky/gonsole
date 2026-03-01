@@ -1596,6 +1596,148 @@ func TestExecutor_Execute(t *testing.T) {
 			},
 		},
 		{
+			name:  "call method chain starting from package constructor",
+			input: "pkg.NewObject(\"foo\", 1).ChangeValue(\"bar\").GetValue()",
+			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
+				// 登録済み変数は存在しない（パッケージから直接チェーン）
+			},
+			setupSymbolIndex: &symbols.SymbolIndex{
+				Methods: map[types.PkgName][]symbols.MethodSet{
+					"pkg": {
+						{
+							Name:             "GetValue",
+							ReceiverTypeName: "Object",
+							Returns:          []symbols.ReturnSet{{TypeName: "string", TypePkgName: ""}},
+						},
+					},
+				},
+			},
+			setupMocks: func(mockFiler *Mockfiler, mockCommander *Mockcommander, mockImportPathResolver *MockimportPathResolver) {
+				setupMocks(t, mockFiler, mockCommander, mockImportPathResolver, "test.go", exprFlush(func(sessionSrcAddedCallExpr *ast.File, targetFile *os.File, fset *token.FileSet) error {
+					expectedSessionSrc := &ast.File{
+						Name: &ast.Ident{Name: "main"},
+						Decls: []ast.Decl{
+							&ast.GenDecl{
+								Tok: token.IMPORT,
+								Specs: []ast.Spec{
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{Kind: token.STRING, Value: `"pkg"`},
+									},
+									&ast.ImportSpec{
+										Path: &ast.BasicLit{Kind: token.STRING, Value: `"github.com/k0kubun/pp/v3"`},
+									},
+								},
+							},
+							&ast.FuncDecl{
+								Name: &ast.Ident{Name: "main"},
+								Type: &ast.FuncType{
+									Params:  &ast.FieldList{List: nil},
+									Results: nil,
+								},
+								Body: &ast.BlockStmt{
+									List: []ast.Stmt{
+										&ast.ExprStmt{
+											X: &ast.CallExpr{
+												Fun: &ast.FuncLit{
+													Type: &ast.FuncType{
+														Params:  &ast.FieldList{List: nil},
+														Results: nil,
+													},
+													Body: &ast.BlockStmt{
+														List: []ast.Stmt{
+															&ast.AssignStmt{
+																Lhs: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																Tok: token.DEFINE,
+																Rhs: []ast.Expr{&ast.CallExpr{
+																	Fun: &ast.SelectorExpr{
+																		X: &ast.CallExpr{
+																			Fun: &ast.SelectorExpr{
+																				X: &ast.CallExpr{
+																					Fun: &ast.SelectorExpr{
+																						X:   &ast.Ident{Name: "pkg"},
+																						Sel: &ast.Ident{Name: "NewObject"},
+																					},
+																					Args: []ast.Expr{
+																						&ast.BasicLit{Kind: token.STRING, Value: `"foo"`},
+																						&ast.BasicLit{Kind: token.INT, Value: "1"},
+																					},
+																				},
+																				Sel: &ast.Ident{Name: "ChangeValue"},
+																			},
+																			Args: []ast.Expr{
+																				&ast.BasicLit{Kind: token.STRING, Value: `"bar"`},
+																			},
+																		},
+																		Sel: &ast.Ident{Name: "GetValue"},
+																	},
+																}},
+															},
+															&ast.ExprStmt{
+																X: &ast.CallExpr{
+																	Fun:  &ast.Ident{Name: "pp.Println"},
+																	Args: []ast.Expr{&ast.Ident{Name: "ret0"}},
+																},
+															},
+														},
+													},
+												},
+												Args: []ast.Expr{},
+											},
+										},
+									},
+								},
+							},
+						},
+						Imports: []*ast.ImportSpec{
+							{Path: &ast.BasicLit{Kind: token.STRING, Value: `"pkg"`}},
+							{Path: &ast.BasicLit{Kind: token.STRING, Value: `"github.com/k0kubun/pp/v3"`}},
+						},
+					}
+
+					cmpOpts := []cmp.Option{
+						cmpopts.IgnoreFields(ast.Ident{}, "Obj", "NamePos"),
+						cmpopts.IgnoreFields(ast.BasicLit{}, "ValuePos"),
+						cmpopts.IgnoreFields(ast.CallExpr{}, "Lparen", "Rparen"),
+						cmpopts.IgnoreFields(ast.FuncLit{}, "Type"),
+						cmpopts.IgnoreFields(ast.FuncType{}, "Func"),
+						cmpopts.IgnoreFields(ast.FieldList{}, "Opening", "Closing"),
+						cmpopts.IgnoreFields(ast.BlockStmt{}, "Lbrace", "Rbrace"),
+						cmpopts.IgnoreFields(ast.AssignStmt{}, "TokPos"),
+					}
+
+					if diff := cmp.Diff(expectedSessionSrc, sessionSrcAddedCallExpr, cmpOpts...); diff != "" {
+						t.Errorf("mismatch (-want +got):\n%s", diff)
+					}
+
+					return nil
+				}),
+					[]byte{}, nil,
+					resolveExpect{types.PkgName("pkg"), types.ImportPath(`"pkg"`)},
+					resolveExpect{types.PkgName("pp"), types.ImportPath(`"github.com/k0kubun/pp/v3"`)},
+				)
+			},
+			expectedSessionSrc: &ast.File{
+				Name: &ast.Ident{Name: "main"},
+				Decls: []ast.Decl{
+					&ast.GenDecl{
+						Tok:   token.IMPORT,
+						Specs: []ast.Spec{},
+					},
+					&ast.FuncDecl{
+						Name: &ast.Ident{Name: "main"},
+						Type: &ast.FuncType{
+							Params:  &ast.FieldList{List: nil},
+							Results: nil,
+						},
+						Body: &ast.BlockStmt{
+							List: []ast.Stmt{},
+						},
+					},
+				},
+				Imports: []*ast.ImportSpec{},
+			},
+		},
+		{
 			name:  "call selector expr of unregistered package",
 			input: "pkg.Var",
 			setupDeclRegistry: func(declRegistry *declregistry.DeclRegistry) {
