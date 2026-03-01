@@ -264,14 +264,30 @@ func (e *Executor) appendExprStmtToMainFuncBody(exprStmt *ast.ExprStmt, mainFunc
 				return err
 			}
 			pkgName := types.PkgName(selectorBase)
-			funcDeclName := types.DeclName(exprStmtV.Fun.(*ast.SelectorExpr).Sel.Name)
-			var funcSets []symbols.FuncSet
-			if e.symbolIndex != nil {
-				funcSets = e.symbolIndex.Funcs[pkgName]
-			}
-			for _, funcSet := range funcSets {
-				if funcSet.Name == funcDeclName {
-					returnValuesCnt = len(funcSet.Returns)
+			selExpr := exprStmtV.Fun.(*ast.SelectorExpr)
+			declName := types.DeclName(selExpr.Sel.Name)
+			switch selExpr.X.(type) {
+			case *ast.Ident:
+				// 直接のパッケージ関数呼び出し: pkg.Func()
+				var funcSets []symbols.FuncSet
+				if e.symbolIndex != nil {
+					funcSets = e.symbolIndex.Funcs[pkgName]
+				}
+				for _, funcSet := range funcSets {
+					if funcSet.Name == declName {
+						returnValuesCnt = len(funcSet.Returns)
+					}
+				}
+			default:
+				// メソッドチェーン: pkg.Constructor(...).Method()
+				var methodSets []symbols.MethodSet
+				if e.symbolIndex != nil {
+					methodSets = e.symbolIndex.Methods[pkgName]
+				}
+				for _, methodSet := range methodSets {
+					if methodSet.Name == declName {
+						returnValuesCnt = len(methodSet.Returns)
+					}
 				}
 			}
 		}
