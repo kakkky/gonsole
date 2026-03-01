@@ -120,7 +120,11 @@ func (e *Executor) Execute(input string) {
 		errs.HandleError(err)
 		return
 	}
-	defer e.cleanupGoSumFile(sessionSrcDir)
+	defer func() {
+		if err := e.cleanupGoSumFile(sessionSrcDir); err != nil {
+			errs.HandleError(err)
+		}
+	}()
 	// 一時ファイルを実行する
 	cmdOut, cmdErr := e.execGoRun(goModFilePath, sessionSrcFilePath)
 	if cmdErr != nil {
@@ -569,6 +573,9 @@ func (e *Executor) goModContent() ([]byte, error) {
 	}
 
 	projectRootAbsPath, err := filepath.Abs(".")
+	if err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	buf.WriteString("module " + GO_MOD_NAME + "\n\n")

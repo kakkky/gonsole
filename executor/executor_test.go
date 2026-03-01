@@ -1923,9 +1923,13 @@ func TestExecutor_Execute(t *testing.T) {
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 			sut.Execute(tt.input)
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
-			r.Close()
+			if err := r.Close(); err != nil {
+				t.Errorf("failed to close pipe reader: %v", err)
+			}
 
 			// 位置情報等はここでは無視する
 			cmpOpts := []cmp.Option{
