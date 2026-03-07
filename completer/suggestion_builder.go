@@ -72,11 +72,12 @@ func findEqualAndSpacePos(input string) (pos int, found bool) {
 	return equalPos, true
 }
 
-func (sb *suggestionBuilder) build(candidate string, suggestType suggestType, desctiption string, appendSuggestText ...string) prompt.Suggest {
+func (sb *suggestionBuilder) build(candidate string, suggestType suggestType, desctiption string, ghostTextAppender *prompt.GhostTextAppender, appendSuggestText ...string) prompt.Suggest {
 	return prompt.Suggest{
-		Text:        sb.buildSuggestText(candidate) + strings.Join(appendSuggestText, ""),
-		DisplayText: candidate,
-		Description: sb.buildSuggestDescription(suggestType, desctiption),
+		Text:              sb.buildSuggestText(candidate) + strings.Join(appendSuggestText, ""),
+		DisplayText:       candidate,
+		Description:       sb.buildSuggestDescription(suggestType, desctiption),
+		GhostTextAppender: ghostTextAppender,
 	}
 }
 

@@ -56,7 +56,7 @@ func (c *Completer) findPackageSuggestions(sb *suggestionBuilder) []prompt.Sugge
 	suggestions := make([]prompt.Suggest, 0)
 	for _, pkg := range c.symbolIndex.Pkgs {
 		if strings.HasPrefix(string(pkg), sb.input.text) {
-			suggestions = append(suggestions, sb.build(string(pkg), suggestTypePackage, ""))
+			suggestions = append(suggestions, sb.build(string(pkg), suggestTypePackage, "", nil))
 		}
 	}
 	return suggestions
@@ -67,7 +67,8 @@ func (c *Completer) findFunctionSuggestions(sb *suggestionBuilder) []prompt.Sugg
 	if funcSets, ok := c.symbolIndex.Funcs[types.PkgName(sb.input.basePart)]; ok {
 		for _, funcSet := range funcSets {
 			if strings.HasPrefix(string(funcSet.Name), sb.input.selectorPart) && !isPrivate(string(funcSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, "()"))
+				ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(funcSet.Args)...)
+				suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, ghostTextAppnder, "("))
 			}
 		}
 	}
@@ -86,7 +87,8 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 			for _, methodSet := range c.symbolIndex.Methods[decl.TypePkgName] {
 				if strings.HasPrefix(string(methodSet.Name), sb.input.selectorPart) && !isPrivate(string(methodSet.Name)) {
 					if decl.TypeName == types.TypeName(methodSet.ReceiverTypeName) {
-						suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
+						ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(methodSet.Args)...)
+						suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 					}
 				}
 			}
@@ -99,7 +101,8 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if decl.TypeName == types.TypeName(interfaceSet.Name) {
 					for i, method := range interfaceSet.Methods {
 						if strings.HasPrefix(string(method), sb.input.selectorPart) && !isPrivate(string(method)) {
-							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], "()"))
+							ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(interfaceSet.Args[i])...)
+							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 						}
 					}
 				}
@@ -175,7 +178,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 
 	for _, methodSet := range c.symbolIndex.Methods[lastReturElm.TypePkgName] {
 		if strings.HasPrefix(string(methodSet.Name), lastSelectorPart) && !isPrivate(string(methodSet.Name)) && types.TypeName(methodSet.ReceiverTypeName) == lastReturElm.TypeName && len(methodSet.Returns) == 1 {
-			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
+			ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(methodSet.Args)...)
+			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 		}
 	}
 	if len(suggestions) > 0 {
@@ -185,7 +189,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		if lastReturElm.TypeName == types.TypeName(interfaceSet.Name) {
 			for i, method := range interfaceSet.Methods {
 				if strings.HasPrefix(string(method), lastSelectorPart) && !isPrivate(string(method)) {
-					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], "()"))
+					ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(interfaceSet.Args[i])...)
+					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 				}
 			}
 		}
@@ -245,7 +250,7 @@ func (c *Completer) findVariableSuggestions(sb *suggestionBuilder) []prompt.Sugg
 	if varSets, ok := c.symbolIndex.Vars[types.PkgName(sb.input.basePart)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(string(varSet.Name), sb.input.selectorPart) && !isPrivate(string(varSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(varSet.Name), suggestTypeVariable, varSet.Description))
+				suggestions = append(suggestions, sb.build(string(varSet.Name), suggestTypeVariable, varSet.Description, nil))
 			}
 		}
 	}
@@ -257,7 +262,7 @@ func (c *Completer) findConstantSuggestions(sb *suggestionBuilder) []prompt.Sugg
 	if constSets, ok := c.symbolIndex.Consts[types.PkgName(sb.input.basePart)]; ok {
 		for _, constSet := range constSets {
 			if strings.HasPrefix(string(constSet.Name), sb.input.selectorPart) && !isPrivate(string(constSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(constSet.Name), suggestTypeConstant, constSet.Description))
+				suggestions = append(suggestions, sb.build(string(constSet.Name), suggestTypeConstant, constSet.Description, nil))
 			}
 		}
 	}
@@ -273,7 +278,7 @@ func (c *Completer) findStructSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if len(structSet.Fields) > 0 {
 					compositeLit = compositeLitStr(structSet.Fields)
 				}
-				suggestions = append(suggestions, sb.build(string(structSet.Name), suggestTypeStruct, structSet.Description, "", compositeLit))
+				suggestions = append(suggestions, sb.build(string(structSet.Name), suggestTypeStruct, structSet.Description, nil, compositeLit))
 			}
 		}
 	}
@@ -299,8 +304,28 @@ func (c *Completer) findDefinedTypeSuggestions(sb *suggestionBuilder) []prompt.S
 	suggestions := make([]prompt.Suggest, 0)
 	for _, definedTypeSet := range c.symbolIndex.DefinedTypes[types.PkgName(sb.input.basePart)] {
 		if strings.HasPrefix(string(definedTypeSet.Name), sb.input.selectorPart) && !isPrivate(string(definedTypeSet.Name)) {
-			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, "()"))
+			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, nil, "()"))
 		}
 	}
 	return suggestions
+}
+
+func composeArgPromtSegments(argSets []symbols.ArgSet) []prompt.GhostSegment {
+	var segments []prompt.GhostSegment
+	for _, argSet := range argSets {
+		var arg strings.Builder
+		if argSet.IsPointer {
+			arg.WriteString("*")
+		}
+		arg.WriteString(argSet.Name)
+		arg.WriteString(" ")
+		if argSet.TypePkgName != "" {
+			arg.WriteString(string(argSet.TypePkgName) + ".")
+		}
+		arg.WriteString(string(argSet.TypeName))
+
+		placeholder := prompt.PlaceholderSegment(arg.String())
+		segments = append(segments, placeholder, prompt.SeparatorSegment(", "))
+	}
+	return segments
 }
