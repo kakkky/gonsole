@@ -349,18 +349,10 @@ func (c *Completer) findDefinedTypeSuggestions(sb *suggestionBuilder) []prompt.S
 	suggestions := make([]prompt.Suggest, 0)
 	for _, definedTypeSet := range c.symbolIndex.DefinedTypes[types.PkgName(sb.input.basePart)] {
 		if strings.HasPrefix(string(definedTypeSet.Name), sb.input.selectorPart) && !isPrivate(string(definedTypeSet.Name)) {
-			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, nil, "()"))
+			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, nil, "("))
 		}
 	}
 	return suggestions
-}
-
-// FixUnclosedParens は ghost suffix の ")" が未入力のまま Enter された場合に閉じ括弧を補完する
-func FixUnclosedParens(input string) string {
-	if diff := strings.Count(input, "(") - strings.Count(input, ")"); diff > 0 {
-		input += strings.Repeat(")", diff)
-	}
-	return input
 }
 
 func composeArgPromtSegments(argSets []symbols.ArgSet) []prompt.GhostSegment {
