@@ -8,13 +8,14 @@ import (
 
 func TestSuggestionBuilder_build(t *testing.T) {
 	tests := []struct {
-		name        string
-		rawInput    string
-		candidate   string
-		suggestType suggestType
-		description string
-		appendText  []string
-		want        prompt.Suggest
+		name              string
+		rawInput          string
+		candidate         string
+		suggestType       suggestType
+		description       string
+		ghostTextAppender *prompt.GhostTextAppender
+		appendText        []string
+		want              prompt.Suggest
 	}{
 		// Package suggestions
 		{
@@ -257,12 +258,83 @@ func TestSuggestionBuilder_build(t *testing.T) {
 				Description: "Function: Func",
 			},
 		},
+
+		// appendSuggestText（関数・メソッドの "(" 付加）
+		{
+			name:        "Function: appendSuggestTextに\"(\"を付加",
+			rawInput:    "fmt.Pr",
+			candidate:   "Printf",
+			suggestType: suggestTypeFunction,
+			description: "Printf",
+			appendText:  []string{"("},
+			want: prompt.Suggest{
+				Text:        "fmt.Printf(",
+				DisplayText: "Printf",
+				Description: "Function: Printf",
+			},
+		},
+
+		// 変数宣言付き入力（":= " 以降が補完対象）
+		{
+			name:        "変数宣言付き: := の後でパッケージ部分一致",
+			rawInput:    "s := fmt.Pr",
+			candidate:   "Printf",
+			suggestType: suggestTypeFunction,
+			description: "Printf",
+			appendText:  []string{"("},
+			want: prompt.Suggest{
+				Text:        "fmt.Printf(",
+				DisplayText: "Printf",
+				Description: "Function: Printf",
+			},
+		},
+		{
+			name:        "変数宣言付き: var形式",
+			rawInput:    "var s = fmt.Pr",
+			candidate:   "Printf",
+			suggestType: suggestTypeFunction,
+			description: "Printf",
+			appendText:  []string{"("},
+			want: prompt.Suggest{
+				Text:        "fmt.Printf(",
+				DisplayText: "Printf",
+				Description: "Function: Printf",
+			},
+		},
+
+		// 引数入力中（rawが関数名+引数を含む）
+		{
+			name:        "引数入力中: rawにcandidateが含まれる",
+			rawInput:    "fmt.Printf(",
+			candidate:   "Printf",
+			suggestType: suggestTypeFunction,
+			description: "Printf",
+			appendText:  []string{"("},
+			want: prompt.Suggest{
+				Text:        "fmt.Printf(",
+				DisplayText: "Printf",
+				Description: "Function: Printf",
+			},
+		},
+		{
+			name:        "引数入力中: 引数を打ち始めた状態",
+			rawInput:    "strings.Contains(s",
+			candidate:   "Contains",
+			suggestType: suggestTypeFunction,
+			description: "Contains",
+			appendText:  []string{"("},
+			want: prompt.Suggest{
+				Text:        "strings.Contains(",
+				DisplayText: "Contains",
+				Description: "Function: Contains",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sb := newSuggestionBuilder(tt.rawInput)
-			got := sb.build(tt.candidate, tt.suggestType, tt.description, tt.appendText...)
+			got := sb.build(tt.candidate, tt.suggestType, tt.description, tt.ghostTextAppender, tt.appendText...)
 
 			if got.Text != tt.want.Text {
 				t.Errorf("Text = %q, want %q", got.Text, tt.want.Text)
