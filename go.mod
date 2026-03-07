@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/kakkky/go-prompt v0.0.0-20250825171554-abe6d66ac243
+	github.com/kakkky/go-prompt v0.0.0-20260307172908-ba3bdd7c4eca
 	go.uber.org/mock v0.6.0
 	golang.org/x/tools v0.42.0
 )
