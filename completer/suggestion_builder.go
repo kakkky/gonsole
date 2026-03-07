@@ -97,9 +97,9 @@ func (sb *suggestionBuilder) buildSuggestText(candidateStr string) string {
 		return strings.TrimSuffix(sb.input.raw, candidateStr[:matchLen]) + candidateStr
 	}
 
-	// 引数入力中など raw が candidateStr を含む場合
-	// candidateStr より後ろの引数部分を切り落として candidateStr だけを返す
-	if idx := strings.Index(sb.input.raw, candidateStr); idx >= 0 {
+	// raw の途中に candidateStr が含まれる場合（引数入力中）、そこまで切り戻して返す
+	// raw が "." で終わる場合はメソッドチェーンの続きを入力中なので除外する
+	if idx := strings.Index(sb.input.raw, candidateStr); idx >= 0 && !strings.HasSuffix(sb.input.raw, ".") {
 		return sb.input.raw[:idx] + candidateStr
 	}
 
