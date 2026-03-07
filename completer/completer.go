@@ -105,7 +105,11 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if decl.TypeName == types.TypeName(interfaceSet.Name) {
 					for i, method := range interfaceSet.Methods {
 						if string(method) == methodName && !isPrivate(string(method)) {
-							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
+							var methodArgs []symbols.ArgSet
+							if i < len(interfaceSet.Args) {
+								methodArgs = interfaceSet.Args[i]
+							}
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
 							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 						}
 					}
@@ -134,7 +138,11 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if decl.TypeName == types.TypeName(interfaceSet.Name) {
 					for i, method := range interfaceSet.Methods {
 						if strings.HasPrefix(string(method), sb.input.selectorPart) && !isPrivate(string(method)) {
-							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
+							var methodArgs []symbols.ArgSet
+							if i < len(interfaceSet.Args) {
+								methodArgs = interfaceSet.Args[i]
+							}
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
 							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 						}
 					}
@@ -222,7 +230,11 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		if lastReturElm.TypeName == types.TypeName(interfaceSet.Name) {
 			for i, method := range interfaceSet.Methods {
 				if strings.HasPrefix(string(method), lastSelectorPart) && !isPrivate(string(method)) {
-					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
+					var methodArgs []symbols.ArgSet
+					if i < len(interfaceSet.Args) {
+						methodArgs = interfaceSet.Args[i]
+					}
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
 					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 				}
 			}
