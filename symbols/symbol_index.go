@@ -290,7 +290,8 @@ func (c *SymbolIndex) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *got
 			var paramTypePkgName types.PkgName
 
 			var isPointer bool
-			switch paramTypeV := param.Type().(type) {
+			paramType := gotypes.Unalias(param.Type())
+			switch paramTypeV := paramType.(type) {
 			case *gotypes.Named:
 				paramTypeName = types.TypeName(paramTypeV.Obj().Name())
 				if paramTypeV.Obj().Pkg() != nil {
@@ -298,17 +299,17 @@ func (c *SymbolIndex) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *got
 				}
 			case *gotypes.Pointer:
 				isPointer = true
-				switch pointedTypeV := paramTypeV.Elem().(type) {
+				switch pointedTypeV := gotypes.Unalias(paramTypeV.Elem()).(type) {
 				case *gotypes.Named:
 					paramTypeName = types.TypeName(pointedTypeV.Obj().Name())
 					if pointedTypeV.Obj().Pkg() != nil {
 						paramTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 					}
 				default:
-					paramTypeName = types.TypeName(paramTypeV.Elem().String())
+					paramTypeName = types.TypeName(gotypes.TypeString(pointedTypeV, func(pkg *gotypes.Package) string { return pkg.Name() }))
 				}
 			default:
-				paramTypeName = types.TypeName(param.Type().String())
+				paramTypeName = types.TypeName(gotypes.TypeString(paramType, func(pkg *gotypes.Package) string { return pkg.Name() }))
 			}
 			args = append(args, ArgSet{
 				Name:        param.Name(),
@@ -324,10 +325,11 @@ func (c *SymbolIndex) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *got
 
 	if results != nil {
 		for i := 0; i < results.Len(); i++ {
-			returnType := results.At(i).Type()
+			returnElm := results.At(i)
 			var returnTypeName types.TypeName
 			var returnTypePkgName types.PkgName
 
+			returnType := gotypes.Unalias(returnElm.Type())
 			switch returnTypeV := returnType.(type) {
 			case *gotypes.Named:
 				returnTypeName = types.TypeName(returnTypeV.Obj().Name())
@@ -335,17 +337,17 @@ func (c *SymbolIndex) processFuncDeclObj(pkgName types.PkgName, funcDeclObj *got
 					returnTypePkgName = types.PkgName(returnTypeV.Obj().Pkg().Name())
 				}
 			case *gotypes.Pointer:
-				switch pointedTypeV := returnTypeV.Elem().(type) {
+				switch pointedTypeV := gotypes.Unalias(returnTypeV.Elem()).(type) {
 				case *gotypes.Named:
 					returnTypeName = types.TypeName(pointedTypeV.Obj().Name())
 					if pointedTypeV.Obj().Pkg() != nil {
 						returnTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 					}
 				default:
-					returnTypeName = types.TypeName(returnType.String())
+					returnTypeName = types.TypeName(gotypes.TypeString(pointedTypeV, func(pkg *gotypes.Package) string { return pkg.Name() }))
 				}
 			default:
-				returnTypeName = types.TypeName(returnType.String())
+				returnTypeName = types.TypeName(gotypes.TypeString(returnType, func(pkg *gotypes.Package) string { return pkg.Name() }))
 			}
 			returns = append(returns, ReturnSet{
 				TypeName:    returnTypeName,
@@ -372,7 +374,8 @@ func (c *SymbolIndex) processMethodDeclObj(pkgName types.PkgName, methodDeclObj 
 			var paramTypeName types.TypeName
 			var paramTypePkgName types.PkgName
 			var isPointer bool
-			switch paramTypeV := param.Type().(type) {
+			paramType := gotypes.Unalias(param.Type())
+			switch paramTypeV := paramType.(type) {
 			case *gotypes.Named:
 				paramTypeName = types.TypeName(paramTypeV.Obj().Name())
 				if paramTypeV.Obj().Pkg() != nil {
@@ -380,17 +383,17 @@ func (c *SymbolIndex) processMethodDeclObj(pkgName types.PkgName, methodDeclObj 
 				}
 			case *gotypes.Pointer:
 				isPointer = true
-				switch pointedTypeV := paramTypeV.Elem().(type) {
+				switch pointedTypeV := gotypes.Unalias(paramTypeV.Elem()).(type) {
 				case *gotypes.Named:
 					paramTypeName = types.TypeName(pointedTypeV.Obj().Name())
 					if pointedTypeV.Obj().Pkg() != nil {
 						paramTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 					}
 				default:
-					paramTypeName = types.TypeName(paramTypeV.Elem().String())
+					paramTypeName = types.TypeName(gotypes.TypeString(pointedTypeV, func(pkg *gotypes.Package) string { return pkg.Name() }))
 				}
 			default:
-				paramTypeName = types.TypeName(param.Type().String())
+				paramTypeName = types.TypeName(gotypes.TypeString(paramType, func(pkg *gotypes.Package) string { return pkg.Name() }))
 			}
 			args = append(args, ArgSet{
 				Name:        param.Name(),
@@ -418,10 +421,11 @@ func (c *SymbolIndex) processMethodDeclObj(pkgName types.PkgName, methodDeclObj 
 
 	if results != nil {
 		for i := 0; i < results.Len(); i++ {
-			returnType := results.At(i).Type()
+			returnElm := results.At(i)
 			var returnTypeName types.TypeName
 			var returnTypePkgName types.PkgName
 
+			returnType := gotypes.Unalias(returnElm.Type())
 			switch returnTypeV := returnType.(type) {
 			case *gotypes.Named:
 				returnTypeName = types.TypeName(returnTypeV.Obj().Name())
@@ -429,17 +433,17 @@ func (c *SymbolIndex) processMethodDeclObj(pkgName types.PkgName, methodDeclObj 
 					returnTypePkgName = types.PkgName(returnTypeV.Obj().Pkg().Name())
 				}
 			case *gotypes.Pointer:
-				switch pointedTypeV := returnTypeV.Elem().(type) {
+				switch pointedTypeV := gotypes.Unalias(returnTypeV.Elem()).(type) {
 				case *gotypes.Named:
 					returnTypeName = types.TypeName(pointedTypeV.Obj().Name())
 					if pointedTypeV.Obj().Pkg() != nil {
 						returnTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 					}
 				default:
-					returnTypeName = types.TypeName(returnTypeV.String())
+					returnTypeName = types.TypeName(gotypes.TypeString(pointedTypeV, func(pkg *gotypes.Package) string { return pkg.Name() }))
 				}
 			default:
-				returnTypeName = types.TypeName(returnType.String())
+				returnTypeName = types.TypeName(gotypes.TypeString(returnType, func(pkg *gotypes.Package) string { return pkg.Name() }))
 			}
 
 			returns = append(returns, ReturnSet{
@@ -542,7 +546,8 @@ func (c *SymbolIndex) processInterfaceTypeDeclObj(pkgName types.PkgName, declNam
 				var paramTypeName types.TypeName
 				var paramTypePkgName types.PkgName
 				var isPointer bool
-				switch paramTypeV := param.Type().(type) {
+				t := gotypes.Unalias(param.Type())
+				switch paramTypeV := t.(type) {
 				case *gotypes.Named:
 					paramTypeName = types.TypeName(paramTypeV.Obj().Name())
 					if paramTypeV.Obj().Pkg() != nil {
@@ -550,17 +555,17 @@ func (c *SymbolIndex) processInterfaceTypeDeclObj(pkgName types.PkgName, declNam
 					}
 				case *gotypes.Pointer:
 					isPointer = true
-					switch pointedTypeV := paramTypeV.Elem().(type) {
+					switch pointedTypeV := gotypes.Unalias(paramTypeV.Elem()).(type) {
 					case *gotypes.Named:
 						paramTypeName = types.TypeName(pointedTypeV.Obj().Name())
 						if pointedTypeV.Obj().Pkg() != nil {
 							paramTypePkgName = types.PkgName(pointedTypeV.Obj().Pkg().Name())
 						}
 					default:
-						paramTypeName = types.TypeName(paramTypeV.Elem().String())
+						paramTypeName = types.TypeName(gotypes.TypeString(pointedTypeV, func(pkg *gotypes.Package) string { return pkg.Name() }))
 					}
 				default:
-					paramTypeName = types.TypeName(param.Type().String())
+					paramTypeName = types.TypeName(gotypes.TypeString(t, func(pkg *gotypes.Package) string { return pkg.Name() }))
 				}
 				methodArgs = append(methodArgs, ArgSet{
 					Name:        param.Name(),
