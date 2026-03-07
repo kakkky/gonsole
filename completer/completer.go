@@ -65,9 +65,19 @@ func (c *Completer) findPackageSuggestions(sb *suggestionBuilder) []prompt.Sugge
 func (c *Completer) findFunctionSuggestions(sb *suggestionBuilder) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.symbolIndex.Funcs[types.PkgName(sb.input.basePart)]; ok {
+		// 引数入力中（selectorPartに「(」を含む）場合、関数名のみでマッチしてghostだけ返す
+		if funcName, _, ok := strings.Cut(sb.input.selectorPart, "("); ok {
+			for _, funcSet := range funcSets {
+				if string(funcSet.Name) == funcName && !isPrivate(string(funcSet.Name)) {
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(funcSet.Args)...)
+					suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, ghostTextAppnder, "("))
+				}
+			}
+			return suggestions
+		}
 		for _, funcSet := range funcSets {
 			if strings.HasPrefix(string(funcSet.Name), sb.input.selectorPart) && !isPrivate(string(funcSet.Name)) {
-				ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(funcSet.Args)...)
+				ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(funcSet.Args)...)
 				suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, ghostTextAppnder, "("))
 			}
 		}
@@ -82,12 +92,38 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 		return c.findMethodSuggestionsFromChain(suggestions, sb)
 	}
 
+	// 引数入力中（selectorPartに「(」を含む）場合、メソッド名のみでマッチしてghostだけ返す
+	if methodName, _, ok := strings.Cut(sb.input.selectorPart, "("); ok {
+		for _, decl := range c.declRegistry.Decls {
+			if sb.input.basePart != string(decl.Name) {
+				continue
+			}
+			for _, methodSet := range c.symbolIndex.Methods[decl.TypePkgName] {
+				if string(methodSet.Name) == methodName && !isPrivate(string(methodSet.Name)) && decl.TypeName == types.TypeName(methodSet.ReceiverTypeName) {
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
+					suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
+				}
+			}
+			for _, interfaceSet := range c.symbolIndex.Interfaces[decl.TypePkgName] {
+				if decl.TypeName == types.TypeName(interfaceSet.Name) {
+					for i, method := range interfaceSet.Methods {
+						if string(method) == methodName && !isPrivate(string(method)) {
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
+							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
+						}
+					}
+				}
+			}
+		}
+		return suggestions
+	}
+
 	for _, decl := range c.declRegistry.Decls {
 		if sb.input.basePart == string(decl.Name) {
 			for _, methodSet := range c.symbolIndex.Methods[decl.TypePkgName] {
 				if strings.HasPrefix(string(methodSet.Name), sb.input.selectorPart) && !isPrivate(string(methodSet.Name)) {
 					if decl.TypeName == types.TypeName(methodSet.ReceiverTypeName) {
-						ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(methodSet.Args)...)
+						ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
 						suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 					}
 				}
@@ -101,7 +137,7 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if decl.TypeName == types.TypeName(interfaceSet.Name) {
 					for i, method := range interfaceSet.Methods {
 						if strings.HasPrefix(string(method), sb.input.selectorPart) && !isPrivate(string(method)) {
-							ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(interfaceSet.Args[i])...)
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
 							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 						}
 					}
@@ -178,7 +214,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 
 	for _, methodSet := range c.symbolIndex.Methods[lastReturElm.TypePkgName] {
 		if strings.HasPrefix(string(methodSet.Name), lastSelectorPart) && !isPrivate(string(methodSet.Name)) && types.TypeName(methodSet.ReceiverTypeName) == lastReturElm.TypeName && len(methodSet.Returns) == 1 {
-			ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(methodSet.Args)...)
+			ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
 			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 		}
 	}
@@ -189,7 +225,7 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		if lastReturElm.TypeName == types.TypeName(interfaceSet.Name) {
 			for i, method := range interfaceSet.Methods {
 				if strings.HasPrefix(string(method), lastSelectorPart) && !isPrivate(string(method)) {
-					ghostTextAppnder := prompt.NewGhostTextAppender("", ")", composeArgPromtSegments(interfaceSet.Args[i])...)
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(interfaceSet.Args[i])...)
 					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 				}
 			}
@@ -310,9 +346,17 @@ func (c *Completer) findDefinedTypeSuggestions(sb *suggestionBuilder) []prompt.S
 	return suggestions
 }
 
+// FixUnclosedParens は ghost suffix の ")" が未入力のまま Enter された場合に閉じ括弧を補完する
+func FixUnclosedParens(input string) string {
+	if diff := strings.Count(input, "(") - strings.Count(input, ")"); diff > 0 {
+		input += strings.Repeat(")", diff)
+	}
+	return input
+}
+
 func composeArgPromtSegments(argSets []symbols.ArgSet) []prompt.GhostSegment {
 	var segments []prompt.GhostSegment
-	for _, argSet := range argSets {
+	for i, argSet := range argSets {
 		var arg strings.Builder
 		if argSet.IsPointer {
 			arg.WriteString("*")
@@ -325,7 +369,12 @@ func composeArgPromtSegments(argSets []symbols.ArgSet) []prompt.GhostSegment {
 		arg.WriteString(string(argSet.TypeName))
 
 		placeholder := prompt.PlaceholderSegment(arg.String())
-		segments = append(segments, placeholder, prompt.SeparatorSegment(", "))
+		// 次の要素がある場合、区切りを入れる
+		if i < len(argSets)-1 {
+			segments = append(segments, placeholder, prompt.SeparatorSegment(","))
+			continue
+		}
+		segments = append(segments, placeholder)
 	}
 	return segments
 }
