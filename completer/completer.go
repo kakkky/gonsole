@@ -36,12 +36,14 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 		return c.findPackageSuggestions(sb)
 	}
 
-	suggestions := c.findSuggestions(sb)
-
-	return suggestions
+	return c.findSuggestions(sb)
 }
 
 func (c *Completer) findSuggestions(sb *suggestionBuilder) []prompt.Suggest {
+	if isMethodChain(sb.input.selectorPart) {
+		return c.findMethodSuggestionsFromChain(nil, sb)
+	}
+
 	methodSuggests := c.findMethodSuggestions(sb)
 	functionSuggests := c.findFunctionSuggestions(sb)
 	variableSuggests := c.findVariableSuggestions(sb)
@@ -86,11 +88,6 @@ func (c *Completer) findFunctionSuggestions(sb *suggestionBuilder) []prompt.Sugg
 }
 func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
-
-	// メソッドチェーンの場合は専用処理に移行
-	if isMethodChain(sb.input.selectorPart) {
-		return c.findMethodSuggestionsFromChain(suggestions, sb)
-	}
 
 	// 引数入力中（selectorPartに「(」を含む）場合、メソッド名のみでマッチしてghostだけ返す
 	if methodName, _, ok := strings.Cut(sb.input.selectorPart, "("); ok {
