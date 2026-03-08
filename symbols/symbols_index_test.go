@@ -25,8 +25,10 @@ func TestCandidates(t *testing.T) {
 				Pkgs: []types.PkgName{"funcs"},
 				Funcs: map[types.PkgName][]FuncSet{
 					"funcs": {
-						{Name: "Add", Description: "Add adds two integers and returns the sum\n", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}}},
+						{Name: "Add", Description: "Add adds two integers and returns the sum\n", Args: []ArgSet{{Name: "a", TypeName: "int"}, {Name: "b", TypeName: "int"}}, Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}}},
 						{Name: "ReturnMultiple", Description: "ReturnMultiple returns multiple values\n", Returns: []ReturnSet{{TypeName: "int", TypePkgName: ""}, {TypeName: "string", TypePkgName: ""}}},
+						{Name: "Double", Description: "Double doubles the value at the given pointer\n", Args: []ArgSet{{Name: "n", TypeName: "int", IsPointer: true}}},
+						{Name: "FetchWithContext", Description: "FetchWithContext fetches data using a context from another package\n", Args: []ArgSet{{Name: "ctx", TypeName: "Context", TypePkgName: "context"}, {Name: "key", TypeName: "string"}}, Returns: []ReturnSet{{TypeName: "string"}}},
 					},
 				},
 				Methods:      map[types.PkgName][]MethodSet{},
@@ -129,7 +131,7 @@ func TestCandidates(t *testing.T) {
 				},
 				Methods: map[types.PkgName][]MethodSet{
 					"varsmethodcall": {
-						{Name: "Info", Description: "Info logs an info message and returns the logged message\n", ReceiverTypeName: "Logger", Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
+						{Name: "Info", Description: "Info logs an info message and returns the logged message\n", ReceiverTypeName: "Logger", Args: []ArgSet{{Name: "msg", TypeName: "string"}}, Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
 					},
 				},
 				Vars: map[types.PkgName][]VarSet{
@@ -201,8 +203,8 @@ func TestCandidates(t *testing.T) {
 				Structs: map[types.PkgName][]StructSet{},
 				Interfaces: map[types.PkgName][]InterfaceSet{
 					"interfaces": {
-						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: []string{"Read reads data\n"}},
-						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data\n"}},
+						{Name: "Reader", Methods: []types.DeclName{"Read"}, Descriptions: []string{"Read reads data\n"}, Args: [][]ArgSet{{{Name: "p", TypeName: "[]byte"}}}},
+						{Name: "Writer", Methods: []types.DeclName{"Write"}, Descriptions: []string{"Write writes data\n"}, Args: [][]ArgSet{{{Name: "p", TypeName: "[]byte"}}}},
 					},
 				},
 				DefinedTypes: map[types.PkgName][]DefinedTypeSet{},
@@ -224,7 +226,7 @@ func TestCandidates(t *testing.T) {
 						{Name: "GetConfigFromMethod", Description: "GetConfigFromMethod returns a Config from another package via method\n", ReceiverTypeName: "Service", Returns: []ReturnSet{{TypeName: "Config", TypePkgName: "types"}}},
 					},
 					"types": {
-						{Name: "Info", Description: "Info logs an info message\n", ReceiverTypeName: "Logger", Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
+						{Name: "Info", Description: "Info logs an info message\n", ReceiverTypeName: "Logger", Args: []ArgSet{{Name: "msg", TypeName: "string"}}, Returns: []ReturnSet{{TypeName: "string", TypePkgName: ""}}},
 					},
 				},
 				Vars:   map[types.PkgName][]VarSet{},

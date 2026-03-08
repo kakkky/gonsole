@@ -72,11 +72,12 @@ func findEqualAndSpacePos(input string) (pos int, found bool) {
 	return equalPos, true
 }
 
-func (sb *suggestionBuilder) build(candidate string, suggestType suggestType, desctiption string, appendSuggestText ...string) prompt.Suggest {
+func (sb *suggestionBuilder) build(candidate string, suggestType suggestType, desctiption string, ghostTextAppender *prompt.GhostTextAppender, appendSuggestText ...string) prompt.Suggest {
 	return prompt.Suggest{
-		Text:        sb.buildSuggestText(candidate) + strings.Join(appendSuggestText, ""),
-		DisplayText: candidate,
-		Description: sb.buildSuggestDescription(suggestType, desctiption),
+		Text:              sb.buildSuggestText(candidate) + strings.Join(appendSuggestText, ""),
+		DisplayText:       candidate,
+		Description:       sb.buildSuggestDescription(suggestType, desctiption),
+		GhostTextAppender: ghostTextAppender,
 	}
 }
 
@@ -94,6 +95,12 @@ func (sb *suggestionBuilder) buildSuggestText(candidateStr string) string {
 	if matchLen > 0 {
 		// 一致部分を除去して candidateStr に置き換え
 		return strings.TrimSuffix(sb.input.raw, candidateStr[:matchLen]) + candidateStr
+	}
+
+	// raw の途中に candidateStr が含まれる場合（引数入力中）、そこまで切り戻して返す
+	// raw が "." で終わる場合はメソッドチェーンの続きを入力中なので除外する
+	if idx := strings.Index(sb.input.raw, candidateStr); idx >= 0 && !strings.HasSuffix(sb.input.raw, ".") {
+		return sb.input.raw[:idx] + candidateStr
 	}
 
 	// 一致なしの場合

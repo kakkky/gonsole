@@ -36,12 +36,14 @@ func (c *Completer) Complete(input prompt.Document) []prompt.Suggest {
 		return c.findPackageSuggestions(sb)
 	}
 
-	suggestions := c.findSuggestions(sb)
-
-	return suggestions
+	return c.findSuggestions(sb)
 }
 
 func (c *Completer) findSuggestions(sb *suggestionBuilder) []prompt.Suggest {
+	if isMethodChain(sb.input.selectorPart) {
+		return c.findMethodSuggestionsFromChain(nil, sb)
+	}
+
 	methodSuggests := c.findMethodSuggestions(sb)
 	functionSuggests := c.findFunctionSuggestions(sb)
 	variableSuggests := c.findVariableSuggestions(sb)
@@ -56,7 +58,7 @@ func (c *Completer) findPackageSuggestions(sb *suggestionBuilder) []prompt.Sugge
 	suggestions := make([]prompt.Suggest, 0)
 	for _, pkg := range c.symbolIndex.Pkgs {
 		if strings.HasPrefix(string(pkg), sb.input.text) {
-			suggestions = append(suggestions, sb.build(string(pkg), suggestTypePackage, ""))
+			suggestions = append(suggestions, sb.build(string(pkg), suggestTypePackage, "", nil))
 		}
 	}
 	return suggestions
@@ -65,9 +67,20 @@ func (c *Completer) findPackageSuggestions(sb *suggestionBuilder) []prompt.Sugge
 func (c *Completer) findFunctionSuggestions(sb *suggestionBuilder) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 	if funcSets, ok := c.symbolIndex.Funcs[types.PkgName(sb.input.basePart)]; ok {
+		// 引数入力中（selectorPartに「(」を含む）場合、関数名のみでマッチしてghostだけ返す
+		if funcName, _, ok := strings.Cut(sb.input.selectorPart, "("); ok {
+			for _, funcSet := range funcSets {
+				if string(funcSet.Name) == funcName && !isPrivate(string(funcSet.Name)) {
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(funcSet.Args)...)
+					suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, ghostTextAppnder, "("))
+				}
+			}
+			return suggestions
+		}
 		for _, funcSet := range funcSets {
 			if strings.HasPrefix(string(funcSet.Name), sb.input.selectorPart) && !isPrivate(string(funcSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, "()"))
+				ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(funcSet.Args)...)
+				suggestions = append(suggestions, sb.build(string(funcSet.Name), suggestTypeFunction, funcSet.Description, ghostTextAppnder, "("))
 			}
 		}
 	}
@@ -76,9 +89,34 @@ func (c *Completer) findFunctionSuggestions(sb *suggestionBuilder) []prompt.Sugg
 func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Suggest {
 	suggestions := make([]prompt.Suggest, 0)
 
-	// メソッドチェーンの場合は専用処理に移行
-	if isMethodChain(sb.input.selectorPart) {
-		return c.findMethodSuggestionsFromChain(suggestions, sb)
+	// 引数入力中（selectorPartに「(」を含む）場合、メソッド名のみでマッチしてghostだけ返す
+	if methodName, _, ok := strings.Cut(sb.input.selectorPart, "("); ok {
+		for _, decl := range c.declRegistry.Decls {
+			if sb.input.basePart != string(decl.Name) {
+				continue
+			}
+			for _, methodSet := range c.symbolIndex.Methods[decl.TypePkgName] {
+				if string(methodSet.Name) == methodName && !isPrivate(string(methodSet.Name)) && decl.TypeName == types.TypeName(methodSet.ReceiverTypeName) {
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
+					suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
+				}
+			}
+			for _, interfaceSet := range c.symbolIndex.Interfaces[decl.TypePkgName] {
+				if decl.TypeName == types.TypeName(interfaceSet.Name) {
+					for i, method := range interfaceSet.Methods {
+						if string(method) == methodName && !isPrivate(string(method)) {
+							var methodArgs []symbols.ArgSet
+							if i < len(interfaceSet.Args) {
+								methodArgs = interfaceSet.Args[i]
+							}
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
+							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
+						}
+					}
+				}
+			}
+		}
+		return suggestions
 	}
 
 	for _, decl := range c.declRegistry.Decls {
@@ -86,7 +124,8 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 			for _, methodSet := range c.symbolIndex.Methods[decl.TypePkgName] {
 				if strings.HasPrefix(string(methodSet.Name), sb.input.selectorPart) && !isPrivate(string(methodSet.Name)) {
 					if decl.TypeName == types.TypeName(methodSet.ReceiverTypeName) {
-						suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
+						ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
+						suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 					}
 				}
 			}
@@ -99,7 +138,12 @@ func (c *Completer) findMethodSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if decl.TypeName == types.TypeName(interfaceSet.Name) {
 					for i, method := range interfaceSet.Methods {
 						if strings.HasPrefix(string(method), sb.input.selectorPart) && !isPrivate(string(method)) {
-							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], "()"))
+							var methodArgs []symbols.ArgSet
+							if i < len(interfaceSet.Args) {
+								methodArgs = interfaceSet.Args[i]
+							}
+							ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
+							suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 						}
 					}
 				}
@@ -175,7 +219,8 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 
 	for _, methodSet := range c.symbolIndex.Methods[lastReturElm.TypePkgName] {
 		if strings.HasPrefix(string(methodSet.Name), lastSelectorPart) && !isPrivate(string(methodSet.Name)) && types.TypeName(methodSet.ReceiverTypeName) == lastReturElm.TypeName && len(methodSet.Returns) == 1 {
-			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, "()"))
+			ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodSet.Args)...)
+			suggestions = append(suggestions, sb.build(string(methodSet.Name), suggestTypeMethod, methodSet.Description, ghostTextAppnder, "("))
 		}
 	}
 	if len(suggestions) > 0 {
@@ -185,7 +230,12 @@ func (c *Completer) findMethodSuggestionsFromChain(suggestions []prompt.Suggest,
 		if lastReturElm.TypeName == types.TypeName(interfaceSet.Name) {
 			for i, method := range interfaceSet.Methods {
 				if strings.HasPrefix(string(method), lastSelectorPart) && !isPrivate(string(method)) {
-					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], "()"))
+					var methodArgs []symbols.ArgSet
+					if i < len(interfaceSet.Args) {
+						methodArgs = interfaceSet.Args[i]
+					}
+					ghostTextAppnder := prompt.NewGhostTextAppender("", "", composeArgPromtSegments(methodArgs)...)
+					suggestions = append(suggestions, sb.build(string(method), suggestTypeMethod, interfaceSet.Descriptions[i], ghostTextAppnder, "("))
 				}
 			}
 		}
@@ -245,7 +295,7 @@ func (c *Completer) findVariableSuggestions(sb *suggestionBuilder) []prompt.Sugg
 	if varSets, ok := c.symbolIndex.Vars[types.PkgName(sb.input.basePart)]; ok {
 		for _, varSet := range varSets {
 			if strings.HasPrefix(string(varSet.Name), sb.input.selectorPart) && !isPrivate(string(varSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(varSet.Name), suggestTypeVariable, varSet.Description))
+				suggestions = append(suggestions, sb.build(string(varSet.Name), suggestTypeVariable, varSet.Description, nil))
 			}
 		}
 	}
@@ -257,7 +307,7 @@ func (c *Completer) findConstantSuggestions(sb *suggestionBuilder) []prompt.Sugg
 	if constSets, ok := c.symbolIndex.Consts[types.PkgName(sb.input.basePart)]; ok {
 		for _, constSet := range constSets {
 			if strings.HasPrefix(string(constSet.Name), sb.input.selectorPart) && !isPrivate(string(constSet.Name)) {
-				suggestions = append(suggestions, sb.build(string(constSet.Name), suggestTypeConstant, constSet.Description))
+				suggestions = append(suggestions, sb.build(string(constSet.Name), suggestTypeConstant, constSet.Description, nil))
 			}
 		}
 	}
@@ -273,7 +323,7 @@ func (c *Completer) findStructSuggestions(sb *suggestionBuilder) []prompt.Sugges
 				if len(structSet.Fields) > 0 {
 					compositeLit = compositeLitStr(structSet.Fields)
 				}
-				suggestions = append(suggestions, sb.build(string(structSet.Name), suggestTypeStruct, structSet.Description, "", compositeLit))
+				suggestions = append(suggestions, sb.build(string(structSet.Name), suggestTypeStruct, structSet.Description, nil, compositeLit))
 			}
 		}
 	}
@@ -299,8 +349,33 @@ func (c *Completer) findDefinedTypeSuggestions(sb *suggestionBuilder) []prompt.S
 	suggestions := make([]prompt.Suggest, 0)
 	for _, definedTypeSet := range c.symbolIndex.DefinedTypes[types.PkgName(sb.input.basePart)] {
 		if strings.HasPrefix(string(definedTypeSet.Name), sb.input.selectorPart) && !isPrivate(string(definedTypeSet.Name)) {
-			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, "()"))
+			suggestions = append(suggestions, sb.build(string(definedTypeSet.Name), suggestTypeDefinedType, definedTypeSet.Description, nil, "("))
 		}
 	}
 	return suggestions
+}
+
+func composeArgPromtSegments(argSets []symbols.ArgSet) []prompt.GhostSegment {
+	var segments []prompt.GhostSegment
+	for i, argSet := range argSets {
+		var arg strings.Builder
+		if argSet.IsPointer {
+			arg.WriteString("*")
+		}
+		arg.WriteString(argSet.Name)
+		arg.WriteString(" ")
+		if argSet.TypePkgName != "" {
+			arg.WriteString(string(argSet.TypePkgName) + ".")
+		}
+		arg.WriteString(string(argSet.TypeName))
+
+		placeholder := prompt.PlaceholderSegment(arg.String())
+		// 次の要素がある場合、区切りを入れる
+		if i < len(argSets)-1 {
+			segments = append(segments, placeholder, prompt.SeparatorSegment(","))
+			continue
+		}
+		segments = append(segments, placeholder)
+	}
+	return segments
 }

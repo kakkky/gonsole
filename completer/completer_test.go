@@ -90,19 +90,22 @@ func TestCompleter_Complete(t *testing.T) {
 			setupRegistry: declregistry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "myapp.Print()",
-					DisplayText: "Print",
-					Description: "Function: Print outputs a message",
+					Text:              "myapp.Print(",
+					DisplayText:       "Print",
+					Description:       "Function: Print outputs a message",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "myapp.Printf()",
-					DisplayText: "Printf",
-					Description: "Function: Printf formats a message",
+					Text:              "myapp.Printf(",
+					DisplayText:       "Printf",
+					Description:       "Function: Printf formats a message",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "myapp.Println()",
-					DisplayText: "Println",
-					Description: "Function: Println outputs a message with newline",
+					Text:              "myapp.Println(",
+					DisplayText:       "Println",
+					Description:       "Function: Println outputs a message with newline",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -231,12 +234,12 @@ func TestCompleter_Complete(t *testing.T) {
 			setupRegistry: declregistry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "myapp.MyInt()",
+					Text:        "myapp.MyInt(",
 					DisplayText: "MyInt",
 					Description: "DefinedType: MyInt is a custom int type",
 				},
 				{
-					Text:        "myapp.MyString()",
+					Text:        "myapp.MyString(",
 					DisplayText: "MyString",
 					Description: "DefinedType: MyString is a custom string type",
 				},
@@ -308,14 +311,16 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "client.Do()",
-					DisplayText: "Do",
-					Description: "Method: Do executes a request",
+					Text:              "client.Do(",
+					DisplayText:       "Do",
+					Description:       "Method: Do executes a request",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "client.Get()",
-					DisplayText: "Get",
-					Description: "Method: Get sends a GET request",
+					Text:              "client.Get(",
+					DisplayText:       "Get",
+					Description:       "Method: Get sends a GET request",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -362,14 +367,16 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "stream.Write()",
-					DisplayText: "Write",
-					Description: "Method: Write writes data to the stream",
+					Text:              "stream.Write(",
+					DisplayText:       "Write",
+					Description:       "Method: Write writes data to the stream",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "stream.Close()",
-					DisplayText: "Close",
-					Description: "Method: Close closes the stream",
+					Text:              "stream.Close(",
+					DisplayText:       "Close",
+					Description:       "Method: Close closes the stream",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -414,9 +421,10 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "response.GetContent()",
-					DisplayText: "GetContent",
-					Description: "Method: GetContent returns the response content",
+					Text:              "response.GetContent(",
+					DisplayText:       "GetContent",
+					Description:       "Method: GetContent returns the response content",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -483,14 +491,16 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "content.Read()",
-					DisplayText: "Read",
-					Description: "Method: Read reads data from the content",
+					Text:              "content.Read(",
+					DisplayText:       "Read",
+					Description:       "Method: Read reads data from the content",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "content.Type()",
-					DisplayText: "Type",
-					Description: "Method: Type returns the content type",
+					Text:              "content.Type(",
+					DisplayText:       "Type",
+					Description:       "Method: Type returns the content type",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -553,14 +563,16 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "reader.Read()",
-					DisplayText: "Read",
-					Description: "Method: Read reads data from the reader",
+					Text:              "reader.Read(",
+					DisplayText:       "Read",
+					Description:       "Method: Read reads data from the reader",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "reader.Close()",
-					DisplayText: "Close",
-					Description: "Method: Close closes the reader",
+					Text:              "reader.Close(",
+					DisplayText:       "Close",
+					Description:       "Method: Close closes the reader",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -624,19 +636,22 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "resource.Open()",
-					DisplayText: "Open",
-					Description: "Method: Open opens the resource",
+					Text:              "resource.Open(",
+					DisplayText:       "Open",
+					Description:       "Method: Open opens the resource",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "resource.Save()",
-					DisplayText: "Save",
-					Description: "Method: Save saves the resource",
+					Text:              "resource.Save(",
+					DisplayText:       "Save",
+					Description:       "Method: Save saves the resource",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "resource.Delete()",
-					DisplayText: "Delete",
-					Description: "Method: Delete deletes the resource",
+					Text:              "resource.Delete(",
+					DisplayText:       "Delete",
+					Description:       "Method: Delete deletes the resource",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -661,9 +676,10 @@ func TestCompleter_Complete(t *testing.T) {
 			setupRegistry: declregistry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "myapp.Print()",
-					DisplayText: "Print",
-					Description: "Function: Print outputs a message",
+					Text:              "myapp.Print(",
+					DisplayText:       "Print",
+					Description:       "Function: Print outputs a message",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
 					Text:        "myapp.Version",
@@ -705,9 +721,10 @@ func TestCompleter_Complete(t *testing.T) {
 			setupRegistry: declregistry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "myapp.NewClient().Do()",
-					DisplayText: "Do",
-					Description: "Method: Do something",
+					Text:              "myapp.NewClient().Do(",
+					DisplayText:       "Do",
+					Description:       "Method: Do something",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -773,14 +790,16 @@ func TestCompleter_Complete(t *testing.T) {
 			setupRegistry: declregistry.NewRegistry(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "myapp.NewReader().Read()",
-					DisplayText: "Read",
-					Description: "Method: Read reads data",
+					Text:              "myapp.NewReader().Read(",
+					DisplayText:       "Read",
+					Description:       "Method: Read reads data",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "myapp.NewReader().Close()",
-					DisplayText: "Close",
-					Description: "Method: Close closes reader",
+					Text:              "myapp.NewReader().Close(",
+					DisplayText:       "Close",
+					Description:       "Method: Close closes reader",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -821,9 +840,10 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "client.GetResource().Open()",
-					DisplayText: "Open",
-					Description: "Method: Open resource",
+					Text:              "client.GetResource().Open(",
+					DisplayText:       "Open",
+					Description:       "Method: Open resource",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 			},
 		},
@@ -922,14 +942,92 @@ func TestCompleter_Complete(t *testing.T) {
 			}(),
 			expected: []prompt.Suggest{
 				{
-					Text:        "reader.Read().Read()",
-					DisplayText: "Read",
-					Description: "Method: Read reads data from the reader",
+					Text:              "reader.Read().Read(",
+					DisplayText:       "Read",
+					Description:       "Method: Read reads data from the reader",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
 				},
 				{
-					Text:        "reader.Read().Close()",
-					DisplayText: "Close",
-					Description: "Method: Close closes the reader",
+					Text:              "reader.Read().Close(",
+					DisplayText:       "Close",
+					Description:       "Method: Close closes the reader",
+					GhostTextAppender: prompt.NewGhostTextAppender("", ""),
+				},
+			},
+		},
+		{
+			name:      "Complete function with args shows ghost text segments",
+			inputText: "myapp.F",
+			setupSymbolIndex: &symbols.SymbolIndex{
+				Pkgs: []types.PkgName{"myapp"},
+				Funcs: map[types.PkgName][]symbols.FuncSet{
+					"myapp": {
+						{
+							Name:        "Fetch",
+							Description: "Fetch fetches data",
+							Args: []symbols.ArgSet{
+								{Name: "url", TypeName: "string"},
+								{Name: "timeout", TypeName: "int"},
+							},
+						},
+					},
+				},
+			},
+			setupRegistry: declregistry.NewRegistry(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "myapp.Fetch(",
+					DisplayText: "Fetch",
+					Description: "Function: Fetch fetches data",
+					GhostTextAppender: prompt.NewGhostTextAppender("", "",
+						prompt.PlaceholderSegment("url string"),
+						prompt.SeparatorSegment(","),
+						prompt.PlaceholderSegment("timeout int"),
+					),
+				},
+			},
+		},
+		{
+			name:      "Complete method with args shows ghost text segments",
+			inputText: "client.",
+			setupSymbolIndex: &symbols.SymbolIndex{
+				Pkgs: []types.PkgName{"myapp"},
+				Methods: map[types.PkgName][]symbols.MethodSet{
+					"myapp": {
+						{
+							ReceiverTypeName: "Client",
+							Name:             "Post",
+							Description:      "Post sends a POST request",
+							Args: []symbols.ArgSet{
+								{Name: "path", TypeName: "string"},
+								{Name: "body", TypeName: "Reader", TypePkgName: "io"},
+							},
+							Returns: []symbols.ReturnSet{
+								{TypeName: "Response", TypePkgName: "myapp"},
+							},
+						},
+					},
+				},
+			},
+			setupRegistry: func() *declregistry.DeclRegistry {
+				registry := declregistry.NewRegistry()
+				registry.Decls = append(registry.Decls, declregistry.Decl{
+					Name:        "client",
+					TypeName:    "Client",
+					TypePkgName: "myapp",
+				})
+				return registry
+			}(),
+			expected: []prompt.Suggest{
+				{
+					Text:        "client.Post(",
+					DisplayText: "Post",
+					Description: "Method: Post sends a POST request",
+					GhostTextAppender: prompt.NewGhostTextAppender("", "",
+						prompt.PlaceholderSegment("path string"),
+						prompt.SeparatorSegment(","),
+						prompt.PlaceholderSegment("body io.Reader"),
+					),
 				},
 			},
 		},
@@ -949,7 +1047,7 @@ func TestCompleter_Complete(t *testing.T) {
 
 			// 結果を比較（順序は考慮しない）
 			opts := []cmp.Option{
-				cmp.AllowUnexported(prompt.Suggest{}),
+				cmp.AllowUnexported(prompt.Suggest{}, prompt.GhostTextAppender{}),
 				// prompt.SuggestのTextで順序を無視して比較
 				cmpopts.SortSlices(func(a, b prompt.Suggest) bool {
 					return a.Text < b.Text
