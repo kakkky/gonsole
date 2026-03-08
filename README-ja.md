@@ -101,6 +101,7 @@ func NewDog(name string, age int) *Dog {
 ![alt text](assets/image-6.png)
 
 量が多すぎて絞りたい場合は、例えば`animal.NewD`まで打つと`NewDog`関数のみに絞り込むことができます。
+また、関数やメソッドの引数はヒントとして表示されます。
 
 これで定義できました。
 
