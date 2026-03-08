@@ -103,6 +103,7 @@ Basically, press Tab to select.
 ![alt text](assets/image-6.png)
 
 If there are too many options to narrow down, for example, typing `animal.NewD` will filter to only the `NewDog` function.
+Function and method arguments are also shown as hints.
 
 This completes the definition.
 
