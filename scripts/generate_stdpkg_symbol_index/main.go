@@ -68,7 +68,7 @@ func formatValue(buf *bytes.Buffer, v reflect.Value, indent int) {
 	}
 
 	// ポインタの場合はデリファレンス
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			buf.WriteString("nil")
 			return
